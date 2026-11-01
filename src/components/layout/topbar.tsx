@@ -8,6 +8,7 @@ import { GovGoldRule, GovIdentity } from "@/components/brand/gov-identity";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 import { usePathname } from "next/navigation";
 import { moduleOf, shellOf } from "@/components/layout/nav-config";
+import { OWN_CHROME } from "@/components/layout/module-chrome";
 
 /**
  * Thanh trên cùng dùng chung, phong cách cơ quan nhà nước: nền xanh lá đậm, họa tiết trống đồng Đông Sơn,
@@ -17,6 +18,8 @@ import { moduleOf, shellOf } from "@/components/layout/nav-config";
 export function TopBar({ canAdmin = false, canCatalog = false }: { canAdmin?: boolean; canCatalog?: boolean }) {
   const pathname = usePathname();
   const mod = moduleOf(pathname);
+  // Trong phần mềm nghiệp vụ, thanh menu của phần mềm đã có logo (về trang chủ) và nút đăng xuất.
+  if (mod && OWN_CHROME.includes(mod.code)) return null;
   // Menu dọc và menu ngang dùng chung ngăn kéo ☰ trên điện thoại.
   const hasSidebar = shellOf(mod) === "sidebar" || shellOf(mod) === "topnav";
   const ModIcon = mod?.icon;

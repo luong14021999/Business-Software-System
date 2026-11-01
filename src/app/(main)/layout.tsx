@@ -16,7 +16,7 @@ export default async function MainLayout({
   return (
     <ModuleScope className="flex flex-col h-[100dvh] w-full overflow-hidden bg-muted/30">
       <TopBar canAdmin={can("admin.view")} canCatalog={can("write.mdm")} />
-      <ModuleFrame canAdmin={can("admin.view")}>{children}</ModuleFrame>
+      <ModuleFrame canAdmin={can("admin.view")} canCatalog={can("write.mdm")}>{children}</ModuleFrame>
     </ModuleScope>
   );
 }

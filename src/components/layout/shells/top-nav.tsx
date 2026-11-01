@@ -6,12 +6,14 @@ import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { isActiveHref, moduleOf } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
+import { ModuleActions, ModuleHomeLink } from "@/components/layout/module-chrome";
+import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 
 /**
  * Khung "menu ngang" (phòng thí nghiệm): thanh tối, mỗi nhóm là một mục hoặc menu xổ xuống.
- * Trên điện thoại ẩn – dùng menu ☰ ở thanh tiêu đề (cùng danh sách nhóm).
+ * Đầu thanh: logo Viện (về trang chủ); cuối thanh: Danh mục / Đăng xuất. Trên điện thoại các mục menu nằm trong ngăn kéo ☰.
  */
-export function TopNav() {
+export function TopNav({ canAdmin = false, canCatalog = false }: { canAdmin?: boolean; canCatalog?: boolean }) {
   const pathname = usePathname();
   const mod = moduleOf(pathname);
   // Menu đang mở gắn với trang mở nó → tự đóng khi chuyển trang.
@@ -35,8 +37,11 @@ export function TopNav() {
   if (!mod) return null;
   const item = "flex h-[50px] items-center gap-1 px-[15px] text-[15px] transition-colors";
   return (
-    <nav ref={ref} aria-label={`Menu ${mod.name}`} className="hidden shrink-0 bg-[#222] md:block">
-      <ul className="flex flex-wrap items-stretch px-2 lg:px-4">
+    <nav ref={ref} aria-label={`Menu ${mod.name}`} className="flex shrink-0 items-center gap-2 bg-[#222] px-2 lg:px-4">
+      <div className="md:hidden"><MobileSidebar /></div>
+      <ModuleHomeLink tone="dark" className="py-1.5 md:mr-1" />
+      <span className="truncate text-sm font-medium text-white md:hidden">{mod.name}</span>
+      <ul className="hidden min-w-0 flex-1 flex-wrap items-stretch md:flex">
         {mod.groups.map((g) => {
           const active = g.items.some((i) => isActiveHref(i.href, pathname));
           if (g.link || g.items.length === 1) {
@@ -80,6 +85,9 @@ export function TopNav() {
           );
         })}
       </ul>
+      <div className="ml-auto py-1.5">
+        <ModuleActions tone="dark" canAdmin={canAdmin} canCatalog={canCatalog} />
+      </div>
     </nav>
   );
 }
