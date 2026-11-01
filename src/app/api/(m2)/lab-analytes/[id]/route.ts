@@ -1,0 +1,6 @@
+import { analyteStore, type LabAnalyte } from "@/lib/modules/m2/data/orders";
+import { itemRoutes } from "@/lib/platform/api/crud";
+
+export const dynamic = "force-dynamic";
+
+export const { PATCH, DELETE } = itemRoutes<LabAnalyte>(analyteStore);

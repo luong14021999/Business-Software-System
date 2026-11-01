@@ -8,8 +8,8 @@ describe("khung điều hướng theo phần mềm", () => {
       expect(moduleOf(m.home)?.code).toBe(m.code);
     }
   });
-  it("mỗi phần mềm có khung riêng theo mục đích; chỉ phòng thí nghiệm giữ menu dọc", () => {
-    expect(Object.fromEntries(navModules.map((m) => [m.code, shellOf(m)]))).toEqual({ "ĐH": "hub", M1: "console", M2: "sidebar", "M3.1": "bench", "M3.2": "hub" });
+  it("mỗi phần mềm có khung riêng theo mục đích; phòng thí nghiệm dùng menu ngang", () => {
+    expect(Object.fromEntries(navModules.map((m) => [m.code, shellOf(m)]))).toEqual({ "ĐH": "hub", M1: "console", M2: "topnav", "M3.1": "bench", "M3.2": "hub" });
   });
   it.each([
     ["M3.1", "bench"],
@@ -23,6 +23,6 @@ describe("khung điều hướng theo phần mềm", () => {
     const all = m.groups.flatMap((g) => g.items.map((i) => i.href));
     expect(new Set([...inTabs, ...inCatalog]).size).toBe(all.length);
     expect(inTabs.length + inCatalog.length).toBe(all.length);
-    expect(shellOf(navModules.find((x) => x.code === "M2"))).toBe("sidebar");
+    expect(shellOf(navModules.find((x) => x.code === "M2"))).toBe("topnav");
   });
 });

@@ -1,0 +1,131 @@
+// Đơn hàng → yêu cầu (mẫu) → kết quả: hàm thuần, kiểm thử được.
+
+export const ORDER_KINDS = ["Mẫu gửi", "Quan trắc môi trường", "Môi trường lao động", "Nông sản – thực phẩm"] as const;
+export type OrderKind = (typeof ORDER_KINDS)[number];
+
+/** Vòng đời đơn hàng theo thứ tự; "Hủy" có thể đặt ở bất kỳ bước nào. */
+export const ORDER_STATUSES = ["Báo giá", "Quan trắc", "Phân tích", "Trả kết quả", "Thanh lý", "Hủy"] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+/** Màu chữ trạng thái đơn trên danh sách. */
+export const ORDER_STATUS_TONE: Record<string, string> = {
+  "Báo giá": "text-rose-700",
+  "Quan trắc": "text-orange-600",
+  "Phân tích": "text-teal-700",
+  "Trả kết quả": "text-blue-700",
+  "Thanh lý": "text-muted-foreground",
+  "Hủy": "text-muted-foreground line-through",
+};
+
+/** Phạm vi thực hiện chỉ tiêu (cột "Thầu phụ" khi bóc tách / nhập kết quả). */
+export const ANALYTE_SCOPES = ["VILAS", "Nội bộ", "Thầu phụ"] as const;
+
+/** Tên hiển thị của quy chuẩn kèm cột áp dụng. */
+export const specLabel = (s: { name: string; columnName: string }) => (s.columnName ? `${s.name} · ${s.columnName}` : s.name);
+
+/** Trạng thái của từng yêu cầu (mẫu) trong đơn. */
+export const SAMPLE_STAGES = [
+  "Đợi lấy mẫu",
+  "Lấy mẫu",
+  "Nhận mẫu",
+  "Đang phân tích",
+  "Đợi duyệt",
+  "Duyệt",
+  "Không duyệt",
+  "Trả kết quả",
+  "Lưu mẫu",
+  "Hủy mẫu",
+] as const;
+export type SampleStage = (typeof SAMPLE_STAGES)[number];
+
+/** Trạng thái tiếp nhận cũ của bảng mẫu (các trang khác vẫn dùng) suy ra từ trạng thái yêu cầu. */
+export function legacySampleStatus(stage: string) {
+  switch (stage) {
+    case "Đang phân tích":
+      return "Đang phân tích";
+    case "Đợi duyệt":
+    case "Không duyệt":
+      return "Chờ duyệt";
+    case "Duyệt":
+      return "Hoàn thành";
+    case "Trả kết quả":
+    case "Lưu mẫu":
+    case "Hủy mẫu":
+      return "Đã trả KQ";
+    default:
+      return "Đã tiếp nhận";
+  }
+}
+
+/** Thao tác hàng loạt trên danh sách yêu cầu: nút → trạng thái mới. */
+export const STAGE_ACTIONS = { "Lấy mẫu": "Lấy mẫu", "Nhận mẫu": "Nhận mẫu", "Trả kết quả": "Trả kết quả" } as const;
+
+/** Mã đơn hàng kế tiếp trong năm: "26.7" (2 số cuối của năm . số thứ tự). */
+export function nextOrderCode(year: number, existing: string[]) {
+  const yy = String(year % 100).padStart(2, "0");
+  const max = existing.reduce((m, c) => {
+    const [a, b] = c.split(".");
+    return a === yy && /^\d+$/.test(b ?? "") ? Math.max(m, Number(b)) : m;
+  }, 0);
+  return `${yy}.${max + 1}`;
+}
+
+/** "2026-07-30" → "300726" (ngày tháng năm 2 số, dùng trong mã mẫu). */
+export const dateStamp = (iso: string) => `${iso.slice(8, 10)}${iso.slice(5, 7)}${iso.slice(2, 4)}`;
+
+/**
+ * Sinh `count` mã mẫu theo tiền tố loại mẫu và ngày: NM300726-001, NM300726-002…
+ * Bỏ qua các số đã dùng trong cùng tiền tố + ngày.
+ */
+export function nextSampleCodes(prefix: string, isoDate: string, existing: string[], count: number) {
+  const head = `${prefix}${dateStamp(isoDate)}-`;
+  let max = 0;
+  for (const c of existing) {
+    if (!c.startsWith(head)) continue;
+    const n = Number(c.slice(head.length));
+    if (Number.isInteger(n)) max = Math.max(max, n);
+  }
+  return Array.from({ length: count }, (_, i) => `${head}${String(max + i + 1).padStart(3, "0")}`);
+}
+
+/** So kết quả với giới hạn quy chuẩn: trong giới hạn → "Đạt", ngoài → "Vượt"; thiếu dữ liệu → "". */
+export function compareLimit(value: number, min?: number | null, max?: number | null, prefix = ""): "Đạt" | "Vượt" | "" {
+  if (min == null && max == null) return "";
+  if (prefix === "KPH") return min != null && min > 0 ? "Vượt" : "Đạt";
+  if (!Number.isFinite(value)) return "";
+  // "<x": giá trị thật nhỏ hơn x → chỉ vượt khi chính x vẫn dưới mức tối thiểu.
+  if (prefix === "<") return min != null && value <= min ? "Vượt" : "Đạt";
+  if (max != null && value > max) return "Vượt";
+  if (min != null && value < min) return "Vượt";
+  return "Đạt";
+}
+
+/** Giới hạn dạng chữ để hiển thị: "6,5 – 8,5", "≤ 50", "≥ 4". */
+export function limitText(min?: number | null, max?: number | null) {
+  const f = (v: number) => v.toLocaleString("vi-VN");
+  if (min != null && max != null) return `${f(min)} – ${f(max)}`;
+  if (max != null) return `≤ ${f(max)}`;
+  if (min != null) return `≥ ${f(min)}`;
+  return "";
+}
+
+/** Đọc ô kết quả người dùng gõ: "<0,05" → { prefix "<", value 0.05 }; "KPH" → không phát hiện. */
+export function parseResultCell(text: string): { prefix: string; value: number } | null {
+  const t = String(text ?? "").trim();
+  if (!t) return null;
+  if (/^kph$/i.test(t)) return { prefix: "KPH", value: NaN };
+  const m = t.match(/^([<>])?\s*(-?[\d.,]+)$/);
+  if (!m) return null;
+  const raw = m[2];
+  // "1.234,5" (kiểu Việt) hoặc "1234.5" (kiểu Anh)
+  const norm = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+  const value = Number(norm);
+  return Number.isFinite(value) ? { prefix: m[1] ?? "", value } : null;
+}
+
+/** Số ngày trễ so với hạn (0 nếu chưa trễ hoặc không có hạn). */
+export function overdueDays(dueISO: string | null | undefined, todayISO: string) {
+  if (!dueISO) return 0;
+  const d = Math.floor((Date.parse(todayISO.slice(0, 10)) - Date.parse(dueISO.slice(0, 10))) / 86_400_000);
+  return d > 0 ? d : 0;
+}

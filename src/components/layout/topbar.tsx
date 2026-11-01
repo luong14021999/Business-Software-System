@@ -17,7 +17,8 @@ import { moduleOf, shellOf } from "@/components/layout/nav-config";
 export function TopBar({ canAdmin = false, canCatalog = false }: { canAdmin?: boolean; canCatalog?: boolean }) {
   const pathname = usePathname();
   const mod = moduleOf(pathname);
-  const hasSidebar = shellOf(mod) === "sidebar";
+  // Menu dọc và menu ngang dùng chung ngăn kéo ☰ trên điện thoại.
+  const hasSidebar = shellOf(mod) === "sidebar" || shellOf(mod) === "topnav";
   const ModIcon = mod?.icon;
   return (
     <header className="relative shrink-0 text-white shadow-md">

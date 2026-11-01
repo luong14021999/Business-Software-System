@@ -12,6 +12,7 @@ import {
   Beaker,
   FileText,
   Settings,
+  Layers,
   Users,
   TestTube,
   Users2,
@@ -78,16 +79,18 @@ import {
 import { cn } from "@/lib/utils";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon };
-export type NavGroup = { label: string; items: NavItem[] };
+/** `link`: khung "topnav" hiện nhóm thành 1 mục menu (trang đầu), không xổ danh sách. */
+export type NavGroup = { label: string; items: NavItem[]; link?: boolean };
 /** Tab chính của phần mềm dùng khung riêng: gom một số trang (theo href trong `groups`), trang đầu là trang vào. */
 export type NavTab = { label: string; icon: LucideIcon; hrefs: string[]; /** Hiện ở thanh dưới đáy trên điện thoại. */ mobile?: boolean; };
 /**
  * Khung điều hướng: "sidebar" = menu dọc bên trái (phòng thí nghiệm);
  * "bench" = tab lớn + danh mục, thanh dưới đáy trên điện thoại (nuôi cấy mô – dùng tại phòng cấy);
  * "hub" = tab ngang theo khu nghiệp vụ, lấy hồ sơ làm trung tâm (giống);
+ * "topnav" = thanh menu ngang, mỗi nhóm là một mục hoặc một menu xổ xuống (phòng thí nghiệm);
  * "console" = bảng điều khiển quản trị: bảng điều hành là trung tâm, các trang có đường dẫn quay về (nền tảng dùng chung).
  */
-export type ModuleShell = "sidebar" | "bench" | "hub" | "console";
+export type ModuleShell = "sidebar" | "bench" | "hub" | "console" | "topnav";
 /** Khóa giao diện: chọn bộ màu `[data-module]` trong globals.css. */
 export type ModuleKey = "dh" | "m1" | "m2" | "m3-1" | "m3-2";
 /** Phân hệ của nền tảng: mỗi phân hệ gồm nhiều nhóm menu và có bản sắc giao diện riêng. */
@@ -185,51 +188,49 @@ export const navModules: NavModule[] = [
     icon: FlaskConical,
     tagline: "Phòng phân tích Đất, nước, phân bón và môi trường · Mã VILAS 1501",
     searchHint: "Tìm mẫu, khách hàng, mã chỉ tiêu...",
+    shell: "topnav",
     groups: [
+      { label: "Trang chủ", link: true, items: [{ href: "/lims", label: "Trang chủ", icon: LayoutDashboard }] },
+      { label: "Khách hàng", link: true, items: [{ href: "/customers", label: "Khách hàng", icon: Users2 }] },
+      { label: "Đơn hàng", link: true, items: [{ href: "/orders", label: "Đơn hàng", icon: ClipboardList }] },
       {
-        label: "Tổng quan",
+        label: "Kết quả",
         items: [
-          { href: "/lims", label: "Bảng điều khiển PTN", icon: LayoutDashboard },
-          { href: "/statistics", label: "Thống kê", icon: BarChart3 },
-        ],
-      },
-      {
-        label: "Nguồn lực",
-        items: [
-          { href: "/personnel", label: "Nhân sự PTN", icon: Users },
-          { href: "/equipment", label: "Thiết bị PTN", icon: Wrench },
-          { href: "/tools", label: "Dụng cụ – Vật tư", icon: TestTube },
-          { href: "/chemicals", label: "Hóa chất", icon: Beaker },
-          { href: "/authorizations", label: "Ủy quyền phép thử", icon: UserCheck },
-          { href: "/commitments", label: "Cam kết khách quan & bảo mật", icon: ShieldHalf },
-          { href: "/suppliers", label: "Nhà cung cấp", icon: Truck },
-        ],
-      },
-      {
-        label: "Nghiệp vụ",
-        items: [
-          { href: "/campaigns", label: "Quan trắc theo đợt", icon: Telescope },
-          { href: "/field", label: "Lấy mẫu hiện trường", icon: Smartphone },
-          { href: "/samples", label: "Tiếp nhận mẫu", icon: ClipboardList },
-          { href: "/customers", label: "Khách hàng", icon: Users2 },
+          { href: "/result-entry", label: "Nhập kết quả (phiếu diễn biến phân tích)", icon: ClipboardEdit },
+          { href: "/reports", label: "Phiếu kết quả thử nghiệm", icon: FileText },
           { href: "/assignments", label: "Phân công công việc", icon: UserCog },
           { href: "/analysis", label: "Quy trình phân tích", icon: FlaskConical },
           { href: "/notebook", label: "Sổ tay thí nghiệm", icon: NotebookPen },
         ],
       },
       {
-        label: "Phiếu / Biểu mẫu",
+        label: "Yêu cầu",
         items: [
+          { href: "/samples", label: "Danh sách yêu cầu (tiếp nhận mẫu)", icon: ClipboardList },
           { href: "/test-requests", label: "Phiếu yêu cầu thử nghiệm", icon: FileSignature },
-          { href: "/result-entry", label: "Phiếu diễn biến phân tích", icon: ClipboardEdit },
-          { href: "/reports", label: "Phiếu kết quả thử nghiệm", icon: FileText },
-          { href: "/environment", label: "Phiếu theo dõi môi trường", icon: Thermometer },
+          { href: "/campaigns", label: "Quan trắc theo đợt", icon: Telescope },
+          { href: "/field", label: "Lấy mẫu hiện trường", icon: Smartphone },
           { href: "/archive", label: "Sổ theo dõi mẫu lưu", icon: Archive },
-          { href: "/feedback", label: "Phiếu ý kiến & khiếu nại", icon: MessageSquare },
+        ],
+      },
+      { label: "Thống kê", link: true, items: [{ href: "/statistics", label: "Thống kê", icon: BarChart3 }] },
+      {
+        label: "Quản lý",
+        items: [
+          { href: "/equipment", label: "Thiết bị", icon: Wrench },
+          { href: "/chemicals", label: "Hóa chất", icon: Beaker },
+          { href: "/tools", label: "Dụng cụ – Vật tư", icon: TestTube },
+          { href: "/environment", label: "Theo dõi điều kiện môi trường", icon: Thermometer },
+          { href: "/personnel", label: "Nhân sự", icon: Users },
+          { href: "/authorizations", label: "Ủy quyền phép thử", icon: UserCheck },
+          { href: "/commitments", label: "Cam kết khách quan & bảo mật", icon: ShieldHalf },
+          { href: "/suppliers", label: "Nhà cung cấp", icon: Truck },
+          { href: "/feedback", label: "Ý kiến & khiếu nại", icon: MessageSquare },
+          { href: "/accreditation", label: "Tra cứu phạm vi công nhận & phương pháp", icon: Award },
         ],
       },
       {
-        label: "Hệ thống quản lý ISO 17025",
+        label: "ISO 17025",
         items: [
           { href: "/iso17025", label: "Tổng quan ISO 17025", icon: ListChecks },
           { href: "/documents", label: "Kiểm soát tài liệu", icon: FileStack },
@@ -237,18 +238,22 @@ export const navModules: NavModule[] = [
           { href: "/internal-audits", label: "Đánh giá nội bộ", icon: SearchCheck },
           { href: "/management-reviews", label: "Xem xét của lãnh đạo", icon: Presentation },
           { href: "/release-rules", label: "Quy tắc kiểm soát phát hành", icon: ShieldBan },
-        ],
-      },
-      {
-        label: "Đảm bảo chất lượng",
-        items: [
-          { href: "/accreditation", label: "Phạm vi công nhận VILAS", icon: Award },
           { href: "/method-validations", label: "Xác nhận phương pháp", icon: FlaskRound },
           { href: "/calculation-methods", label: "Công thức tính & ĐKĐBĐ", icon: Calculator },
           { href: "/calibration-curves", label: "Đường chuẩn", icon: LineChart },
           { href: "/qc", label: "QC Levey-Jennings", icon: ShieldCheck },
           { href: "/risks", label: "Đăng ký rủi ro", icon: AlertOctagon },
           { href: "/decision-rules", label: "Quy tắc quyết định", icon: Scale },
+        ],
+      },
+      {
+        label: "Cài đặt",
+        link: true,
+        items: [
+          { href: "/lab-settings", label: "Cài đặt", icon: Settings },
+          { href: "/sample-types", label: "Loại mẫu", icon: Layers },
+          { href: "/lab-analytes", label: "Chỉ tiêu phân tích", icon: ListChecks },
+          { href: "/specifications", label: "Quy chuẩn", icon: Scale },
         ],
       },
     ],
