@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { FlaskConical, Gauge, Handshake, Microscope, Sprout } from "lucide-react";
+import { FlaskConical, Gauge, Microscope, Sprout } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { dbQuery } from "@/lib/platform/db";
 import { currentAccess } from "@/lib/platform/data/access";
@@ -41,14 +41,12 @@ export default async function PortalPage() {
        (select count(*)::int from public.customers) customers,
        (select count(*)::int from public.test_requests where status in ('Yêu cầu mới', 'Đã báo giá')) requests_open`,
   );
-  // Bảng M3/M4 nằm ở schema riêng (migration 0015) – chưa chạy migration thì ô vẫn hiện, chỉ thiếu số liệu.
+  // Bảng M3 nằm ở schema riêng (migration 0015) – chưa chạy migration thì ô vẫn hiện, chỉ thiếu số liệu.
   const [n] = await dbQuery(
     `select
-       (select count(*)::int from m4.service_requests where status = 'Mới tiếp nhận') requests_new,
-       (select count(*)::int from m4.contracts where status in ('Đã ký', 'Đang thực hiện')) contracts_open,
        (select count(*)::int from m3_tissue.culture_batches where status = 'Đang nuôi') batches_growing,
        (select count(*)::int from m3_breed.varieties) varieties`,
-  ).catch(() => [{ requests_new: "—", contracts_open: "—", batches_growing: "—", varieties: "—" }]);
+  ).catch(() => [{ batches_growing: "—", varieties: "—" }]);
   // M1 (hạ tầng) không là ô ở trang chủ: quản trị vào bằng nút ⚙ trên thanh trên cùng.
   // Ô "Điều hành" chỉ hiện với Ban lãnh đạo Viện.
   const executive: Mod[] = can("view.executive")
@@ -61,7 +59,7 @@ export default async function PortalPage() {
           color: "from-emerald-700 to-teal-900",
           href: "/executive",
           status: "Đang vận hành",
-          stats: [{ label: "yêu cầu dịch vụ mới", value: n.requests_new }],
+          stats: [{ label: "mẫu chưa trả kết quả", value: k.samples_open }],
         },
       ]
     : [];
@@ -77,19 +75,6 @@ export default async function PortalPage() {
       href: "/lims",
       status: "Đang vận hành",
       stats: [{ label: "mẫu chưa trả kết quả", value: k.samples_open }, { label: "phiếu đã phát hành", value: k.reports }],
-    },
-    {
-      code: "M4",
-      name: "Nghiên cứu – dịch vụ – tra cứu KH&CN",
-      desc: "Cổng tiếp nhận dịch vụ trực tuyến, tra cứu công khai, báo giá, hợp đồng, thanh toán, công nợ; nhiệm vụ KH&CN, kho tri thức, chuyển giao",
-      icon: Handshake,
-      color: "from-amber-500 to-orange-600",
-      image: "/modules/m4-nghien-cuu-dich-vu.jpg",
-      // Ảnh dọc: giữ phần người và máy phân tích, cắt bớt đáy.
-      imagePosition: "object-[50%_30%]",
-      href: "/m4-overview",
-      status: "Đang xây dựng",
-      stats: [{ label: "yêu cầu mới chờ xử lý", value: n.requests_new }, { label: "hợp đồng đang thực hiện", value: n.contracts_open }],
     },
     {
       code: "M3.1",

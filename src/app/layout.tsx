@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Nền tảng số Viện Nông nghiệp Thanh Hóa",
   description:
-    "Nền tảng số dùng chung của Viện: phòng thí nghiệm (LIMS, VILAS 1501), dịch vụ KH&CN, nuôi cấy mô, giống cây trồng – một tài khoản cho tất cả phân hệ",
+    "Nền tảng số dùng chung của Viện: phòng thí nghiệm (LIMS, VILAS 1501), nuôi cấy mô, giống cây trồng, vật nuôi, thủy sản – một tài khoản cho tất cả phân hệ",
   manifest: "/manifest.json",
   icons: {
     icon: "/logo-vnnth.png",

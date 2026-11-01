@@ -86,12 +86,12 @@ export const DATASETS = {
   fact_samples: { name: "Mẫu thử nghiệm", desc: "Mẫu tiếp nhận, lần phát hành đầu, TAT, đúng hạn", module: "M2" },
   fact_reports: { name: "Phiếu kết quả", desc: "Phát hành, thay thế, thu hồi", module: "M2" },
   fact_results: { name: "Kết quả phân tích", desc: "Giá trị trung bình, độ không đảm bảo đo, kết luận", module: "M2" },
-  fact_revenue: { name: "Doanh thu theo phiếu yêu cầu", desc: "Σ đơn giá × số mẫu + VAT", module: "M2 / M4" },
-  dim_customers: { name: "Khách hàng", desc: "Danh mục khách hàng", module: "M4" },
+  fact_revenue: { name: "Doanh thu theo phiếu yêu cầu", desc: "Σ đơn giá × số mẫu + VAT", module: "M2" },
+  dim_customers: { name: "Khách hàng", desc: "Danh mục khách hàng", module: "M2, M3" },
   fact_equipment: { name: "Thiết bị", desc: "Trạng thái, ngày hiệu chuẩn kế tiếp", module: "M2" },
   fact_chemicals: { name: "Hóa chất", desc: "Tồn kho, tồn tối thiểu, hạn dùng", module: "M2" },
   fact_nonconformities: { name: "Sự không phù hợp", desc: "Nguồn, mức độ, trạng thái xử lý", module: "M2" },
-  fact_feedback: { name: "Ý kiến khách hàng", desc: "Đánh giá dịch vụ, khiếu nại", module: "M2 / M4" },
+  fact_feedback: { name: "Ý kiến khách hàng", desc: "Đánh giá dịch vụ, khiếu nại", module: "M2" },
 } as const;
 export type Dataset = keyof typeof DATASETS;
 export const isDataset = (d: string): d is Dataset => d in DATASETS;

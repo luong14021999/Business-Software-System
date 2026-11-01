@@ -8,10 +8,9 @@ import { EntitySearchInput } from "@/components/crud/search-input";
 import { StatGrid, clip } from "@/components/common/stat-grid";
 import { VarietyCard } from "@/components/m3/breed-overview/variety-catalogue";
 import { BREED_KINDS, VARIETY_STATUSES, breedTrialStore, seedLotStore, varietyDocumentStore, varietyStore, type Variety } from "@/lib/modules/m3/data/breeding";
-import { ipAssetStore, knowledgeStore } from "@/lib/modules/m4/data/knowledge";
 import { VARIETY_SCOPES, validityAlert } from "@/lib/modules/m3/breeding-rules";
 import { varietyFields } from "@/lib/modules/m3/variety-fields";
-import { byId, matches } from "@/lib/platform/ref-options";
+import { matches } from "@/lib/platform/ref-options";
 import { fmtDateVN, todayISO } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";
@@ -28,10 +27,9 @@ const statusVariant: Record<Variety["status"], "warning" | "success" | "default"
 export default async function VarietiesPage({ searchParams }: { searchParams: Promise<{ q?: string; kind?: string; scope?: string; status?: string; view?: string }> }) {
   const { q = "", kind = "", scope = "", status = "", view = "" } = await searchParams;
   const table = view === "table";
-  const [all, trials, ipAssets, docs, knowledge, seedLots] = await Promise.all([varietyStore.list(), breedTrialStore.list(), ipAssetStore.list(), varietyDocumentStore.list(), knowledgeStore.list(), seedLotStore.list()]);
-  const ipById = byId(ipAssets);
+  const [all, trials, docs, seedLots] = await Promise.all([varietyStore.list(), breedTrialStore.list(), varietyDocumentStore.list(), seedLotStore.list()]);
   const today = todayISO();
-  const fields = varietyFields(ipAssets, knowledge.filter((k) => k.isPublic));
+  const fields = varietyFields();
   const query = q.trim().toLowerCase();
   const rows = [...all]
     .sort((a, b) => a.code.localeCompare(b.code))
@@ -113,7 +111,6 @@ export default async function VarietiesPage({ searchParams }: { searchParams: Pr
                         status: x.status,
                         circulationType: x.circulationType,
                         recognitionNo: x.recognitionNo,
-                        protected: Boolean(x.ipAssetId),
                         regions: x.regions,
                         facts: [x.scope, `${nTrials} khảo nghiệm`, `${nLots} lô giống`, `${myDocs.length} văn bản`].join(" · "),
                         alert: expiringDoc ? `${expiringDoc.d.kind}: ${expiringDoc.a!.kind.toLowerCase()} ${expiringDoc.a!.days} ngày` : undefined,
@@ -132,10 +129,9 @@ export default async function VarietiesPage({ searchParams }: { searchParams: Pr
           entity="varieties"
           editFields={fields}
           addNode={<EntityFormDialog mode="add" endpoint="/api/varieties" title="Thêm giống" fields={fields} addLabel="Thêm giống" />}
-          headers={["Mã / nhóm", "Tên giống", "Công nhận", "Lưu hành · bảo hộ", "Khảo nghiệm", "Trạng thái"]}
+          headers={["Mã / nhóm", "Tên giống", "Công nhận", "Lưu hành", "Khảo nghiệm", "Trạng thái"]}
           emptyText={query || kind || scope ? "Không có giống phù hợp" : "Chưa có giống nào"}
           rows={rows.map((x) => {
-            const ip = ipById.get(x.ipAssetId);
             const docAlert = docs.filter((d) => d.varietyId === x.id).some((d) => validityAlert(d.validUntil, today));
             return {
               id: x.id,
@@ -150,7 +146,6 @@ export default async function VarietiesPage({ searchParams }: { searchParams: Pr
                 <div key="r" className="text-xs"><span className="font-mono">{x.recognitionNo || "—"}</span><div className="text-muted-foreground">{fmtDateVN(x.recognizedAt)}</div></div>,
                 <div key="l" className="text-xs">
                   {x.circulationType || "—"}{x.circulationNo && <span className="font-mono"> · {x.circulationNo}</span>}
-                  <div className="text-muted-foreground">{ip ? `Bảo hộ ${ip.grantNo || ip.status}` : ""}</div>
                   {docAlert && <div className="text-rose-600">văn bản sắp / hết hiệu lực</div>}
                 </div>,
                 <span key="t" className="text-sm">{trials.filter((t) => t.varietyId === x.id).length}</span>,

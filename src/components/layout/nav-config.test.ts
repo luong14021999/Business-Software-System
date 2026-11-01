@@ -9,12 +9,11 @@ describe("khung điều hướng theo phần mềm", () => {
     }
   });
   it("mỗi phần mềm có khung riêng theo mục đích; chỉ phòng thí nghiệm giữ menu dọc", () => {
-    expect(Object.fromEntries(navModules.map((m) => [m.code, shellOf(m)]))).toEqual({ "ĐH": "hub", M1: "console", M2: "sidebar", M4: "areas", "M3.1": "bench", "M3.2": "hub" });
+    expect(Object.fromEntries(navModules.map((m) => [m.code, shellOf(m)]))).toEqual({ "ĐH": "hub", M1: "console", M2: "sidebar", "M3.1": "bench", "M3.2": "hub" });
   });
   it.each([
     ["M3.1", "bench"],
     ["M3.2", "hub"],
-    ["M4", "areas"],
     ["ĐH", "hub"],
   ])("%s dùng khung %s: mọi trang nằm ở một tab hoặc trong Danh mục, không trùng", (code, shell) => {
     const m = navModules.find((x) => x.code === code)!;

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Image from "next/image";
-import { FlaskConical, Handshake, Microscope, Sprout, type LucideIcon } from "lucide-react";
+import { FlaskConical, Microscope, Sprout, type LucideIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth, getSessionSafe } from "@/lib/platform/auth/server";
 import { DongSonDrum } from "@/components/brand/dong-son-drum";
@@ -13,15 +13,14 @@ export const metadata = {
   title: "Đăng nhập – Nền tảng số Viện Nông nghiệp tỉnh Thanh Hóa",
 };
 
-/** 4 phần mềm nghiệp vụ của nền tảng (M1 là lớp lõi, không hiện như một phần mềm) – màu đồng bộ với ô vuông ở trang chủ. */
+/** 3 phần mềm nghiệp vụ của nền tảng (M1 là lớp lõi, không hiện như một phần mềm) – màu đồng bộ với ô vuông ở trang chủ. */
 const SOFTWARE: { code: string; name: string; desc: string; icon: LucideIcon }[] = [
   { code: "M2", name: "Phòng thí nghiệm (LIMS)", desc: "Phân tích đất, nước, phân bón – VILAS 1501", icon: FlaskConical },
   { code: "M3.1", name: "Nuôi cấy mô & truy xuất", desc: "Nhân giống in vitro, vườn ươm, mã QR nguồn gốc", icon: Microscope },
   { code: "M3.2", name: "Giống cây trồng, vật nuôi, thủy sản", desc: "Hồ sơ giống, khảo nghiệm, sản xuất theo cấp", icon: Sprout },
-  { code: "M4", name: "Nghiên cứu – dịch vụ – KH&CN", desc: "Dịch vụ khách hàng, nhiệm vụ KH&CN, kho tri thức", icon: Handshake },
 ];
 /** Ảnh ghép nền panel phải (cùng bộ ảnh với trang chủ). */
-const PHOTOS = ["/modules/m2-phong-thi-nghiem.jpg", "/modules/m3-1-nuoi-cay-mo.jpg", "/modules/m3-2-giong.jpg", "/modules/m4-nghien-cuu-dich-vu.jpg"];
+const PHOTOS = ["/modules/m2-phong-thi-nghiem.jpg", "/modules/m3-1-nuoi-cay-mo.jpg", "/modules/m3-2-giong.jpg"];
 
 export default async function LoginPage() {
   // Đã đăng nhập → về trang chủ.
@@ -81,9 +80,9 @@ export default async function LoginPage() {
         </div>
       </div>
 
-      {/* RIGHT: ảnh hoạt động của Viện + 4 phần mềm nghiệp vụ (ẩn trên điện thoại) */}
+      {/* RIGHT: ảnh hoạt động của Viện + 3 phần mềm nghiệp vụ (ẩn trên điện thoại) */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden bg-[hsl(var(--gov-main-deep))]">
-        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2" aria-hidden>
+        <div className="absolute inset-0 grid grid-cols-3" aria-hidden>
           {PHOTOS.map((src) => (
             <div key={src} className="relative">
               <Image src={src} alt="" fill sizes="30vw" className="object-cover" />

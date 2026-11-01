@@ -127,12 +127,10 @@ export default async function BreedOverviewPage() {
     status: v.status,
     circulationType: v.circulationType,
     recognitionNo: v.recognitionNo,
-    protected: Boolean(v.ipAssetId),
     regions: v.regions,
   }));
   const recognized = varieties.filter((v) => v.recognitionNo).length;
   const circulating = varieties.filter((v) => v.circulationType && v.circulationType !== "Chưa lưu hành").length;
-  const protectedCount = varieties.filter((v) => v.ipAssetId).length;
 
   // ── Bậc thang cấp giống ──────────────────────────────────────────
   const isAnimalLot = (s: { varietyId: string }) => kindOf(s.varietyId) === "Vật nuôi" || kindOf(s.varietyId) === "Thủy sản";
@@ -202,7 +200,6 @@ export default async function BreedOverviewPage() {
                 { k: "giống trong danh mục", v: varieties.length },
                 { k: "được công nhận", v: recognized },
                 { k: "đã lưu hành", v: circulating },
-                { k: "được bảo hộ", v: protectedCount },
               ].map((x) => (
                 <div key={x.k} className="flex flex-col-reverse">
                   <dt className="text-xs text-white/75">{x.k}</dt>

@@ -5,14 +5,11 @@ import { GovFooter, GovGoldRule, GovIdentity } from "@/components/brand/gov-iden
 
 const LINKS = [
   { href: "/portal", label: "Trang chủ", short: "Trang chủ" },
-  { href: "/portal/request", label: "Gửi yêu cầu dịch vụ", short: "Gửi yêu cầu" },
-  { href: "/portal/status", label: "Tra cứu yêu cầu", short: "Tra cứu" },
   { href: "/trace", label: "Truy xuất nguồn gốc", short: "Truy xuất" },
-  { href: "/portal/knowledge", label: "Tri thức KH&CN", short: "Tri thức" },
   { href: "/portal/giong", label: "Giống", short: "Giống" },
 ];
 
-/** Cổng công khai (M4) theo phong cách cổng thông tin cơ quan nhà nước: không cần đăng nhập. */
+/** Cổng công khai theo phong cách cổng thông tin cơ quan nhà nước: không cần đăng nhập. */
 export default function PublicLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-muted/30">
@@ -21,7 +18,7 @@ export default function PublicLayout({ children }: Readonly<{ children: React.Re
           <DongSonDrum className="pointer-events-none absolute -right-16 top-1/2 h-72 w-72 -translate-y-1/2 text-[hsl(var(--gov-gold-light))] opacity-[0.16]" />
           <div className="relative mx-auto flex h-20 max-w-6xl items-center px-4 sm:h-24">
             <Link href="/portal" className="min-w-0">
-              <GovIdentity subtitle="Cổng dịch vụ & tra cứu khoa học và công nghệ" />
+              <GovIdentity subtitle="Cổng thông tin dịch vụ" />
             </Link>
           </div>
         </div>

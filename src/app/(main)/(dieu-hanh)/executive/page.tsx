@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Handshake, Layers } from "lucide-react";
+import { Activity, BarChart3, Layers, Sprout } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { ConsolePanel } from "@/components/m1/overview/console-panel";
 import { ModulePulse, type Pulse } from "@/components/m1/overview/module-pulse";
@@ -64,17 +64,13 @@ export default async function ExecutivePage() {
         [],
       ),
       safe<Row[]>(() => dbQuery(`select coalesce(nullif(type, ''), 'Khác') type, count(*)::int n from analytics.fact_samples group by 1 order by 2 desc limit 6`), []),
-      // Bảng M3/M4 ở schema riêng (migration 0015) – chưa chạy migration thì chip vẫn hiện, chỉ thiếu số.
+      // Bảng M3 ở schema riêng (migration 0015) – chưa chạy migration thì chip vẫn hiện, chỉ thiếu số.
       safe<Row[]>(
         () =>
           dbQuery(
             `select
-               (select count(*)::int from m4.service_requests where status = 'Mới tiếp nhận') requests_new,
-               (select count(*)::int from m4.contracts where status in ('Đã ký', 'Đang thực hiện')) contracts_open,
                (select count(*)::int from m3_tissue.culture_batches where status = 'Đang nuôi') batches_growing,
                (select count(*)::int from m3_breed.varieties) varieties,
-               (select coalesce(sum(amount), 0) from m4.payments where to_char(paid_at, 'YYYY') = $1) m4_paid_year,
-               (select count(*)::int from m4.research_tasks where status in ('Được phê duyệt', 'Đang thực hiện', 'Chờ nghiệm thu')) tasks_active,
                (select coalesce(sum(quantity), 0)::int from m3_tissue.lot_sales where to_char(sold_at, 'YYYY') = $1) plants_sold_year,
                (select count(*)::int from m3_breed.seed_lots where status = 'Đã chứng nhận') seed_lots_certified`,
             [year],
@@ -90,8 +86,6 @@ export default async function ExecutivePage() {
 
   const pulse: Pulse[] = [
     { code: "M2", name: "Phòng thí nghiệm (LIMS)", value: show(k.samples_open), label: "mẫu chưa trả kết quả", href: "/lims" },
-    { code: "M4", name: "Nghiên cứu – dịch vụ KH&CN", value: show(n.requests_new), label: "yêu cầu dịch vụ mới", href: "/m4-overview" },
-    { code: "M4", name: "Hợp đồng dịch vụ", value: show(n.contracts_open), label: "hợp đồng đang thực hiện", href: "/contracts" },
     { code: "M3.1", name: "Nuôi cấy mô & truy xuất nguồn gốc", value: show(n.batches_growing), label: "mẻ cấy đang nuôi", href: "/tissue-overview" },
     { code: "M3.2", name: "Giống cây trồng, vật nuôi, thủy sản", value: show(n.varieties), label: "giống trong lý lịch", href: "/breed-overview" },
   ];
@@ -116,14 +110,10 @@ export default async function ExecutivePage() {
 
           <section aria-labelledby="biz-kpi" className="space-y-2">
             <h2 id="biz-kpi" className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-              <Handshake aria-hidden className="size-4 text-primary" /> Dịch vụ, KH&CN, nhân giống
+              <Sprout aria-hidden className="size-4 text-primary" /> Nhân giống
             </h2>
             <KpiReadout
               items={[
-                { label: `Đã thu dịch vụ ${year}`, value: Number.isNaN(num(n.m4_paid_year)) ? "—" : vnd(num(n.m4_paid_year) / 1e6), hint: "triệu VNĐ (M4)", href: "/revenue" },
-                { label: "Yêu cầu dịch vụ mới", value: show(n.requests_new), hint: "chờ phân công", alert: num(n.requests_new) > 0, href: "/request-inbox" },
-                { label: "Hợp đồng đang thực hiện", value: show(n.contracts_open), href: "/deal-board" },
-                { label: "Nhiệm vụ KH&CN đang triển khai", value: show(n.tasks_active), href: "/research-gantt" },
                 { label: "Mẻ cấy đang nuôi", value: show(n.batches_growing), hint: "M3.1", href: "/tissue-overview" },
                 { label: `Cây giống đã xuất ${year}`, value: show(n.plants_sold_year), hint: "cây (M3.1)", href: "/lot-sales" },
                 { label: "Giống trong lý lịch", value: show(n.varieties), hint: "M3.2", href: "/varieties" },

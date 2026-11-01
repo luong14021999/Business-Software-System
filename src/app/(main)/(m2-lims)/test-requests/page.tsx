@@ -504,8 +504,8 @@ export default async function TestRequestsPage({
                 },
                 {
                   step: "2",
-                  title: "Hợp đồng / Khách hàng",
-                  desc: "Khi KH chấp nhận – tạo hợp đồng + ghép với /customers",
+                  title: "Khách hàng",
+                  desc: "Khi KH chấp nhận – ghép phiếu với hồ sơ khách hàng",
                   link: "/customers",
                 },
                 {

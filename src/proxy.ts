@@ -8,8 +8,8 @@ const requireAuth = auth?.middleware({ loginUrl: "/login" });
 /**
  * Đường dẫn tự xác thực, không dùng phiên đăng nhập:
  * - /verify/: xác minh phiếu kết quả qua QR (chỉ trạng thái + tính toàn vẹn, không có kết quả)
- * - /portal, /trace: cổng dịch vụ & truy xuất lô giống (M4.1, M4.3) – chỉ dữ liệu công bố
- * - /api/public/: API của cổng – giới hạn tần suất theo IP (M4.7)
+ * - /portal, /trace: cổng thông tin & truy xuất lô giống (M3.1, M3.2) – chỉ dữ liệu công bố
+ * - /api/public/: API của cổng – giới hạn tần suất theo IP
  * - /api/v1/: API cho hệ thống bên ngoài – xác thực bằng khóa API (M1.3)
  * - /api/cron/: tác vụ định kỳ – xác thực bằng CRON_SECRET (M1.8)
  */

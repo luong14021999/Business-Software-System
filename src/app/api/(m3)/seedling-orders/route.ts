@@ -8,7 +8,6 @@ export const { GET, POST } = collectionRoutes<SeedlingOrder>(
   {
     code: "",
     customerId: "",
-    contractId: "",
     profileId: "",
     species: "",
     variety: "",

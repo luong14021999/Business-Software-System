@@ -4,10 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { CrudTableCard } from "@/components/crud/crud-table-card";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { StatGrid } from "@/components/common/stat-grid";
-import { getCustomers } from "@/lib/modules/m4/data/customers";
+import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { breedOrderStore, deliveryStore, seedLotStore, varietyStore } from "@/lib/modules/m3/data/breeding";
 import { BREED_ORDER_STATUSES, QTY_UNITS, SEED_LEVEL_NAMES } from "@/lib/modules/m3/breeding-rules";
-import { fmtVND } from "@/lib/modules/m4/finance";
+import { fmtVND } from "@/lib/platform/format";
 import { byId, refOptions } from "@/lib/platform/ref-options";
 import { fmtDateVN, todayISO } from "@/lib/platform/dates";
 

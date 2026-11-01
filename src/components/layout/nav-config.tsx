@@ -17,9 +17,6 @@ import {
   Users2,
   Gauge,
   Workflow,
-  ChartGantt,
-  SquareKanban,
-  MailOpen,
   Database,
   Network,
   Warehouse,
@@ -56,8 +53,6 @@ import {
   Calculator,
   LineChart,
   ServerCrash,
-  FileSpreadsheet,
-  Wallet,
   Leaf,
   FlaskConicalOff,
   Boxes,
@@ -65,17 +60,7 @@ import {
   Dna,
   Sprout,
   ClipboardCheck,
-  Inbox,
-  Tags,
-  Globe,
-  Receipt,
-  Library,
-  GraduationCap,
   PieChart,
-  BookOpen,
-  Layers,
-  Handshake,
-  Repeat,
   TreeDeciduous,
   CalendarDays,
   Package,
@@ -95,17 +80,16 @@ import { cn } from "@/lib/utils";
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 export type NavGroup = { label: string; items: NavItem[] };
 /** Tab chính của phần mềm dùng khung riêng: gom một số trang (theo href trong `groups`), trang đầu là trang vào. */
-export type NavTab = { label: string; icon: LucideIcon; hrefs: string[]; /** Hiện ở thanh dưới đáy trên điện thoại. */ mobile?: boolean; /** Mô tả ngắn của khu (khung "areas"). */ description?: string };
+export type NavTab = { label: string; icon: LucideIcon; hrefs: string[]; /** Hiện ở thanh dưới đáy trên điện thoại. */ mobile?: boolean; };
 /**
  * Khung điều hướng: "sidebar" = menu dọc bên trái (phòng thí nghiệm);
  * "bench" = tab lớn + danh mục, thanh dưới đáy trên điện thoại (nuôi cấy mô – dùng tại phòng cấy);
  * "hub" = tab ngang theo khu nghiệp vụ, lấy hồ sơ làm trung tâm (giống);
- * "areas" = chọn khu làm việc cho từng nhóm người dùng, mỗi khu một hàng tab trang (dịch vụ – KH&CN);
  * "console" = bảng điều khiển quản trị: bảng điều hành là trung tâm, các trang có đường dẫn quay về (nền tảng dùng chung).
  */
-export type ModuleShell = "sidebar" | "bench" | "hub" | "areas" | "console";
+export type ModuleShell = "sidebar" | "bench" | "hub" | "console";
 /** Khóa giao diện: chọn bộ màu `[data-module]` trong globals.css. */
-export type ModuleKey = "dh" | "m1" | "m2" | "m3-1" | "m3-2" | "m4";
+export type ModuleKey = "dh" | "m1" | "m2" | "m3-1" | "m3-2";
 /** Phân hệ của nền tảng: mỗi phân hệ gồm nhiều nhóm menu và có bản sắc giao diện riêng. */
 export type NavModule = {
   code: string;
@@ -227,6 +211,7 @@ export const navModules: NavModule[] = [
           { href: "/campaigns", label: "Quan trắc theo đợt", icon: Telescope },
           { href: "/field", label: "Lấy mẫu hiện trường", icon: Smartphone },
           { href: "/samples", label: "Tiếp nhận mẫu", icon: ClipboardList },
+          { href: "/customers", label: "Khách hàng", icon: Users2 },
           { href: "/assignments", label: "Phân công công việc", icon: UserCog },
           { href: "/analysis", label: "Quy trình phân tích", icon: FlaskConical },
           { href: "/notebook", label: "Sổ tay thí nghiệm", icon: NotebookPen },
@@ -264,93 +249,6 @@ export const navModules: NavModule[] = [
           { href: "/qc", label: "QC Levey-Jennings", icon: ShieldCheck },
           { href: "/risks", label: "Đăng ký rủi ro", icon: AlertOctagon },
           { href: "/decision-rules", label: "Quy tắc quyết định", icon: Scale },
-        ],
-      },
-    ],
-  },
-  {
-    code: "M4",
-    home: "/m4-overview",
-    shell: "areas",
-    tabs: [
-      { label: "Tổng quan", icon: Gauge, hrefs: ["/m4-overview"], description: "Toàn cảnh dịch vụ, KH&CN, tri thức" },
-      {
-        label: "Dịch vụ khách hàng",
-        icon: Users2,
-        description: "Yêu cầu → báo giá → hợp đồng → thu tiền",
-        hrefs: ["/request-inbox", "/deal-board", "/customers", "/quotations", "/contracts", "/payments", "/invoices", "/service-requests", "/price-list", "/public-content", "/revenue"],
-      },
-      {
-        label: "Nhiệm vụ KH&CN",
-        icon: FlaskRound,
-        description: "Đề tài, dự án, thí nghiệm, nhà khoa học",
-        hrefs: ["/research-gantt", "/research-tasks", "/provincial-projects", "/field-trials", "/researchers", "/research-stats"],
-      },
-      {
-        label: "Tri thức & SHTT",
-        icon: BookOpen,
-        description: "Kho tri thức, tài sản trí tuệ, chuyển giao",
-        hrefs: ["/knowledge", "/base-data", "/ip-assets", "/tech-transfers", "/partners", "/trainings"],
-      },
-    ],
-    name: "Nghiên cứu – dịch vụ – tra cứu KH&CN",
-    key: "m4",
-    icon: Handshake,
-    tagline: "Dịch vụ, hợp đồng & tri thức khoa học công nghệ",
-    searchHint: "Tìm khách hàng, báo giá, hợp đồng...",
-    groups: [
-      {
-        label: "Tổng quan",
-        items: [
-          { href: "/m4-overview", label: "Tổng quan dịch vụ", icon: Gauge },
-          { href: "/deal-board", label: "Bảng giao dịch", icon: SquareKanban },
-          { href: "/revenue", label: "Báo cáo doanh thu", icon: BarChart3 },
-        ],
-      },
-      {
-        label: "Cổng dịch vụ trực tuyến",
-        items: [
-          { href: "/request-inbox", label: "Hộp thư yêu cầu", icon: MailOpen },
-          { href: "/service-requests", label: "Danh sách yêu cầu", icon: Inbox },
-          { href: "/price-list", label: "Bảng giá & định mức", icon: Tags },
-          { href: "/public-content", label: "Nội dung công khai", icon: Globe },
-        ],
-      },
-      {
-        label: "Nhiệm vụ KH&CN",
-        items: [
-          { href: "/research-gantt", label: "Tiến độ nhiệm vụ", icon: ChartGantt },
-          { href: "/research-tasks", label: "Nhiệm vụ (đề tài, dự án)", icon: FlaskRound },
-          { href: "/provincial-projects", label: "Đề tài tỉnh & chống trùng lặp", icon: Library },
-          { href: "/field-trials", label: "Thí nghiệm đồng ruộng", icon: Sprout },
-          { href: "/researchers", label: "Lý lịch khoa học", icon: GraduationCap },
-          { href: "/research-stats", label: "Thống kê KH&CN", icon: PieChart },
-        ],
-      },
-      {
-        label: "Kho tri thức & dữ liệu nền",
-        items: [
-          { href: "/knowledge", label: "Kho tri thức số", icon: BookOpen },
-          { href: "/base-data", label: "Dữ liệu nền", icon: Layers },
-        ],
-      },
-      {
-        label: "Sở hữu trí tuệ & chuyển giao",
-        items: [
-          { href: "/ip-assets", label: "Tài sản trí tuệ", icon: ShieldCheck },
-          { href: "/partners", label: "Đối tác & hợp tác", icon: Handshake },
-          { href: "/tech-transfers", label: "Chuyển giao công nghệ", icon: Repeat },
-          { href: "/trainings", label: "Tập huấn", icon: Presentation },
-        ],
-      },
-      {
-        label: "Khách hàng & giao dịch",
-        items: [
-          { href: "/customers", label: "Khách hàng", icon: Users2 },
-          { href: "/quotations", label: "Báo giá", icon: FileSpreadsheet },
-          { href: "/contracts", label: "Hợp đồng & công nợ", icon: FileSignature },
-          { href: "/payments", label: "Thanh toán", icon: Wallet },
-          { href: "/invoices", label: "Hóa đơn điện tử", icon: Receipt },
         ],
       },
     ],

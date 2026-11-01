@@ -6,11 +6,10 @@ import { CrudTableCard } from "@/components/crud/crud-table-card";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { EntitySearchInput } from "@/components/crud/search-input";
 import { StatGrid } from "@/components/common/stat-grid";
-import { getCustomers } from "@/lib/modules/m4/data/customers";
-import { contractStore } from "@/lib/modules/m4/data/sales";
+import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { lotSaleStore, productionProfileStore, seedlingOrderStore } from "@/lib/modules/m3/data/tissue";
 import { GRADE_REQUIREMENTS, ORDER_STATUSES, orderProgress, planOrder } from "@/lib/modules/m3/production";
-import { fmtVND } from "@/lib/modules/m4/finance";
+import { fmtVND } from "@/lib/platform/format";
 import { byId, matches, refOptions } from "@/lib/platform/ref-options";
 import { fmtDateVN, todayISO } from "@/lib/platform/dates";
 
@@ -21,10 +20,9 @@ const OPEN = ["Mới", "Đã xác nhận", "Đang sản xuất", "Giao một ph�
 
 export default async function SeedlingOrdersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
-  const [all, customers, contracts, profiles, sales] = await Promise.all([
+  const [all, customers, profiles, sales] = await Promise.all([
     seedlingOrderStore.list(),
     getCustomers(),
-    contractStore.list(),
     productionProfileStore.list(),
     lotSaleStore.list(),
   ]);
@@ -42,7 +40,6 @@ export default async function SeedlingOrdersPage({ searchParams }: { searchParam
     { name: "dueAt", label: "Ngày cần giao", type: "date" },
     { name: "season", label: "Vụ trồng của khách", placeholder: "VD: Vụ Xuân 2027" },
     { name: "unitPrice", label: "Đơn giá (VND / cây)", type: "number" },
-    { name: "contractId", label: "Hợp đồng M4 (nếu có)", type: "select", options: refOptions(contracts, (c) => `${c.code} · ${c.title}`) },
     { name: "status", label: "Trạng thái", type: "select", options: [...ORDER_STATUSES] },
     { name: "note", label: "Ghi chú", type: "textarea" },
   ];

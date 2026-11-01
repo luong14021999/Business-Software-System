@@ -27,35 +27,6 @@ export async function buildOutboundData(service: OutboundService, ref: string) {
     if (!data) throw new Error("Chưa có cơ sở dữ liệu");
     return data;
   }
-  if (service === "nhiem-vu-khcn") {
-    if (!ref) throw new Error("Nhập mã nhiệm vụ");
-    const [t] = await dbQuery(
-      `select t.code, t.title, t.kind, t.level, t.field, t.host_unit, t.objectives, t.keywords, t.start_at, t.end_at,
-              t.budget_state, t.budget_other, t.status, t.approval_no, t.approved_at, t.acceptance_result, t.accepted_at, t.outputs,
-              r.full_name leader, r.degree leader_degree
-       from m4.research_tasks t left join m4.researchers r on r.id = t.leader_id where t.code = $1`,
-      [ref],
-    );
-    if (!t) throw new Error(`Không có nhiệm vụ ${ref}`);
-    // Chỉ thông tin công bố của nhiệm vụ (tên, cấp, chủ nhiệm, kinh phí, kết quả) – không có liên hệ cá nhân.
-    return {
-      donViChuTri: t.host_unit || labInfo.organization,
-      maNhiemVu: t.code,
-      tenNhiemVu: t.title,
-      loai: t.kind,
-      cap: t.level,
-      linhVuc: t.field,
-      chuNhiem: t.leader ? `${t.leader_degree ? t.leader_degree + " " : ""}${t.leader}` : null,
-      mucTieu: t.objectives,
-      tuKhoa: t.keywords,
-      thoiGian: { batDau: t.start_at, ketThuc: t.end_at },
-      kinhPhi: { nganSachNhaNuoc: t.budget_state, nguonKhac: t.budget_other },
-      trangThai: t.status,
-      quyetDinhPheDuyet: t.approval_no ? { so: t.approval_no, ngay: t.approved_at } : null,
-      nghiemThu: t.acceptance_result ? { ketQua: t.acceptance_result, ngay: t.accepted_at } : null,
-      sanPham: t.outputs,
-    };
-  }
   if (service === "ket-qua-kiem-nghiem") {
     if (!ref) throw new Error("Nhập mã phiếu kết quả");
     const r = await getReportByCode(ref);

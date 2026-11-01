@@ -1,4 +1,4 @@
-// M3.1.6 / M4.3 Truy xuất nguồn gốc lô cây giống bằng QR: lô → các mẻ cấy chuyển → vật liệu khởi đầu → cây mẹ.
+// M3.1.6 Truy xuất nguồn gốc lô cây giống bằng QR: lô → các mẻ cấy chuyển → vật liệu khởi đầu → cây mẹ.
 // Chỉ các trường được phép công bố (không có khách hàng, người cấy, tủ cấy, ghi chú nội bộ, giá).
 import { dbQuery, isDbConfigured } from "@/lib/platform/db";
 

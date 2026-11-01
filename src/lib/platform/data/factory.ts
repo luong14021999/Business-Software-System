@@ -21,7 +21,7 @@ export type EntityStore<T extends { id: string }> = {
  * Khi cấu hình + DATABASE_URL OK → CRUD đi qua Neon, ngược lại fallback file.
  */
 export type DbMapping<T> = {
-  /** Tên bảng; có thể kèm schema phân hệ, VD "m4.quotations". Không có schema → public. */
+  /** Tên bảng; có thể kèm schema phân hệ, VD "m3_tissue.orders". Không có schema → public. */
   table: string;
   /** Danh sách cột, VD "id, code, name" – dùng nguyên văn trong SELECT/RETURNING. */
   select: string;
@@ -79,7 +79,7 @@ export function columnsMapping<T extends { id: string }>(
   };
 }
 
-/** "m4.quotations" → "m4"."quotations"; "customers" → public."customers". */
+/** "m3_tissue.orders" → "m3_tissue"."orders"; "customers" → public."customers". */
 export const qualifiedTable = (table: string) => {
   const dot = table.indexOf(".");
   return dot < 0 ? `public.${ident(table)}` : `${ident(table.slice(0, dot))}.${ident(table.slice(dot + 1))}`;

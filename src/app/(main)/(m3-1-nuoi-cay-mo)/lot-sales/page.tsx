@@ -4,10 +4,10 @@ import { CrudTableCard } from "@/components/crud/crud-table-card";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { EntitySearchInput } from "@/components/crud/search-input";
 import { StatGrid } from "@/components/common/stat-grid";
-import { getCustomers } from "@/lib/modules/m4/data/customers";
+import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { LOT_GRADES, lotSaleStore, seedlingLotStore, seedlingOrderStore } from "@/lib/modules/m3/data/tissue";
 import { loadCosting } from "@/lib/modules/m3/data/costing";
-import { fmtVND, marginPct } from "@/lib/modules/m4/finance";
+import { fmtVND, marginPct } from "@/lib/platform/format";
 import { byId, matches, refOptions } from "@/lib/platform/ref-options";
 import { fmtDateVN, todayISO } from "@/lib/platform/dates";
 

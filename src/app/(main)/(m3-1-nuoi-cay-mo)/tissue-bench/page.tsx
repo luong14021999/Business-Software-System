@@ -24,7 +24,7 @@ import {
 import { addDays, nextStage, suggestCode } from "@/lib/modules/m3/bench";
 import { contaminationRate, fmtPct } from "@/lib/modules/m3/rates";
 import { DEFAULT_CONTAMINATION_THRESHOLD, MIN_VESSELS_FOR_CONCLUSION, lineage } from "@/lib/modules/m3/tissue-rules";
-import { getCustomers } from "@/lib/modules/m4/data/customers";
+import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { getSetting } from "@/lib/platform/data/settings";
 import { byId, refOptions } from "@/lib/platform/ref-options";
 import { daysUntil, fmtDateVN, todayISO } from "@/lib/platform/dates";

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Sprout, PackageCheck, Newspaper, Send, BookOpen } from "lucide-react";
+import { Sprout, PackageCheck, Newspaper } from "lucide-react";
+import { GOV } from "@/components/brand/gov-identity";
 import { Badge } from "@/components/ui/badge";
 import { publicBreedCatalog } from "@/lib/modules/m3/data/genomics";
 import { fmtDateVN } from "@/lib/platform/dates";
@@ -7,11 +8,9 @@ import { fmtDateVN } from "@/lib/platform/dates";
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Giống cây trồng, vật nuôi, thủy sản – Viện Nông nghiệp tỉnh Thanh Hóa",
-  description: "Nguồn giống, quy trình kỹ thuật kèm giống, lô giống đạt chuẩn đang cung ứng, thông tin thị trường và đăng ký nhu cầu giống",
+  description: "Nguồn giống, lô giống đạt chuẩn đang cung ứng và thông tin thị trường",
 };
 
-const requestLink = (variety: string) =>
-  `/portal/request?${new URLSearchParams({ kind: "Giống cây trồng, vật nuôi, thủy sản", desc: `Đăng ký nhu cầu giống ${variety}: số lượng …, thời gian cần …, địa điểm …` })}`;
 
 /** Cổng công khai M3.2.8: chỉ giống / lô / tin đã đánh dấu công bố; không có giá nội bộ, khách hàng. */
 export default async function PublicBreedPage() {
@@ -20,8 +19,8 @@ export default async function PublicBreedPage() {
     <div className="space-y-8">
       <section className="rounded-2xl bg-card border p-5 sm:p-8">
         <h1 className="text-xl sm:text-3xl font-bold tracking-tight flex items-center gap-2"><Sprout className="w-7 h-7 text-primary" />Giống của Viện Nông nghiệp tỉnh Thanh Hóa</h1>
-        <p className="text-sm sm:text-base text-muted-foreground mt-2 max-w-3xl">Nguồn giống đã công nhận, lưu hành; quy trình kỹ thuật kèm giống; lô giống đạt chuẩn chất lượng đang cung ứng; mô hình hiệu quả và thông tin thị trường. Mỗi lô giống có mã QR truy xuất nguồn gốc.</p>
-        <Link href={requestLink("…")} className="inline-flex items-center gap-2 h-10 px-4 mt-4 rounded-md bg-primary text-primary-foreground text-sm font-medium"><Send className="w-4 h-4" />Đăng ký nhu cầu giống</Link>
+        <p className="text-sm sm:text-base text-muted-foreground mt-2 max-w-3xl">Nguồn giống đã công nhận, lưu hành; lô giống đạt chuẩn chất lượng đang cung ứng; mô hình hiệu quả và thông tin thị trường. Mỗi lô giống có mã QR truy xuất nguồn gốc.</p>
+        <p className="mt-4 text-sm">Đăng ký nhu cầu, mua giống hoặc tư vấn kỹ thuật: liên hệ {GOV.unit}, điện thoại <a href={`tel:${GOV.phone.replace(/\D/g, "")}`} className="font-semibold text-primary hover:underline">{GOV.phone}</a>.</p>
       </section>
 
       <section>
@@ -40,8 +39,6 @@ export default async function PublicBreedPage() {
                   {v.regions && <div>Vùng khuyến cáo: {v.regions}</div>}
                 </div>
                 <div className="mt-auto flex flex-wrap gap-2 pt-1">
-                  {v.guide_code && <Link href={`/portal/knowledge/${encodeURIComponent(v.guide_code)}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><BookOpen className="w-3.5 h-3.5" />{v.guide_title ?? "Quy trình kỹ thuật"}</Link>}
-                  <Link href={requestLink(v.name ?? "")} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Send className="w-3.5 h-3.5" />Đăng ký mua / tư vấn</Link>
                 </div>
               </div>
             ))}

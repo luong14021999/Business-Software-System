@@ -1,4 +1,4 @@
-import { getCustomers } from "@/lib/modules/m4/data/customers";
+import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { cultureBatchStore, mediaBatchStore, productionProfileStore, seedlingLotStore, seedlingOrderStore } from "./tissue";
 import { planOrder } from "../production";
 import { byId } from "@/lib/platform/ref-options";

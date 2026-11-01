@@ -3,18 +3,17 @@
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TabShellNav } from "@/components/layout/shells/tab-shell-nav";
-import { AreasNav } from "@/components/layout/shells/areas-nav";
 import { ConsoleBar } from "@/components/layout/shells/console-bar";
 import { moduleOf, shellOf } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
 
-/** Khung điều hướng theo từng phần mềm: menu dọc (phòng thí nghiệm), bàn làm việc dạng tab (nuôi cấy mô) tab theo khu nghiệp vụ (giống) khu làm việc theo nhóm người dùng (dịch vụ – KH&CN) hoặc bảng điều khiển quản trị (nền tảng dùng chung). */
+/** Khung điều hướng theo từng phần mềm: menu dọc (phòng thí nghiệm), bàn làm việc dạng tab (nuôi cấy mô), tab theo khu nghiệp vụ (giống) hoặc bảng điều khiển quản trị (nền tảng dùng chung). */
 export function ModuleFrame({ children, canAdmin = false }: { children: React.ReactNode; canAdmin?: boolean }) {
   const shell = shellOf(moduleOf(usePathname()));
-  if (shell === "areas" || shell === "console") {
+  if (shell === "console") {
     return (
       <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-        {shell === "areas" ? <AreasNav /> : <ConsoleBar canAdmin={canAdmin} />}
+        <ConsoleBar canAdmin={canAdmin} />
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">{children}</div>
       </div>
     );

@@ -15,7 +15,7 @@ import {
   standardCriterionStore,
   varietyStore,
 } from "@/lib/modules/m3/data/breeding";
-import { labDataFor } from "@/lib/modules/m4/data/research";
+import { labDataFor } from "@/lib/modules/m2/data/lab-summary";
 import { genotypeCallStore, genotypeSampleStore } from "@/lib/modules/m3/data/genomics";
 import { profilesBySample, purityTest, referenceProfiles } from "@/lib/modules/m3/genomics";
 import { evaluateCriteria, seedLotChain, validityAlert } from "@/lib/modules/m3/breeding-rules";

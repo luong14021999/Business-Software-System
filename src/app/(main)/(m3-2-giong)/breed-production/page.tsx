@@ -9,7 +9,7 @@ import { StatGrid } from "@/components/common/stat-grid";
 import { productionLogStore, productionLotStore, seedLotStore, sourceStockStore, varietyStore } from "@/lib/modules/m3/data/breeding";
 import { facilityStore } from "@/lib/modules/m3/data/genomics";
 import { PRODUCTION_STATUSES, QTY_UNITS, SEED_LEVEL_NAMES, productionMetrics } from "@/lib/modules/m3/breeding-rules";
-import { fmtVND } from "@/lib/modules/m4/finance";
+import { fmtVND } from "@/lib/platform/format";
 import { byId, matches, refOptions } from "@/lib/platform/ref-options";
 import { todayISO } from "@/lib/platform/dates";
 

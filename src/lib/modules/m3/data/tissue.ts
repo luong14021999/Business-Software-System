@@ -414,7 +414,6 @@ export type SeedlingOrder = {
   id: string;
   code: string;
   customerId: string;
-  contractId: string;
   profileId: string;
   species: string;
   variety: string;
@@ -433,7 +432,6 @@ export const seedlingOrderStore = createEntityStore<SeedlingOrder>(
   columnsMapping<SeedlingOrder>("m3_tissue.orders", {
     code: "text",
     customerId: "ref",
-    contractId: "ref",
     profileId: "ref",
     species: "text",
     variety: "text",

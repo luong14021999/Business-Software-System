@@ -1,6 +1,6 @@
 import { varietyDocumentStore } from "@/lib/modules/m3/data/breeding";
 import { itemRoutes } from "@/lib/platform/api/crud";
-import { safeUrl } from "@/lib/modules/m4/data/portal";
+import { safeUrl } from "@/lib/platform/format";
 
 export const dynamic = "force-dynamic";
 

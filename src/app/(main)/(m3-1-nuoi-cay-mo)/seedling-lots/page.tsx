@@ -20,7 +20,7 @@ import {
 import { loadCosting } from "@/lib/modules/m3/data/costing";
 import { lineage } from "@/lib/modules/m3/tissue-rules";
 import { fmtPct, pct, survivalRate } from "@/lib/modules/m3/rates";
-import { fmtVND } from "@/lib/modules/m4/finance";
+import { fmtVND } from "@/lib/platform/format";
 import { byId, matches, refOptions } from "@/lib/platform/ref-options";
 import { fmtDateVN, todayISO } from "@/lib/platform/dates";
 

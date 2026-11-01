@@ -6,7 +6,7 @@ import { StatGrid } from "@/components/common/stat-grid";
 import { Bars } from "@/components/common/bar-chart";
 import { tissueReport } from "@/lib/modules/m3/data/tissue-report";
 import { fmtPct, pct } from "@/lib/modules/m3/rates";
-import { fmtVND, marginPct } from "@/lib/modules/m4/finance";
+import { fmtVND, marginPct } from "@/lib/platform/format";
 import { todayISO } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";

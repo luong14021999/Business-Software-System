@@ -2,7 +2,7 @@
 // lưu bản chụp nội dung (§8.4), sửa đổi bằng phiếu thay thế (§7.8.8).
 import { dbQuery, isDbConfigured } from "@/lib/platform/db";
 import { labInfo } from "@/lib/modules/m2/accreditation";
-import { customersStore } from "../../m4/data/customers";
+import { customersStore } from "./customers";
 import { samplesStore } from "./samples";
 import { listResults, type ResultRow } from "./results";
 import { loadReleaseContext } from "./release-rules";

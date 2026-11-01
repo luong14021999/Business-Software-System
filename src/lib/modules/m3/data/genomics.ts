@@ -221,10 +221,8 @@ export async function publicBreedCatalog() {
   if (!isDbConfigured()) return { varieties: [], stock: [], posts: [] };
   const [varieties, stock, posts] = await Promise.all([
     dbQuery(
-      `select v.code, v.name, v.kind, v.species, v.public_summary, v.regions, v.recognition_no, v.circulation_type,
-              k.code guide_code, k.title guide_title
+      `select v.code, v.name, v.kind, v.species, v.public_summary, v.regions, v.recognition_no, v.circulation_type
        from m3_breed.varieties v
-       left join m4.knowledge_items k on k.id = v.guide_knowledge_id and k.is_public
        where v.is_public order by v.kind, v.name`,
     ).catch(() => []),
     // Lô giống đạt chuẩn, còn hiệu lực hợp quy, còn hàng: chỉ công bố giống, cấp, lượng còn (không giá, không khách hàng).

@@ -8,7 +8,7 @@ import { CrudTableCard } from "@/components/crud/crud-table-card";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { cultureBatchStore, mediaBatchStore, mediaRecipeStore, recipeChemicalStore, supplyStore } from "@/lib/modules/m3/data/tissue";
 import { mediaCostPerLiter } from "@/lib/modules/m3/production";
-import { fmtVND } from "@/lib/modules/m4/finance";
+import { fmtVND } from "@/lib/platform/format";
 import { byId, refOptions } from "@/lib/platform/ref-options";
 import { CHEMICAL_UNITS } from "@/lib/modules/m3/tissue-rules";
 import { contaminationRate, fmtPct } from "@/lib/modules/m3/rates";

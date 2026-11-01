@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { XCircle, Send } from "lucide-react";
+import { XCircle } from "lucide-react";
+import { GOV } from "@/components/brand/gov-identity";
 import { publicMarketPost } from "@/lib/modules/m3/data/genomics";
 import { fmtDateVN } from "@/lib/platform/dates";
 
@@ -26,12 +27,7 @@ export default async function PublicMarketPostPage({ params }: { params: Promise
         {p.summary && <p className="text-sm font-medium">{p.summary}</p>}
         {p.price_note && <p className="text-sm">Giá tham khảo: {p.price_note}</p>}
         {p.content && <div className="text-sm leading-relaxed whitespace-pre-line">{p.content}</div>}
-        <Link
-          href={`/portal/request?${new URLSearchParams({ kind: "Giống cây trồng, vật nuôi, thủy sản", desc: `Liên quan tin ${p.code} – ${p.title}: ` })}`}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md bg-primary text-primary-foreground text-sm"
-        >
-          <Send className="w-4 h-4" /> Liên hệ / đăng ký
-        </Link>
+        <p className="text-sm">Liên hệ, đăng ký: {GOV.unit}, điện thoại <a href={`tel:${GOV.phone.replace(/\D/g, "")}`} className="font-semibold text-primary hover:underline">{GOV.phone}</a></p>
       </div>
     </article>
   );

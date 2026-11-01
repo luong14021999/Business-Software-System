@@ -54,7 +54,7 @@ function Card({ card }: { card: WorkCard }) {
   );
 }
 
-/** Bảng làm việc dạng Kanban: mỗi cột một bước, thẻ có nút thao tác trực tiếp (VD bàn cấy M3.1, bảng giao dịch M4). */
+/** Bảng làm việc dạng Kanban: mỗi cột một bước, thẻ có nút thao tác trực tiếp (VD bàn cấy M3.1). */
 export function WorkBoard({ columns }: { columns: WorkColumn[] }) {
   return (
     <ol className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin snap-x">

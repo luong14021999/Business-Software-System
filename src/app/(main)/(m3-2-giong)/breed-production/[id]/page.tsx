@@ -8,7 +8,7 @@ import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-
 import { LinkList } from "@/components/m3/link-list";
 import { productionLogStore, productionLotStore, seedLotStore, varietyStore } from "@/lib/modules/m3/data/breeding";
 import { LOG_ACTIVITIES, productionMetrics } from "@/lib/modules/m3/breeding-rules";
-import { fmtVND } from "@/lib/modules/m4/finance";
+import { fmtVND } from "@/lib/platform/format";
 import { fmtDateVN } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";

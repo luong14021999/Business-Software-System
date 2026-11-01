@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { CrudTableCard } from "@/components/crud/crud-table-card";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { StatGrid } from "@/components/common/stat-grid";
-import { getCustomers } from "@/lib/modules/m4/data/customers";
+import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { lotFeedbackStore, seedlingLotStore } from "@/lib/modules/m3/data/tissue";
 import { FEEDBACK_CHANNELS, FEEDBACK_STATUSES } from "@/lib/modules/m3/production";
 import { byId, refOptions } from "@/lib/platform/ref-options";

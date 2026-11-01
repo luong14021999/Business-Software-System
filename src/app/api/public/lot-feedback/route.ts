@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { insertPublicFeedback } from "@/lib/modules/m3/data/tissue";
-import { withinPublicLimit } from "@/lib/modules/m4/data/portal";
-import { isValidPhone, normalizePhone } from "@/lib/modules/m4/portal";
+import { withinPublicLimit } from "@/lib/platform/data/public-limit";
+import { isValidPhone, normalizePhone } from "@/lib/platform/format";
 import { ipHash } from "@/lib/platform/security/client-ip";
 import { isDbConfigured } from "@/lib/platform/db";
 
 export const dynamic = "force-dynamic";
 
-/** Khách mua cây giống gửi phản hồi từ trang truy xuất QR (M3.1.6). Bảo vệ theo M4.7: honeypot, giới hạn tần suất. */
+/** Khách mua cây giống gửi phản hồi từ trang truy xuất QR (M3.1.6). Bảo vệ: honeypot, giới hạn tần suất. */
 export async function POST(req: Request) {
   try {
     if (!isDbConfigured()) return NextResponse.json({ error: "Tạm ngừng nhận phản hồi" }, { status: 503 });

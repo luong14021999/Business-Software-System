@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, ShieldCheck, UserRound } from "lucide-react";
+import { MapPin, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyNote } from "./shared";
@@ -15,7 +15,6 @@ export type CatalogueVariety = {
   status: string;
   circulationType: string;
   recognitionNo: string;
-  protected: boolean;
   regions: string;
   /** Cảnh báo ngắn (VD văn bản sắp hết hiệu lực). */
   alert?: string;
@@ -63,9 +62,6 @@ export function VarietyCard({ v }: { v: CatalogueVariety }) {
           <div className="mt-auto flex flex-wrap gap-1 pt-1">
             <Badge variant={statusVariant[v.status] ?? "secondary"} className="text-[10px] px-1.5">{v.status || "Chưa rõ"}</Badge>
             {v.circulationType && v.circulationType !== "Chưa lưu hành" && <Badge variant="outline" className="text-[10px] px-1.5">{v.circulationType}</Badge>}
-            {v.protected && (
-              <Badge variant="outline" className="text-[10px] px-1.5 gap-0.5"><ShieldCheck className="w-3 h-3" aria-hidden /> Bảo hộ</Badge>
-            )}
           </div>
         </div>
       </Link>

@@ -7,7 +7,7 @@ import { EntitySearchInput } from "@/components/crud/search-input";
 import { StatGrid } from "@/components/common/stat-grid";
 import { supplyMoveStore, supplyStore } from "@/lib/modules/m3/data/tissue";
 import { MOVE_KINDS, SUPPLY_CATEGORIES, stockOf } from "@/lib/modules/m3/production";
-import { fmtVND } from "@/lib/modules/m4/finance";
+import { fmtVND } from "@/lib/platform/format";
 import { byId, matches, refOptions } from "@/lib/platform/ref-options";
 import { fmtDateVN } from "@/lib/platform/dates";
 

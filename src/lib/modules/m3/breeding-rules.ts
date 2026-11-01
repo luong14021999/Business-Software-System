@@ -1,6 +1,6 @@
 // M3.2 đợt C – quy tắc thuần: cấp giống, đối chiếu bộ chỉ tiêu, phả hệ & hệ số cận huyết, chuỗi lô giống,
 // hiệu lực văn bản, cung – cầu. Kiểm thử được.
-import { normalizeVi } from "@/lib/modules/m4/research";
+import { normalizeVi } from "@/lib/platform/format";
 
 export const VARIETY_SCOPES = ["Giống của Viện", "Giống trên địa bàn tỉnh"] as const;
 export const CIRCULATION_TYPES = ["Công nhận lưu hành", "Tự công bố lưu hành", "Lưu hành đặc cách", "Chưa lưu hành"] as const;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { tissueReport } from "@/lib/modules/m3/data/tissue-report";
-import { csvRow } from "@/lib/modules/m4/finance";
+import { csvRow } from "@/lib/platform/format";
 import { currentActor } from "@/lib/platform/auth/server";
 import { todayISO } from "@/lib/platform/dates";
 

@@ -20,7 +20,7 @@ import {
 import { FIELD_RESULTS, LOG_ACTIVITIES, QTY_UNITS, SEED_LEVEL_NAMES, validityAlert } from "@/lib/modules/m3/breeding-rules";
 import { nextLevel, seedLotLeft } from "@/lib/modules/m3/breed-workspace";
 import { suggestCode } from "@/lib/modules/m3/bench";
-import { getCustomers } from "@/lib/modules/m4/data/customers";
+import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { currentAccess } from "@/lib/platform/data/access";
 import { byId, refOptions } from "@/lib/platform/ref-options";
 import { daysUntil, fmtDateVN, todayISO } from "@/lib/platform/dates";

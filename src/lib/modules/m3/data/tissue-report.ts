@@ -3,7 +3,7 @@ import { cultureBatchStore, lotFeedbackStore, lotSaleStore, seedlingLotStore, se
 import { loadCosting } from "@/lib/modules/m3/data/costing";
 import { orderProgress } from "@/lib/modules/m3/production";
 import { lineage } from "@/lib/modules/m3/tissue-rules";
-import { marginPct, monthsOf, sumByMonth } from "@/lib/modules/m4/finance";
+import { marginPct, monthsOf, sumByMonth } from "@/lib/platform/format";
 import { pct } from "@/lib/modules/m3/rates";
 
 export async function tissueReport(year: number) {

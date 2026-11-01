@@ -20,12 +20,11 @@ import {
   varietyStore,
 } from "@/lib/modules/m3/data/breeding";
 import { distributionStore, facilityStore, genotypeCallStore, genotypeSampleStore, marketPostStore, sequenceRefStore } from "@/lib/modules/m3/data/genomics";
-import { ipAssetStore, knowledgeStore } from "@/lib/modules/m4/data/knowledge";
-import { safeUrl } from "@/lib/modules/m4/data/portal";
+import { safeUrl } from "@/lib/platform/format";
 import { DOC_KINDS, INBREEDING_WARN, inbreeding, validityAlert } from "@/lib/modules/m3/breeding-rules";
 import { levelSteps, seedLotLeft } from "@/lib/modules/m3/breed-workspace";
 import { varietyFields } from "@/lib/modules/m3/variety-fields";
-import { getCustomers } from "@/lib/modules/m4/data/customers";
+import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { currentAccess } from "@/lib/platform/data/access";
 import { byId } from "@/lib/platform/ref-options";
 import { fmtDateVN, todayISO } from "@/lib/platform/dates";
@@ -55,7 +54,7 @@ export default async function VarietyDossierPage({ params, searchParams }: { par
   const { id } = await params;
   const sp = await searchParams;
   const tab: TabKey = (TAB_KEYS as readonly string[]).includes(sp.tab ?? "") ? (sp.tab as TabKey) : "tong-quan";
-  const [varieties, docs, stocks, trials, prodLots, seedLots, deliveries, orders, demands, individuals, samples, calls, seqRefs, distributions, posts, facilities, ipAssets, knowledge, customers, access] = await Promise.all([
+  const [varieties, docs, stocks, trials, prodLots, seedLots, deliveries, orders, demands, individuals, samples, calls, seqRefs, distributions, posts, facilities, customers, access] = await Promise.all([
     varietyStore.list(),
     varietyDocumentStore.list(),
     sourceStockStore.list(),
@@ -72,8 +71,6 @@ export default async function VarietyDossierPage({ params, searchParams }: { par
     distributionStore.list().catch(() => []),
     marketPostStore.list().catch(() => []),
     facilityStore.list().catch(() => []),
-    ipAssetStore.list(),
-    knowledgeStore.list(),
     getCustomers(),
     currentAccess(),
   ]);
@@ -82,8 +79,6 @@ export default async function VarietyDossierPage({ params, searchParams }: { par
   const today = todayISO();
   const base = `/varieties/${id}`;
   const canWrite = access.can("write.breeding");
-  const ip = ipAssets.find((a) => a.id === v.ipAssetId);
-  const guide = knowledge.find((k) => k.id === v.guideKnowledgeId);
   const customerById = byId(customers);
   const facilityById = byId(facilities);
 
@@ -132,10 +127,8 @@ export default async function VarietyDossierPage({ params, searchParams }: { par
               <dt className="text-muted-foreground">Tác giả / chủ sở hữu</dt><dd>{v.owner || "—"}</dd>
               <dt className="text-muted-foreground">Công nhận</dt><dd>{v.recognitionNo ? `QĐ ${v.recognitionNo} ngày ${fmtDateVN(v.recognizedAt)}` : "—"}</dd>
               <dt className="text-muted-foreground">Lưu hành</dt><dd>{v.circulationType}{v.circulationNo && ` · ${v.circulationNo}`}{v.circulationAt && ` · ${fmtDateVN(v.circulationAt)}`}</dd>
-              <dt className="text-muted-foreground">Bảo hộ</dt><dd>{ip ? <Link href={`/ip-assets?q=${encodeURIComponent(ip.code)}`} className="text-primary hover:underline">{ip.code} · {ip.grantNo || ip.status}{ip.expiresAt && ` · đến ${fmtDateVN(ip.expiresAt)}`}</Link> : "—"}</dd>
               <dt className="text-muted-foreground">Vùng khuyến cáo</dt><dd>{v.regions || "—"}</dd>
               <dt className="text-muted-foreground">Diện tích trên địa bàn</dt><dd>{v.areaHa ? `${vn(v.areaHa)} ha` : "—"}</dd>
-              <dt className="text-muted-foreground">Quy trình kỹ thuật</dt><dd>{guide ? <Link href={`/knowledge?q=${encodeURIComponent(guide.code)}`} className="text-primary hover:underline">{guide.title}</Link> : "—"}</dd>
               <dt className="text-muted-foreground">Cổng công khai</dt><dd>{v.isPublic ? <Link href="/portal/giong" target="_blank" className="text-primary hover:underline">Đang giới thiệu</Link> : "Không giới thiệu"}</dd>
             </dl>
             {v.traits && <p className="mt-3 whitespace-pre-line text-sm"><span className="text-muted-foreground">Đặc điểm: </span>{v.traits}</p>}
@@ -407,12 +400,11 @@ export default async function VarietyDossierPage({ params, searchParams }: { par
               <div className="mt-1 flex flex-wrap gap-1.5">
                 <Badge variant={statusVariant[v.status] ?? "secondary"}>{v.status}</Badge>
                 {v.circulationType && <Badge variant="outline">{v.circulationType}</Badge>}
-                {ip && <Badge variant="outline">Bảo hộ {ip.grantNo || ip.status}</Badge>}
                 {v.isPublic && <Badge variant="success">Trên cổng công khai</Badge>}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{[v.owner, v.origin, v.regions && `vùng: ${v.regions}`].filter(Boolean).join(" · ")}</p>
             </div>
-            {canWrite && <EntityFormDialog mode="edit" endpoint="/api/varieties" id={v.id} title={`Sửa ${v.code}`} fields={varietyFields(ipAssets, knowledge.filter((k) => k.isPublic))} initial={v} />}
+            {canWrite && <EntityFormDialog mode="edit" endpoint="/api/varieties" id={v.id} title={`Sửa ${v.code}`} fields={varietyFields()} initial={v} />}
           </div>
         </section>
         <DossierTabs base={base} tabs={tabs} active={tab} />

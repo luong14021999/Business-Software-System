@@ -10,7 +10,7 @@ import { fmtDateVN } from "@/lib/platform/dates";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "In tem truy xuất lô giống" };
 
-/** Tem truy xuất 50 × 30 mm cho lô cây giống (M4.3): QR mở trang /trace công khai. */
+/** Tem truy xuất 50 × 30 mm cho lô cây giống (M3.1.6): QR mở trang /trace công khai. */
 export default async function LotLabelsPage({ searchParams }: { searchParams: Promise<{ codes?: string; copies?: string }> }) {
   const { codes = "", copies = "1" } = await searchParams;
   const wanted = codes.split(",").map((c) => c.trim()).filter(Boolean);

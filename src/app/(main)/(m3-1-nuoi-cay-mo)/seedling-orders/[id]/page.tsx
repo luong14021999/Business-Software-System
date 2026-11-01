@@ -4,11 +4,11 @@ import { ArrowLeft, CalendarRange } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCustomers } from "@/lib/modules/m4/data/customers";
+import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { cultureBatchStore, lotSaleStore, productionProfileStore, seedlingLotStore, seedlingOrderStore } from "@/lib/modules/m3/data/tissue";
 import { orderProgress, planOrder } from "@/lib/modules/m3/production";
 import { contaminationRate, fmtPct } from "@/lib/modules/m3/rates";
-import { fmtVND } from "@/lib/modules/m4/finance";
+import { fmtVND } from "@/lib/platform/format";
 import { fmtDateVN, todayISO } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";

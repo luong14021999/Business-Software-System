@@ -254,32 +254,6 @@
   --ring: 95 55% 48%;
 }
 
-/* M4 · Dịch vụ – KH&CN: cam, giao dịch – khách hàng */
-[data-module="m4"] {
-  --primary: 24 88% 40%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 24 88% 40%;
-  --secondary: 24 40% 96%;
-  --secondary-foreground: 24 45% 18%;
-  --muted: 24 30% 96.5%;
-  --muted-foreground: 24 12% 40%;
-  --accent: 24 40% 94%;
-  --accent-foreground: 24 45% 18%;
-  --border: 24 22% 88%;
-  --input: 24 22% 88%;
-  --sidebar: 18 42% 20%;
-  --sidebar-foreground: 18 35% 92%;
-  --sidebar-accent: 24 60% 34%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 18 40% 15%;
-  --brand-from: 32 92% 46%;
-  --brand-via: 22 85% 38%;
-  --brand-to: 14 75% 24%;
-}
-.dark [data-module="m4"], .dark[data-module="m4"] {
-  --primary: 24 88% 56%;
-  --ring: 24 88% 56%;
-}
 
 @layer base {
   * {

@@ -23,12 +23,10 @@ export type Variety = {
   circulationType: string;
   circulationNo: string;
   circulationAt: string;
-  ipAssetId: string;
   regions: string;
   areaHa: number;
   isPublic: boolean;
   publicSummary: string;
-  guideKnowledgeId: string;
   note: string;
 };
 
@@ -50,12 +48,10 @@ export const varietyStore = createEntityStore<Variety>(
     circulationType: "text",
     circulationNo: "text",
     circulationAt: "date",
-    ipAssetId: "ref",
     regions: "text",
     areaHa: "number",
     isPublic: "bool",
     publicSummary: "text",
-    guideKnowledgeId: "ref",
     note: "text",
   }),
 );
