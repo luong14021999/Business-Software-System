@@ -6,14 +6,14 @@ import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { isActiveHref, moduleOf } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
-import { ModuleActions, ModuleHomeLink } from "@/components/layout/module-chrome";
+import { ModuleBackButton } from "@/components/layout/module-chrome";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 
 /**
  * Khung "menu ngang" (phòng thí nghiệm): thanh tối, mỗi nhóm là một mục hoặc menu xổ xuống.
- * Đầu thanh: logo Viện (về trang chủ); cuối thanh: Danh mục / Đăng xuất. Trên điện thoại các mục menu nằm trong ngăn kéo ☰.
+ * Đầu thanh: nút về trang chủ các phần mềm. Trên điện thoại các mục menu nằm trong ngăn kéo ☰.
  */
-export function TopNav({ canAdmin = false, canCatalog = false }: { canAdmin?: boolean; canCatalog?: boolean }) {
+export function TopNav() {
   const pathname = usePathname();
   const mod = moduleOf(pathname);
   // Menu đang mở gắn với trang mở nó → tự đóng khi chuyển trang.
@@ -39,7 +39,7 @@ export function TopNav({ canAdmin = false, canCatalog = false }: { canAdmin?: bo
   return (
     <nav ref={ref} aria-label={`Menu ${mod.name}`} className="flex shrink-0 items-center gap-2 bg-[#222] px-2 lg:px-4">
       <div className="md:hidden"><MobileSidebar /></div>
-      <ModuleHomeLink tone="dark" className="py-1.5 md:mr-1" />
+      <ModuleBackButton tone="dark" className="my-1.5 md:mr-1" />
       <span className="truncate text-sm font-medium text-white md:hidden">{mod.name}</span>
       <ul className="hidden min-w-0 flex-1 flex-wrap items-stretch md:flex">
         {mod.groups.map((g) => {
@@ -85,9 +85,6 @@ export function TopNav({ canAdmin = false, canCatalog = false }: { canAdmin?: bo
           );
         })}
       </ul>
-      <div className="ml-auto py-1.5">
-        <ModuleActions tone="dark" canAdmin={canAdmin} canCatalog={canCatalog} />
-      </div>
     </nav>
   );
 }

@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, Loader2 } from "lucide-react";
 import { signOutAll } from "@/components/platform/sign-out-link";
 
-/** Nút đăng xuất; `className` thay kiểu mặc định (nền tối của thanh tiêu đề). */
-export function HeaderUser({ className }: { className?: string }) {
+export function HeaderUser() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [signingOut, setSigningOut] = useState(false);
@@ -28,7 +27,7 @@ export function HeaderUser({ className }: { className?: string }) {
       onClick={onLogout}
       disabled={loading}
       aria-label="Đăng xuất"
-      className={`${className ?? "flex items-center gap-2 h-10 px-3.5 rounded-lg text-sm font-medium text-white/90 border border-white/25 bg-white/10 hover:bg-white/20 hover:text-white transition-colors"} disabled:opacity-60`}
+      className="flex items-center gap-2 h-10 px-3.5 rounded-lg text-sm font-medium text-white/90 border border-white/25 bg-white/10 hover:bg-white/20 hover:text-white transition-colors disabled:opacity-60"
     >
       {loading ? (
         <Loader2 className="w-4 h-4 animate-spin" />

@@ -7,7 +7,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowLeft, LayoutGrid, MoreHorizontal, X } from "lucide-react";
 import { catalogOf, isActiveHref, moduleOf, tabsOf, type NavGroup } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
-import { ModuleActions, ModuleHomeLink } from "@/components/layout/module-chrome";
+import { ModuleBackButton } from "@/components/layout/module-chrome";
 
 /** Bảng "Danh mục": ô lớn theo nhóm – dễ bấm trên máy tính bảng ở phòng cấy. */
 export function CatalogSheet({ groups, pathname, open, onOpenChange, trigger, title = "Danh mục & các trang khác" }: { groups: NavGroup[]; pathname: string; open: boolean; onOpenChange: (v: boolean) => void; trigger: React.ReactNode; title?: string }) {
@@ -63,7 +63,7 @@ export function CatalogSheet({ groups, pathname, open, onOpenChange, trigger, ti
  * - "hub" (M3.2): tab ngang gọn theo khu nghiệp vụ, cuộn ngang trên điện thoại.
  * Cả hai: hàng tab con theo ngữ cảnh, nút Danh mục cho các trang không thuộc tab nào.
  */
-export function TabShellNav({ variant, canAdmin = false, canCatalog = false }: { variant: "bench" | "hub"; canAdmin?: boolean; canCatalog?: boolean }) {
+export function TabShellNav({ variant }: { variant: "bench" | "hub" }) {
   const bench = variant === "bench";
   const pathname = usePathname();
   const mod = moduleOf(pathname);
@@ -81,17 +81,16 @@ export function TabShellNav({ variant, canAdmin = false, canCatalog = false }: {
 
   return (
     <>
-      {/* Điện thoại (bàn làm việc): thanh tên phần mềm có logo về trang chủ và nút đăng xuất */}
+      {/* Điện thoại (bàn làm việc): thanh tên phần mềm có nút về trang chủ các phần mềm */}
       {bench && (
         <div className="flex shrink-0 items-center gap-2 border-b bg-card px-3 py-1.5 md:hidden">
-          <ModuleHomeLink tone="light" />
+          <ModuleBackButton tone="light" />
           <span className="min-w-0 flex-1 truncate text-sm font-semibold text-primary">{mod.name}</span>
-          <ModuleActions tone="light" canAdmin={canAdmin} canCatalog={canCatalog} iconOnly={catalog.length > 0} />
         </div>
       )}
       <nav aria-label={mod.name} className={cn("shrink-0 border-b bg-card", bench && "hidden md:block")}>
         <div className="flex items-stretch gap-1 overflow-x-auto px-3 scrollbar-thin lg:px-5">
-          <ModuleHomeLink tone="light" className="mr-1 self-center" />
+          <ModuleBackButton tone="light" className="mr-1 self-center" />
           {tabs.map((t) => {
             const Icon = t.icon;
             const on = t === active;
@@ -125,9 +124,6 @@ export function TabShellNav({ variant, canAdmin = false, canCatalog = false }: {
               }
             />
           </div>}
-          <div className={cn("flex items-center py-2 pl-2", catalog.length === 0 && "ml-auto")}>
-            <ModuleActions tone="light" canAdmin={canAdmin} canCatalog={canCatalog} iconOnly={catalog.length > 0} />
-          </div>
         </div>
         {active && active.items.length > 1 && (
           <div className="flex gap-1.5 overflow-x-auto border-t bg-muted/30 px-3 py-1.5 scrollbar-thin lg:px-5">

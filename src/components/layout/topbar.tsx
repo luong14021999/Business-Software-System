@@ -18,7 +18,7 @@ import { OWN_CHROME } from "@/components/layout/module-chrome";
 export function TopBar({ canAdmin = false, canCatalog = false }: { canAdmin?: boolean; canCatalog?: boolean }) {
   const pathname = usePathname();
   const mod = moduleOf(pathname);
-  // Trong phần mềm nghiệp vụ, thanh menu của phần mềm đã có logo (về trang chủ) và nút đăng xuất.
+  // Trong phần mềm nghiệp vụ, thanh menu của phần mềm có nút về trang chủ; Danh mục / Đăng xuất ở trang chủ.
   if (mod && OWN_CHROME.includes(mod.code)) return null;
   // Menu dọc và menu ngang dùng chung ngăn kéo ☰ trên điện thoại.
   const hasSidebar = shellOf(mod) === "sidebar" || shellOf(mod) === "topnav";
