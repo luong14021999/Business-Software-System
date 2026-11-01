@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, balance, compareLimit, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
+import { addDays, balance, compareLimit, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -96,5 +96,25 @@ describe("báo giá & công nợ", () => {
       { criterion: "pH", unit: "-", samples: 1, unitPrice: 40_000, amount: 40_000 },
       { criterion: "COD", unit: "mg/L", samples: 1, unitPrice: 0, amount: 0 },
     ]);
+  });
+});
+
+describe("thống kê định mức", () => {
+  it("số lượt × định mức, giảm trừ trên tổng, báo chỉ tiêu chưa có định mức", () => {
+    const r = normSummary(
+      [
+        { matrix: "Đất", criterion: "pH" },
+        { matrix: "Đất", criterion: "pH" },
+        { matrix: "Đất", criterion: "N" },
+      ],
+      (m, c) => (c === "pH" ? 100_000 : undefined),
+      10,
+    );
+    expect(r.rows).toEqual([
+      { analyte: "pH (Đất)", count: 2, rate: 100_000, amount: 200_000 },
+      { analyte: "N (Đất)", count: 1, rate: 0, amount: 0 },
+    ]);
+    expect([r.gross, r.deduction, r.net]).toEqual([200_000, 20_000, 180_000]);
+    expect(r.missing).toEqual(["Đất · N"]);
   });
 });

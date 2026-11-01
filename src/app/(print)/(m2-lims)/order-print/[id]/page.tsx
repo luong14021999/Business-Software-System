@@ -4,11 +4,12 @@ import { ArrowLeft } from "lucide-react";
 import { PrintButton } from "@/components/m2/reports/print-button";
 import { labInfo } from "@/lib/modules/m2/accreditation";
 import { getCustomers } from "@/lib/modules/m2/data/customers";
-import { analyteStore, orderLines, orderSampleStore, orderStore, sampleTypeStore } from "@/lib/modules/m2/data/orders";
+import { orderLines, orderSampleStore, orderStore } from "@/lib/modules/m2/data/orders";
+import { priceResolver } from "@/lib/modules/m2/data/settings";
 import { buildGrid } from "@/lib/modules/m2/data/grid";
 import { compareLimit, limitText, orderTotals, parseResultCell, quoteLines } from "@/lib/modules/m2/orders";
 import { fmtDateTimeVN, fmtDateVN, todayISO } from "@/lib/platform/dates";
-import { fmtVND, normalizeVi } from "@/lib/platform/format";
+import { fmtVND } from "@/lib/platform/format";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
   const { id } = await params;
   const { loai = "yeu-cau" } = await searchParams;
   const kind: Kind = loai in KINDS ? (loai as Kind) : "yeu-cau";
-  const [orders, customers, samples, lines, analytes, types] = await Promise.all([orderStore.list(), getCustomers(), orderSampleStore.list(), orderLines(id), analyteStore.list(), sampleTypeStore.list()]);
+  const [orders, customers, samples, lines] = await Promise.all([orderStore.list(), getCustomers(), orderSampleStore.list(), orderLines(id)]);
   const order = orders.find((o) => o.id === id);
   if (!order) notFound();
   const customer = customers.find((c) => c.id === order.customerId);
@@ -46,8 +47,7 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
       </table>
     );
   } else if (kind === "bao-gia") {
-    const typeId = new Map(types.map((t) => [t.name, t.id]));
-    const q = quoteLines(lines, (m, c) => analytes.find((a) => a.sampleTypeId === typeId.get(m) && normalizeVi(a.name) === normalizeVi(c))?.unitPrice ?? 0);
+    const q = quoteLines(lines, await priceResolver(order.priceListId));
     const t = orderTotals(order.amount || q.reduce((s, l) => s + l.amount, 0), order.discountPct, order.vatRate);
     body = (
       <>

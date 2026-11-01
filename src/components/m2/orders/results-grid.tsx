@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { btn, btnPrimary, input, table } from "@/components/m2/lab-ui/page";
 import { toast } from "@/components/ui/toast";
 import { reauthenticate } from "@/components/platform/sign/sign-dialog";
-import { ANALYTE_SCOPES, compareLimit, limitText, parseResultCell } from "@/lib/modules/m2/orders";
+import { compareLimit, limitText, parseResultCell } from "@/lib/modules/m2/orders";
 import { cn } from "@/lib/utils";
 
 export type GridLine = {
@@ -59,6 +59,7 @@ export function ResultsGrid({
   can,
   me,
   methods,
+  scopes,
 }: {
   /** API lưu lưới (theo đơn hàng hoặc theo mẻ). */
   saveUrl: string;
@@ -68,6 +69,8 @@ export function ResultsGrid({
   can: { enter: boolean; qa: boolean; approve: boolean };
   me: { name: string; email: string };
   methods: string[];
+  /** Lựa chọn cột "Thầu phụ" (VILAS, Nội bộ, các đơn vị thầu phụ). */
+  scopes: string[];
 }) {
   const router = useRouter();
   const [, start] = useTransition();
@@ -263,7 +266,8 @@ export function ResultsGrid({
                         {editable ? (
                           <select value={l.subcontractor} onChange={(e) => set(l.id, "subcontractor", e.target.value)} aria-label={`Thầu phụ ${l.criterion}`} className={`${input} h-8 px-2`}>
                             <option value="" />
-                            {ANALYTE_SCOPES.map((x) => <option key={x}>{x}</option>)}
+                            {scopes.map((x) => <option key={x}>{x}</option>)}
+                            {l.subcontractor && !scopes.includes(l.subcontractor) && <option>{l.subcontractor}</option>}
                           </select>
                         ) : (
                           <span className="text-xs">{l.subcontractor || "—"}</span>

@@ -14,7 +14,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ report: 
   const u = new URL(req.url);
   const from = u.searchParams.get("from") ?? "";
   const to = u.searchParams.get("to") ?? "";
-  const tables = await runReport(report as LabReport, from, to);
+  const basis = u.searchParams.get("basis") === "tra-ket-qua" ? "tra-ket-qua" : "quan-trac";
+  const tables = await runReport(report as LabReport, from, to, { list: u.searchParams.get("list") ?? undefined, basis, giam: Math.min(100, Math.max(0, Number(u.searchParams.get("giam")) || 0)) });
   const lines = [csvRow([`${LAB_REPORTS[report as LabReport].title} – từ ${from || "…"} đến ${to || "…"}`])];
   for (const t of tables) {
     lines.push("");

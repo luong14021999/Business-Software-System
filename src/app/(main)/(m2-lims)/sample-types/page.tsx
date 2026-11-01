@@ -3,21 +3,23 @@ import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { btn } from "@/components/m2/lab-ui/page";
 import { sampleTypeStore } from "@/lib/modules/m2/data/orders";
+import { containerTypeStore } from "@/lib/modules/m2/data/settings";
 import { currentAccess } from "@/lib/platform/data/access";
 
 export const dynamic = "force-dynamic";
 
-const FIELDS: CrudField[] = [
+const fieldsOf = (containers: string[]): CrudField[] => [
   { name: "name", label: "Tên loại mẫu", required: true },
   { name: "prefix", label: "Tiền tố mã mẫu", required: true, mono: true, placeholder: "VD: NM" },
   { name: "sort", label: "Thứ tự", type: "number" },
-  { name: "defaultContainer", label: "Dụng cụ lưu mặc định" },
+  { name: "defaultContainer", label: "Dụng cụ lưu mặc định", ...(containers.length ? { type: "select" as const, options: ["", ...containers] } : {}) },
   { name: "active", label: "Đang dùng", type: "bool", boolLabels: ["Đang dùng", "Ngừng dùng"], defaultValue: 1 },
   { name: "description", label: "Mô tả", type: "textarea" },
 ];
 
 export default async function SampleTypesPage() {
-  const [items, access] = await Promise.all([sampleTypeStore.list(), currentAccess()]);
+  const [items, access, containers] = await Promise.all([sampleTypeStore.list(), currentAccess(), containerTypeStore.list()]);
+  const FIELDS = fieldsOf(containers.map((c) => c.name).sort((a, b) => a.localeCompare(b, "vi")));
   const canWrite = access.can("write.quality");
   return (
     <LabPage

@@ -3,6 +3,7 @@ import { LabPage } from "@/components/m2/lab-ui/page";
 import { ResultsGrid } from "@/components/m2/orders/results-grid";
 import { analyteStore, batchLines, testBatchStore } from "@/lib/modules/m2/data/orders";
 import { buildGrid } from "@/lib/modules/m2/data/grid";
+import { scopeOptions } from "@/lib/modules/m2/data/settings";
 import { currentAccess } from "@/lib/platform/data/access";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export default async function BatchResultsPage({ params }: { params: Promise<{ i
         saveUrl={`/api/test-batches/${id}/results`}
         backHref={`/test-batches/${id}`}
         samples={await buildGrid(lines)}
+        scopes={await scopeOptions()}
         can={{ enter: access.can("results.enter"), qa: access.can("results.qa"), approve: access.can("results.approve") }}
         me={{ name: access.actor?.name ?? "", email: access.actor?.email ?? "" }}
         methods={[...new Set(analytes.map((a) => a.method).filter(Boolean))].sort()}

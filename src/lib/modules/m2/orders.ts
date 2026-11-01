@@ -212,3 +212,26 @@ export function quoteLines(
   }
   return [...m.values()];
 }
+
+// ── Thống kê định mức ───────────────────────────────────────────────
+
+export type NormRow = { analyte: string; count: number; rate: number; amount: number };
+
+/** Gộp số lượt chỉ tiêu × đơn giá định mức, trừ tỷ lệ giảm trừ (%) trên tổng. */
+export function normSummary(lines: { matrix: string; criterion: string }[], rateOf: (matrix: string, criterion: string) => number | undefined, deductionPct = 0) {
+  const m = new Map<string, NormRow>();
+  const missing = new Set<string>();
+  for (const l of lines) {
+    const rate = rateOf(l.matrix, l.criterion);
+    if (rate === undefined) missing.add(`${l.matrix} · ${l.criterion}`);
+    const key = `${l.matrix}|${l.criterion}`;
+    const cur = m.get(key) ?? { analyte: `${l.criterion} (${l.matrix})`, count: 0, rate: rate ?? 0, amount: 0 };
+    cur.count++;
+    cur.amount = cur.count * cur.rate;
+    m.set(key, cur);
+  }
+  const rows = [...m.values()].sort((a, b) => b.amount - a.amount);
+  const gross = rows.reduce((s, r) => s + r.amount, 0);
+  const deduction = Math.round((gross * Math.min(100, Math.max(0, Number(deductionPct) || 0))) / 100);
+  return { rows, gross, deduction, net: gross - deduction, missing: [...missing] };
+}

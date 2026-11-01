@@ -3,7 +3,7 @@ import { LabPage, link } from "@/components/m2/lab-ui/page";
 
 export const dynamic = "force-dynamic";
 
-/** Danh mục cài đặt của phòng thí nghiệm (các mục chưa làm sẽ bổ sung ở giai đoạn sau). */
+/** Danh mục cài đặt của phòng thí nghiệm. */
 const ITEMS: { label: string; href?: string; note?: string }[] = [
   { label: "Chỉ tiêu phân tích", href: "/lab-analytes" },
   { label: "Loại mẫu (tiền tố mã mẫu)", href: "/sample-types" },
@@ -16,12 +16,13 @@ const ITEMS: { label: string; href?: string; note?: string }[] = [
   { label: "Hóa chất", href: "/chemicals" },
   { label: "Nhà cung cấp", href: "/suppliers" },
   { label: "Danh mục dùng chung (đơn vị tính, loại khách hàng…)", href: "/master-data" },
-  { label: "Bảng giá", note: "giai đoạn 4" },
-  { label: "Bảng định mức", note: "giai đoạn 4" },
-  { label: "Template cho bóc tách", note: "giai đoạn 4" },
-  { label: "Template mẻ thử nghiệm", note: "giai đoạn 4" },
-  { label: "Thầu phụ", note: "giai đoạn 4" },
-  { label: "Dụng cụ lấy mẫu, bảo quản", note: "giai đoạn 4" },
+  { label: "Bảng giá", href: "/price-lists" },
+  { label: "Bảng định mức", href: "/norm-lists" },
+  { label: "Template cho bóc tách", href: "/bulk-templates" },
+  { label: "Template mẻ thử nghiệm", href: "/batch-templates" },
+  { label: "Thầu phụ", href: "/subcontractors" },
+  { label: "Loại dụng cụ lấy mẫu", href: "/container-types" },
+  { label: "Bảo quản", href: "/preservations" },
 ];
 
 export default function LabSettingsPage() {

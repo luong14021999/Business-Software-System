@@ -4,7 +4,7 @@ import { Dropdown } from "@/components/m2/lab-ui/dropdown";
 import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { analyteStore, sampleTypeStore } from "@/lib/modules/m2/data/orders";
-import { ANALYTE_SCOPES } from "@/lib/modules/m2/orders";
+import { scopeOptions } from "@/lib/modules/m2/data/settings";
 import { currentAccess } from "@/lib/platform/data/access";
 import { fmtVND, normalizeVi } from "@/lib/platform/format";
 
@@ -13,7 +13,7 @@ const PER_PAGE = 25;
 
 export default async function AnalytesPage({ searchParams }: { searchParams: Promise<{ type?: string; q?: string; page?: string }> }) {
   const sp = await searchParams;
-  const [items, types, access] = await Promise.all([analyteStore.list(), sampleTypeStore.list(), currentAccess()]);
+  const [items, types, access, scopes] = await Promise.all([analyteStore.list(), sampleTypeStore.list(), currentAccess(), scopeOptions()]);
   const canWrite = access.can("write.quality");
   const typeName = new Map(types.map((t) => [t.id, t.name]));
   const fields: CrudField[] = [
@@ -23,7 +23,7 @@ export default async function AnalytesPage({ searchParams }: { searchParams: Pro
     { name: "unit", label: "Đơn vị" },
     { name: "method", label: "Phương pháp", full: true },
     { name: "loq", label: "Giới hạn định lượng (LOQ)" },
-    { name: "scope", label: "Phạm vi thực hiện", type: "select", options: [...ANALYTE_SCOPES] },
+    { name: "scope", label: "Phạm vi thực hiện", type: "select", options: scopes },
     { name: "unitPrice", label: "Đơn giá tham khảo (đ/mẫu, chưa thuế)", type: "number" },
     { name: "accreditedNo", label: "Số TT phép thử VILAS", type: "number", nullable: true },
     { name: "sort", label: "Thứ tự", type: "number" },

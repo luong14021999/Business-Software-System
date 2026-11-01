@@ -8,16 +8,24 @@ import { toast } from "@/components/ui/toast";
 import { orderTotals } from "@/lib/modules/m2/orders";
 import { fmtVND } from "@/lib/platform/format";
 
-type Init = { quoteNo: string; quotedAt: string; amount: number; discountPct: number; vatRate: number };
+type Init = { priceListId: string; quoteNo: string; quotedAt: string; amount: number; discountPct: number; vatRate: number };
 
 /** Số báo giá, ngày, giá trị trước thuế, giảm giá, thuế GTGT – xem ngay tổng tiền. */
-export function QuoteForm({ orderId, initial, suggested }: { orderId: string; initial: Init; suggested: number }) {
+export function QuoteForm({ orderId, initial, suggested, priceLists }: { orderId: string; initial: Init; suggested: number; priceLists: { id: string; name: string }[] }) {
   const [f, setF] = useState({ ...initial, quotedAt: initial.quotedAt.slice(0, 10) });
   const [busy, setBusy] = useState(false);
   const [, start] = useTransition();
   const router = useRouter();
   const t = orderTotals(f.amount, f.discountPct, f.vatRate);
   const num = (k: keyof Init) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: Number(e.target.value.replace(/\D/g, "")) || 0 }));
+
+  /** Đổi bảng giá → lưu ngay rồi tải lại để bảng kê tính theo giá mới. */
+  async function changeList(priceListId: string) {
+    setF((x) => ({ ...x, priceListId }));
+    const res = await fetch(`/api/orders/${orderId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ priceListId }) });
+    if (!res.ok) return toast.error("Không đổi được bảng giá", (await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+    start(() => router.refresh());
+  }
 
   async function save() {
     setBusy(true);
@@ -33,6 +41,13 @@ export function QuoteForm({ orderId, initial, suggested }: { orderId: string; in
   const label = "text-sm font-bold sm:text-right";
   return (
     <div className="space-y-3">
+      <label className={row}>
+        <span className={label}>Bảng giá áp dụng</span>
+        <select value={f.priceListId} onChange={(e) => changeList(e.target.value)} className={input}>
+          <option value="">— Đơn giá tham khảo của chỉ tiêu —</option>
+          {priceLists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+        </select>
+      </label>
       <label className={row}><span className={label}>Số báo giá</span><input value={f.quoteNo} onChange={(e) => setF((x) => ({ ...x, quoteNo: e.target.value }))} className={input} /></label>
       <label className={row}><span className={label}>Ngày báo giá</span><input type="date" value={f.quotedAt} onChange={(e) => setF((x) => ({ ...x, quotedAt: e.target.value }))} className={input} /></label>
       <label className={row}>

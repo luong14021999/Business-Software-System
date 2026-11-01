@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, X } from "lucide-react";
 import { btn, btnPrimary, input, link, table } from "@/components/m2/lab-ui/page";
 import { toast } from "@/components/ui/toast";
-import { ANALYTE_SCOPES, specLabel } from "@/lib/modules/m2/orders";
+import { specLabel } from "@/lib/modules/m2/orders";
 import type { LabAnalyte, SampleType, Specification } from "@/lib/modules/m2/data/orders";
 
 type Line = { key: string; name: string; unit: string; method: string; subcontractor: string };
@@ -21,12 +21,16 @@ export function SplitForm({
   analytes,
   specs,
   locations,
+  templates,
+  scopes,
 }: {
   orderId: string;
   types: SampleType[];
   analytes: LabAnalyte[];
   specs: Specification[];
   locations: string[];
+  templates: { id: string; name: string; sampleTypeId: string; lines: { name: string; unit?: string; method?: string; subcontractor?: string }[] }[];
+  scopes: string[];
 }) {
   const router = useRouter();
   const [typeId, setTypeId] = useState(types[0]?.id ?? "");
@@ -42,6 +46,28 @@ export function SplitForm({
   const [lines, setLines] = useState<Line[]>([]);
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<string[]>([]);
+  const [tplId, setTplId] = useState("");
+  const typeTemplates = templates.filter((t) => t.sampleTypeId === typeId);
+
+  function applyTemplate() {
+    const t = templates.find((x) => x.id === tplId);
+    if (!t) return toast.error("Chọn mẫu bóc tách");
+    setLines(t.lines.map((l, i) => ({ key: `tpl-${i}-${l.name}`, name: l.name, unit: l.unit ?? "", method: l.method ?? "", subcontractor: l.subcontractor || "VILAS" })));
+  }
+  async function saveTemplate() {
+    if (!lines.length) return toast.error("Bảng chưa có chỉ tiêu để lưu");
+    const name = prompt("Tên mẫu bóc tách (VD: Đất – dinh dưỡng cơ bản):")?.trim();
+    if (!name) return;
+    const res = await fetch("/api/bulk-templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, sampleTypeId: typeId, lines: lines.map(({ name, unit, method, subcontractor }) => ({ name, unit, method, subcontractor })) }),
+    });
+    const b = await res.json().catch(() => ({}));
+    if (!res.ok) return toast.error("Không lưu được mẫu", b.error ?? `HTTP ${res.status}`);
+    toast.success(`Đã lưu mẫu bóc tách "${name}"`);
+    router.refresh();
+  }
 
   const ofType = useMemo(() => analytes.filter((a) => a.sampleTypeId === typeId && a.active).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)), [analytes, typeId]);
   const groups = [...new Set(ofType.map((a) => a.groupName).filter(Boolean))];
@@ -55,6 +81,7 @@ export function SplitForm({
     setGroup("");
     setPick("");
     setSpecId("");
+    setTplId("");
   }
   function add() {
     const a = ofType.find((x) => x.id === pick);
@@ -117,6 +144,15 @@ export function SplitForm({
         <label htmlFor="cnt" className="text-sm font-bold md:text-right">Số mẫu</label>
         <input id="cnt" type="number" min={1} max={50} value={count} onChange={(e) => setCount(e.target.value)} className={`${input} max-w-[7rem]`} />
         <span className="text-xs text-muted-foreground">Mỗi mẫu một mã riêng, cùng danh sách chỉ tiêu</span>
+        <label htmlFor="tpl" className="text-sm font-bold md:text-right">Chọn template</label>
+        <select id="tpl" value={tplId} onChange={(e) => setTplId(e.target.value)} className={input}>
+          <option value="">{typeTemplates.length ? "— Mẫu bóc tách dựng sẵn —" : "Chưa có mẫu cho loại mẫu này"}</option>
+          {typeTemplates.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.lines.length} chỉ tiêu)</option>)}
+        </select>
+        <div className="flex gap-1">
+          <button type="button" onClick={applyTemplate} disabled={!tplId} className={btn}>Áp dụng</button>
+          <button type="button" onClick={saveTemplate} disabled={!lines.length} className={btn}>Lưu bảng thành mẫu</button>
+        </div>
         <label htmlFor="spec" className="text-sm font-bold md:text-right">Quy chuẩn so sánh</label>
         <select id="spec" value={specId} onChange={(e) => setSpecId(e.target.value)} className={input}>
           <option value="">— Không so sánh quy chuẩn —</option>
@@ -144,7 +180,8 @@ export function SplitForm({
                 <td><input value={l.unit} onChange={edit(l.key, "unit")} className={`${input} h-8`} aria-label={`Đơn vị ${l.name}`} /></td>
                 <td>
                   <select value={l.subcontractor} onChange={edit(l.key, "subcontractor")} className={`${input} h-8 px-2`} aria-label={`Thầu phụ ${l.name}`}>
-                    {ANALYTE_SCOPES.map((s) => <option key={s}>{s}</option>)}
+                    {scopes.map((s) => <option key={s}>{s}</option>)}
+                    {!scopes.includes(l.subcontractor) && <option>{l.subcontractor}</option>}
                   </select>
                 </td>
                 <td><input value={l.method} onChange={edit(l.key, "method")} className={`${input} h-8`} aria-label={`Phương pháp ${l.name}`} /></td>

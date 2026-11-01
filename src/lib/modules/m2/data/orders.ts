@@ -33,6 +33,7 @@ export type Order = {
   amount: number;
   discountPct: number;
   vatRate: number;
+  priceListId: string;
 };
 
 export const orderStore = createEntityStore<Order>(
@@ -68,6 +69,7 @@ export const orderStore = createEntityStore<Order>(
     amount: "number",
     discountPct: "number",
     vatRate: "number",
+    priceListId: "ref",
   }),
 );
 

@@ -2,7 +2,9 @@
 import { dbQuery, isDbConfigured } from "@/lib/platform/db";
 import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { orderPaymentStore, orderStore } from "@/lib/modules/m2/data/orders";
-import { balance, orderTotals } from "@/lib/modules/m2/orders";
+import { balance, normSummary, orderTotals } from "@/lib/modules/m2/orders";
+import { rateItemStore, rateListStore } from "@/lib/modules/m2/data/settings";
+import { normalizeVi } from "@/lib/platform/format";
 import { fmtDateTimeVN, fmtDateVN, vnDateOf } from "@/lib/platform/dates";
 
 export const LAB_REPORTS = {
@@ -12,6 +14,7 @@ export const LAB_REPORTS = {
   "thau-phu": { title: "Thống kê thông số thầu phụ", hint: "Số lượt chỉ tiêu theo phạm vi thực hiện (VILAS / nội bộ / thầu phụ)" },
   "cong-no": { title: "Thống kê công nợ", hint: "Giá trị, đã thu, còn lại của đơn hàng có ngày quan trắc trong khoảng" },
   "so-phieu": { title: "Tổng hợp số phiếu kết quả", hint: "Đơn hàng có số phiếu kết quả, theo ngày trả kết quả thực tế" },
+  "dinh-muc": { title: "Thống kê định mức", hint: "Số lượt chỉ tiêu đã phê duyệt × đơn giá định mức, trừ tỷ lệ giảm trừ (đơn hàng chưa hủy)" },
 } as const;
 export type LabReport = keyof typeof LAB_REPORTS;
 
@@ -20,8 +23,12 @@ export type ReportTable = { title?: string; columns: string[]; rows: Cell[][]; t
 
 const inRange = (d: string, from: string, to: string) => Boolean(d) && (!from || d >= from) && (!to || d <= to);
 
-export async function runReport(key: LabReport, from: string, to: string): Promise<ReportTable[]> {
+/** Tham số riêng của Thống kê định mức. */
+export type ReportOpts = { list?: string; basis?: "quan-trac" | "tra-ket-qua"; giam?: number };
+
+export async function runReport(key: LabReport, from: string, to: string, opts: ReportOpts = {}): Promise<ReportTable[]> {
   if (!isDbConfigured()) return [];
+  if (key === "dinh-muc") return normReport(from, to, opts);
   if (key === "so-nhan-mau") {
     const rows = await dbQuery(
       `select s.received_at, s.code, s.customer, o.code order_code, s.type, s.location_name, s.criteria, s.stage, s.status
@@ -114,4 +121,37 @@ export async function runReport(key: LabReport, from: string, to: string): Promi
     columns: ["Số phiếu", "Mã đơn hàng", "Tên", "Khách hàng", "Ngày trả kết quả", "Hình thức trả"],
     rows: list.map((o) => [o.reportNo, o.code, o.name, cust.get(o.customerId) ?? "", fmtDateTimeVN(o.deliveredAt || o.dueAt), o.deliveryMethod]),
   }];
+}
+
+async function normReport(from: string, to: string, opts: ReportOpts): Promise<ReportTable[]> {
+  const lists = (await rateListStore.list()).filter((l) => l.kind === "norm");
+  const list = lists.find((l) => l.id === opts.list) ?? lists.find((l) => l.active) ?? lists[0];
+  if (!list) return [{ title: "Chưa có bảng định mức – thêm ở Cài đặt → Bảng định mức", columns: [], rows: [] }];
+  const col = opts.basis === "tra-ket-qua" ? "coalesce(o.delivered_at, o.due_at)" : "o.field_at";
+  const lines = await dbQuery(
+    `select r.matrix, r.criterion from public.analysis_results r
+     join public.samples s on s.code = r.sample_code join public.orders o on o.id = s.order_id
+     where r.status = 'Đã duyệt' and o.status <> 'Hủy' and ${col} is not null
+       and ($1 = '' or ${col} >= $1::date) and ($2 = '' or ${col} < ($2::date + 1))`,
+    [from, to],
+  );
+  const [items, types] = await Promise.all([rateItemStore.list(), (await import("@/lib/modules/m2/data/orders")).sampleTypeStore.list()]);
+  const typeId = new Map(types.map((t) => [t.name, t.id]));
+  const mine = items.filter((i) => i.listId === list.id);
+  const r = normSummary(
+    lines.map((l) => ({ matrix: (l.matrix as string) ?? "", criterion: (l.criterion as string) ?? "" })),
+    (m, c) => mine.find((i) => i.sampleTypeId === typeId.get(m) && normalizeVi(i.analyte) === normalizeVi(c))?.amount,
+    opts.giam ?? 0,
+  );
+  const out: ReportTable[] = [
+    {
+      title: `Theo ${list.name}${opts.giam ? ` · giảm trừ ${opts.giam}%` : ""}`,
+      columns: ["Chỉ tiêu (loại mẫu)", "Số lượt", "Đơn giá định mức (đ)", "Thành tiền (đ)"],
+      rows: r.rows.map((x) => [x.analyte, x.count, x.rate, x.amount]),
+      total: ["Cộng", r.rows.reduce((s, x) => s + x.count, 0), "", r.gross],
+    },
+    { title: "Tổng hợp", columns: ["Khoản", "Số tiền (đ)"], rows: [["Tổng theo định mức", r.gross], [`Giảm trừ ${opts.giam ?? 0}%`, -r.deduction], ["Còn lại", r.net]] },
+  ];
+  if (r.missing.length) out.push({ title: "Chỉ tiêu chưa có trong bảng định mức (tính 0 đ)", columns: ["Loại mẫu · chỉ tiêu"], rows: r.missing.map((m) => [m]) });
+  return out;
 }

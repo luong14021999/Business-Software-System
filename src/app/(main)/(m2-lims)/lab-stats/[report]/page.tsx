@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { Download, Search } from "lucide-react";
 import { LabPage, btn, input, table } from "@/components/m2/lab-ui/page";
-import { LAB_REPORTS, runReport, type LabReport } from "@/lib/modules/m2/data/lab-stats";
+import { LAB_REPORTS, runReport, type LabReport, type ReportOpts } from "@/lib/modules/m2/data/lab-stats";
+import { rateListStore } from "@/lib/modules/m2/data/settings";
 import { todayISO } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 const fmt = (v: string | number) => (typeof v === "number" ? v.toLocaleString("vi-VN") : v);
 
 /** Một sổ / bảng thống kê: chọn khoảng ngày, xem trên trang hoặc xuất Excel. */
-export default async function LabStatsPage({ params, searchParams }: { params: Promise<{ report: string }>; searchParams: Promise<{ from?: string; to?: string }> }) {
+export default async function LabStatsPage({ params, searchParams }: { params: Promise<{ report: string }>; searchParams: Promise<{ from?: string; to?: string; list?: string; basis?: string; giam?: string }> }) {
   const { report } = await params;
   if (!(report in LAB_REPORTS)) notFound();
   const key = report as LabReport;
@@ -17,7 +18,10 @@ export default async function LabStatsPage({ params, searchParams }: { params: P
   const today = todayISO();
   const from = sp.from ?? `${today.slice(0, 8)}01`;
   const to = sp.to ?? today;
-  const tables = await runReport(key, from, to);
+  const opts: ReportOpts = { list: sp.list, basis: sp.basis === "tra-ket-qua" ? "tra-ket-qua" : "quan-trac", giam: Math.min(100, Math.max(0, Number(sp.giam) || 0)) };
+  const tables = await runReport(key, from, to, opts);
+  const normLists = key === "dinh-muc" ? (await rateListStore.list()).filter((l) => l.kind === "norm") : [];
+  const extra = key === "dinh-muc" ? `&list=${opts.list ?? ""}&basis=${opts.basis}&giam=${opts.giam}` : "";
   return (
     <LabPage
       title={LAB_REPORTS[key].title}
@@ -30,9 +34,20 @@ export default async function LabStatsPage({ params, searchParams }: { params: P
             <input id="from" type="date" name="from" defaultValue={from} className={`${input} !w-40`} />
             <label className="text-sm font-bold" htmlFor="to">đến:</label>
             <input id="to" type="date" name="to" defaultValue={to} className={`${input} !w-40`} />
+            {key === "dinh-muc" && (
+              <>
+                <label className="inline-flex items-center gap-1 text-sm"><input type="radio" name="basis" value="quan-trac" defaultChecked={opts.basis !== "tra-ket-qua"} />ngày quan trắc</label>
+                <label className="inline-flex items-center gap-1 text-sm"><input type="radio" name="basis" value="tra-ket-qua" defaultChecked={opts.basis === "tra-ket-qua"} />ngày trả kết quả</label>
+                <select name="list" defaultValue={opts.list ?? ""} className={`${input} !w-56`} aria-label="Bảng định mức">
+                  {normLists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+                <label className="text-sm font-bold" htmlFor="giam">Giảm trừ (%):</label>
+                <input id="giam" name="giam" inputMode="numeric" defaultValue={opts.giam || ""} className={`${input} !w-20`} />
+              </>
+            )}
             <button className={btn}><Search className="h-4 w-4" />Xem</button>
           </form>
-          <a href={`/api/lab-stats/${key}?from=${from}&to=${to}`} className={btn}><Download className="h-4 w-4" />Xuất Excel</a>
+          <a href={`/api/lab-stats/${key}?from=${from}&to=${to}${extra}`} className={btn}><Download className="h-4 w-4" />Xuất Excel</a>
         </>
       }
     >
