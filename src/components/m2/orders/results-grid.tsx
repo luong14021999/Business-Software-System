@@ -53,13 +53,17 @@ const STATUS_TONE: Record<string, string> = {
  * KTV gõ kết quả (số, "<0,05", "KPH") rồi nộp; QA/QC và Trưởng phòng duyệt hàng loạt các dòng được chọn.
  */
 export function ResultsGrid({
-  orderId,
+  saveUrl,
+  backHref,
   samples,
   can,
   me,
   methods,
 }: {
-  orderId: string;
+  /** API lưu lưới (theo đơn hàng hoặc theo mẻ). */
+  saveUrl: string;
+  /** Trang quay lại sau "Lưu & thoát". */
+  backHref: string;
   samples: GridSample[];
   can: { enter: boolean; qa: boolean; approve: boolean };
   me: { name: string; email: string };
@@ -94,11 +98,11 @@ export function ResultsGrid({
 
   async function save(exit = false) {
     if (!dirty.length) {
-      if (exit) router.push(`/orders/${orderId}/samples`);
+      if (exit) router.push(backHref);
       return true;
     }
     setBusy("save");
-    const res = await fetch(`/api/orders/${orderId}/results`, {
+    const res = await fetch(saveUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lines: dirty.map((id) => ({ id, ...edits[id] })) }),
@@ -111,7 +115,7 @@ export function ResultsGrid({
     }
     toast.success(`Đã lưu ${b.saved} kết quả`);
     setEdits({});
-    if (exit) router.push(`/orders/${orderId}/samples`);
+    if (exit) router.push(backHref);
     else start(() => router.refresh());
     return true;
   }
@@ -168,7 +172,7 @@ export function ResultsGrid({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-1.5">
-        <Link href={`/orders/${orderId}/samples`} className={btn} aria-label="Quay lại"><ArrowLeft className="h-4 w-4" /></Link>
+        <Link href={backHref} className={btn} aria-label="Quay lại"><ArrowLeft className="h-4 w-4" /></Link>
         {can.enter && (
           <>
             <button type="button" disabled={loading} onClick={() => save(true)} className={btnPrimary}>Lưu &amp; thoát</button>

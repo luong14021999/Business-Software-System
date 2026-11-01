@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareLimit, legacySampleStatus, limitText, nextOrderCode, nextSampleCodes, overdueDays, parseResultCell } from "./orders";
+import { addDays, compareLimit, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, overdueDays, parseResultCell, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -51,5 +51,22 @@ describe("kết quả và quy chuẩn", () => {
     expect(limitText(6.5, 8.5)).toBe("6,5 – 8,5");
     expect(limitText(null, 50)).toBe("≤ 50");
     expect(limitText(4, null)).toBe("≥ 4");
+  });
+});
+
+describe("mẻ thử nghiệm & lịch công tác", () => {
+  it("mã mẻ theo tháng", () => {
+    expect(nextBatchCode("2026-11-02", ["2026.11.001", "2026.11.007", "2026.10.020"])).toBe("2026.11.008");
+    expect(nextBatchCode("2026-12-01", [])).toBe("2026.12.001");
+  });
+  it("tuần bắt đầu từ thứ 2", () => {
+    const w = weekOf("2026-11-01"); // chủ nhật
+    expect(w[0]).toEqual({ iso: "2026-10-26", label: "Thứ 2 - 26/10" });
+    expect(w[6]).toEqual({ iso: "2026-11-01", label: "Chủ nhật - 1/11" });
+    expect(addDays("2026-12-30", 7)).toBe("2027-01-06");
+  });
+  it("số tuần ISO", () => {
+    expect(isoWeek("2026-10-26")).toBe(44);
+    expect(isoWeek("2026-01-01")).toBe(1);
   });
 });

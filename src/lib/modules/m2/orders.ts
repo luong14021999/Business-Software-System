@@ -129,3 +129,48 @@ export function overdueDays(dueISO: string | null | undefined, todayISO: string)
   const d = Math.floor((Date.parse(todayISO.slice(0, 10)) - Date.parse(dueISO.slice(0, 10))) / 86_400_000);
   return d > 0 ? d : 0;
 }
+
+// ── Mẻ thử nghiệm ───────────────────────────────────────────────────
+
+export const BATCH_STATUSES = ["Phân tích", "Duyệt", "Trả kết quả"] as const;
+
+/** Mã mẻ kế tiếp trong tháng: 2026.11.001. */
+export function nextBatchCode(isoDate: string, existing: string[]) {
+  const head = `${isoDate.slice(0, 4)}.${isoDate.slice(5, 7)}.`;
+  const max = existing.reduce((m, c) => (c.startsWith(head) && /^\d+$/.test(c.slice(head.length)) ? Math.max(m, Number(c.slice(head.length))) : m), 0);
+  return `${head}${String(max + 1).padStart(3, "0")}`;
+}
+
+// ── Lịch công tác ───────────────────────────────────────────────────
+
+export const SCHEDULE_KINDS = ["Kế hoạch quan trắc", "Lấy mẫu", "Phân tích", "Công tác", "Họp", "Nghỉ phép", "Khác"] as const;
+const WEEKDAYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+
+/** 7 ngày (thứ 2 → chủ nhật) của tuần chứa `isoDate`. */
+export function weekOf(isoDate: string) {
+  const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => {
+    const x = new Date(monday);
+    x.setUTCDate(monday.getUTCDate() + i);
+    const iso = x.toISOString().slice(0, 10);
+    return { iso, label: `${WEEKDAYS[x.getUTCDay()]} - ${x.getUTCDate()}/${x.getUTCMonth() + 1}` };
+  });
+}
+
+/** Cộng `days` ngày vào "YYYY-MM-DD". */
+export function addDays(isoDate: string, days: number) {
+  const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Số tuần ISO 8601 của ngày. */
+export function isoWeek(isoDate: string) {
+  const d = new Date(`${isoDate.slice(0, 10)}T00:00:00Z`);
+  const day = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - day + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((d.getTime() - firstThursday.getTime()) / 86_400_000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+}

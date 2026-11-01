@@ -174,21 +174,53 @@ export type OrderLine = {
   status: string;
   technician: string;
   sort: number;
+  batchId: string;
 };
+
+const LINE_COLS = `r.id, r.result_code, r.sample_code, r.criterion, r.unit, r.method, r.subcontractor, r.result_prefix,
+            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort, r.batch_id`;
 
 /** Các dòng kết quả thuộc những mẫu của đơn hàng, theo thứ tự mẫu → thứ tự chỉ tiêu. */
 export async function orderLines(orderId: string): Promise<OrderLine[]> {
   if (!isDbConfigured()) return [];
   const rows = await dbQuery(
-    `select r.id, r.result_code, r.sample_code, r.criterion, r.unit, r.method, r.subcontractor, r.result_prefix,
-            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort
+    `select ${LINE_COLS}
      from public.analysis_results r
      join public.samples s on s.code = r.sample_code
      where s.order_id = $1
      order by s.code, coalesce(r.sort, 0), r.criterion`,
     [orderId],
   );
-  return rows.map((r) => ({
+  return rows.map(toLine);
+}
+
+/** Các dòng kết quả đã đưa vào một mẻ thử nghiệm. */
+export async function batchLines(batchId: string): Promise<OrderLine[]> {
+  if (!isDbConfigured()) return [];
+  const rows = await dbQuery(
+    `select ${LINE_COLS} from public.analysis_results r where r.batch_id = $1 order by r.sample_code, coalesce(r.sort, 0), r.criterion`,
+    [batchId],
+  );
+  return rows.map(toLine);
+}
+
+/** Dòng kết quả chưa thuộc mẻ nào (để chọn đưa vào mẻ), lọc theo phương pháp và ngày nhận mẫu. */
+export async function freeLines(f: { method?: string; from?: string; to?: string }) {
+  if (!isDbConfigured()) return [];
+  const rows = await dbQuery(
+    `select ${LINE_COLS}, s.received_at, s.is_qc, s.is_duplicate
+     from public.analysis_results r join public.samples s on s.code = r.sample_code
+     where r.batch_id is null and r.status in ('Đang nhập', 'Trả lại sửa')
+       and ($1 = '' or r.method = $1)
+       and ($2 = '' or s.received_at >= $2::date) and ($3 = '' or s.received_at <= $3::date)
+     order by s.received_at desc nulls last, r.sample_code, coalesce(r.sort, 0) limit 500`,
+    [f.method ?? "", f.from ?? "", f.to ?? ""],
+  );
+  return rows.map((r) => ({ ...toLine(r), receivedAt: (r.received_at as string) ?? "", isQc: Boolean(r.is_qc), isDuplicate: Boolean(r.is_duplicate) }));
+}
+
+function toLine(r: Record<string, unknown>): OrderLine {
+  return {
     id: r.id as string,
     resultCode: (r.result_code as string) ?? "",
     sampleCode: (r.sample_code as string) ?? "",
@@ -201,7 +233,8 @@ export async function orderLines(orderId: string): Promise<OrderLine[]> {
     status: (r.status as string) || "Đang nhập",
     technician: (r.technician as string) ?? "",
     sort: Number(r.sort) || 0,
-  }));
+    batchId: (r.batch_id as string) ?? "",
+  };
 }
 
 /** Tóm tắt từng đơn: số mẫu, số dòng kết quả, số dòng đã duyệt. */
@@ -221,4 +254,85 @@ export async function sampleCodesLike(prefix: string) {
   if (!isDbConfigured()) return [];
   const rows = await dbQuery(`select code from public.samples where code like $1`, [`${prefix}%`]);
   return rows.map((r) => r.code as string);
+}
+
+// ── Bảng tin, lịch công tác, mẻ thử nghiệm (migration 0026) ─────────
+
+export type LabPost = { id: string; author: string; body: string; createdAt: string };
+export const labPostStore = createEntityStore<LabPost>("lab-posts", [], columnsMapping<LabPost>("lab_posts", { author: "text", body: "text", createdAt: "date" }));
+
+export type WorkItem = { id: string; staffName: string; day: string; kind: string; title: string; hours: number | null; orderId: string; note: string; createdBy: string };
+export const workScheduleStore = createEntityStore<WorkItem>(
+  "work-schedule",
+  [],
+  columnsMapping<WorkItem>("work_schedule", { staffName: "text", day: "date", kind: "text", title: "text", hours: "optnum", orderId: "ref", note: "text", createdBy: "text" }),
+);
+
+export type TestBatch = {
+  id: string;
+  code: string;
+  method: string;
+  analyst: string;
+  instrumentCode: string;
+  chemicals: string;
+  startedAt: string;
+  finishedAt: string;
+  status: string;
+  note: string;
+  createdBy: string;
+  createdAt: string;
+};
+export const testBatchStore = createEntityStore<TestBatch>(
+  "test-batches",
+  [],
+  columnsMapping<TestBatch>("test_batches", {
+    code: "text",
+    method: "text",
+    analyst: "text",
+    instrumentCode: "text",
+    chemicals: "text",
+    startedAt: "date",
+    finishedAt: "date",
+    status: "text",
+    note: "text",
+    createdBy: "text",
+    createdAt: "date",
+  }),
+);
+
+/** Đưa / gỡ các dòng kết quả vào mẻ (chỉ dòng chưa nộp duyệt). */
+export async function setLinesBatch(lineIds: string[], batchId: string | null) {
+  if (!lineIds.length) return 0;
+  const rows = await dbQuery(
+    `update public.analysis_results set batch_id = $2
+     where id = any($1::uuid[]) and status in ('Đang nhập', 'Trả lại sửa') and ($2::uuid is null or batch_id is null or batch_id = $2::uuid)
+     returning id`,
+    [lineIds, batchId],
+  );
+  return rows.length;
+}
+
+/** Số dòng kết quả trong từng mẻ: tổng / đã duyệt. */
+export async function batchProgress(): Promise<Map<string, { lines: number; approved: number }>> {
+  if (!isDbConfigured()) return new Map();
+  const rows = await dbQuery(
+    `select batch_id, count(*)::int lines, count(*) filter (where status = 'Đã duyệt')::int approved
+     from public.analysis_results where batch_id is not null group by batch_id`,
+  ).catch(() => []);
+  return new Map(rows.map((r) => [r.batch_id as string, { lines: Number(r.lines), approved: Number(r.approved) }]));
+}
+
+/** Số dòng kết quả ở các trạng thái cho trước, gom theo đơn hàng (việc chờ duyệt / chờ sửa). */
+export async function linesByOrder(statuses: string[], technician?: string) {
+  if (!isDbConfigured()) return [];
+  const rows = await dbQuery(
+    `select o.id, o.code, o.name, count(*)::int n
+     from public.analysis_results r
+     join public.samples s on s.code = r.sample_code
+     join public.orders o on o.id = s.order_id
+     where r.status = any($1::text[]) and ($2 = '' or r.technician = $2)
+     group by o.id, o.code, o.name order by o.code desc`,
+    [statuses, technician ?? ""],
+  ).catch(() => []);
+  return rows.map((r) => ({ id: r.id as string, code: r.code as string, name: r.name as string, n: Number(r.n) }));
 }

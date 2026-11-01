@@ -16,9 +16,9 @@ export function LabPage({ title, subtitle, toolbar, children, wide = false }: { 
 }
 
 /** Nút kiểu thanh công cụ (viền xám, nền trắng). */
-export const btn = "inline-flex h-[34px] items-center gap-1.5 rounded border border-[#ccc] bg-white px-3 text-sm text-[#333] hover:bg-[#e6e6e6] disabled:opacity-50";
+export const btn = "inline-flex h-[34px] items-center gap-1.5 whitespace-nowrap rounded border border-[#ccc] bg-white px-3 text-sm text-[#333] hover:bg-[#e6e6e6] disabled:opacity-50";
 /** Nút chính (xanh dương đậm). */
-export const btnPrimary = "inline-flex h-[34px] items-center gap-1.5 rounded border border-[#2e6da4] bg-[#337ab7] px-3 text-sm text-white hover:bg-[#286090] disabled:opacity-50";
+export const btnPrimary = "inline-flex h-[34px] items-center gap-1.5 whitespace-nowrap rounded border border-[#2e6da4] bg-[#337ab7] px-3 text-sm text-white hover:bg-[#286090] disabled:opacity-50";
 /** Nút nhỏ trong bảng. */
 export const btnXs = "inline-flex h-[22px] items-center gap-1 rounded-sm border border-[#ccc] bg-white px-1.5 text-xs text-[#333] hover:bg-[#e6e6e6]";
 /** Ô nhập. */

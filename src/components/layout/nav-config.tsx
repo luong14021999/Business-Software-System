@@ -190,7 +190,14 @@ export const navModules: NavModule[] = [
     searchHint: "Tìm mẫu, khách hàng, mã chỉ tiêu...",
     shell: "topnav",
     groups: [
-      { label: "Trang chủ", link: true, items: [{ href: "/lims", label: "Trang chủ", icon: LayoutDashboard }] },
+      {
+        label: "Trang chủ",
+        link: true,
+        items: [
+          { href: "/lims", label: "Trang chủ", icon: LayoutDashboard },
+          { href: "/work-schedule", label: "Lịch công tác", icon: CalendarDays },
+        ],
+      },
       { label: "Khách hàng", link: true, items: [{ href: "/customers", label: "Khách hàng", icon: Users2 }] },
       { label: "Đơn hàng", link: true, items: [{ href: "/orders", label: "Đơn hàng", icon: ClipboardList }] },
       {
@@ -207,13 +214,20 @@ export const navModules: NavModule[] = [
         label: "Yêu cầu",
         items: [
           { href: "/samples", label: "Danh sách yêu cầu (tiếp nhận mẫu)", icon: ClipboardList },
+          { href: "/scan-receive", label: "Quét mã yêu cầu", icon: QrCode },
           { href: "/test-requests", label: "Phiếu yêu cầu thử nghiệm", icon: FileSignature },
           { href: "/campaigns", label: "Quan trắc theo đợt", icon: Telescope },
           { href: "/field", label: "Lấy mẫu hiện trường", icon: Smartphone },
           { href: "/archive", label: "Sổ theo dõi mẫu lưu", icon: Archive },
         ],
       },
-      { label: "Thống kê", link: true, items: [{ href: "/statistics", label: "Thống kê", icon: BarChart3 }] },
+      {
+        label: "Thống kê",
+        items: [
+          { href: "/lab-dashboard", label: "Bảng điều khiển phòng thí nghiệm", icon: LayoutDashboard },
+          { href: "/statistics", label: "Thống kê", icon: BarChart3 },
+        ],
+      },
       {
         label: "Quản lý",
         items: [
@@ -246,6 +260,7 @@ export const navModules: NavModule[] = [
           { href: "/decision-rules", label: "Quy tắc quyết định", icon: Scale },
         ],
       },
+      { label: "Mẻ thử nghiệm", link: true, items: [{ href: "/test-batches", label: "Mẻ thử nghiệm", icon: Boxes }] },
       {
         label: "Cài đặt",
         link: true,
