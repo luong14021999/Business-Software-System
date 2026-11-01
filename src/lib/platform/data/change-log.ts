@@ -34,6 +34,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   "lab-posts": "Bảng tin nội bộ",
   "work-schedule": "Lịch công tác",
   "test-batches": "Mẻ thử nghiệm",
+  "order-payments": "Thanh toán đơn hàng",
   "tissue-materials": "Vật liệu nuôi cấy",
   "mother-plants": "Cây mẹ",
   "production-profiles": "Thông số sản xuất",

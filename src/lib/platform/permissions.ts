@@ -54,6 +54,7 @@ const ENTITY_PERMISSION: Record<string, Permission> = {
   "lab-posts": "write.any",
   "work-schedule": "write.any",
   "test-batches": "results.enter",
+  "order-payments": "write.reception",
   samples: "write.reception",
   "test-requests": "write.reception",
   "archived-samples": "write.reception",

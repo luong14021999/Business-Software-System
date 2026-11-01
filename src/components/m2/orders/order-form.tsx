@@ -179,6 +179,9 @@ export function OrderForm({ order, customers, staff }: { order?: Order; customer
             <Link href={`/orders/${order.id}/split`} className={btn}>Bóc tách</Link>
             <Link href={`/orders/${order.id}/samples`} className={btn}>Yêu cầu</Link>
             <Link href={`/orders/${order.id}/results`} className={btn}>Nhập/duyệt kết quả</Link>
+            <Link href={`/orders/${order.id}/quote`} className={btn}>Báo giá</Link>
+            <Link href={`/orders/${order.id}/debit`} className={btn}>Công nợ</Link>
+            <Link href={`/order-print/${order.id}?loai=yeu-cau`} className={btn}>In phiếu yêu cầu</Link>
           </>
         )}
       </div>

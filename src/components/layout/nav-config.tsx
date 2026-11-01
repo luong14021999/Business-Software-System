@@ -11,6 +11,7 @@ import {
   Wrench,
   Beaker,
   FileText,
+  BookOpen,
   Settings,
   Layers,
   Users,
@@ -225,7 +226,13 @@ export const navModules: NavModule[] = [
         label: "Thống kê",
         items: [
           { href: "/lab-dashboard", label: "Bảng điều khiển phòng thí nghiệm", icon: LayoutDashboard },
-          { href: "/statistics", label: "Thống kê", icon: BarChart3 },
+          { href: "/statistics", label: "Thống kê chung", icon: BarChart3 },
+          { href: "/lab-stats/ngay-quan-trac", label: "Ngày quan trắc", icon: BarChart3 },
+          { href: "/lab-stats/so-nhan-mau", label: "Sổ nhận mẫu", icon: BookOpen },
+          { href: "/lab-stats/so-giao-mau", label: "Sổ giao mẫu", icon: BookOpen },
+          { href: "/lab-stats/thau-phu", label: "Thông số thầu phụ", icon: BarChart3 },
+          { href: "/lab-stats/cong-no", label: "Công nợ", icon: BarChart3 },
+          { href: "/lab-stats/so-phieu", label: "Tổng hợp số phiếu", icon: FileText },
         ],
       },
       {
@@ -430,7 +437,7 @@ export const isActiveHref = (href: string, pathname: string) =>
 export function moduleOf(pathname: string): NavModule | undefined {
   const byMenu = navModules.find((m) => m.groups.some((g) => g.items.some((i) => isActiveHref(i.href, pathname))));
   if (byMenu) return byMenu;
-  if (/^\/(sample-labels|report-print|verify)(\/|$)/.test(pathname)) return navModules.find((m) => m.code === "M2");
+  if (/^\/(sample-labels|report-print|order-print|verify)(\/|$)/.test(pathname)) return navModules.find((m) => m.code === "M2");
   return undefined;
 }
 

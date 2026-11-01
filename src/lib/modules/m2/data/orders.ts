@@ -28,6 +28,11 @@ export type Order = {
   note: string;
   createdBy: string;
   createdAt: string;
+  quoteNo: string;
+  quotedAt: string;
+  amount: number;
+  discountPct: number;
+  vatRate: number;
 };
 
 export const orderStore = createEntityStore<Order>(
@@ -58,6 +63,11 @@ export const orderStore = createEntityStore<Order>(
     note: "text",
     createdBy: "text",
     createdAt: "date",
+    quoteNo: "text",
+    quotedAt: "date",
+    amount: "number",
+    discountPct: "number",
+    vatRate: "number",
   }),
 );
 
@@ -126,6 +136,7 @@ export type LabAnalyte = {
   accreditedNo: number | null;
   sort: number;
   active: boolean;
+  unitPrice: number;
 };
 export const analyteStore = createEntityStore<LabAnalyte>(
   "lab-analytes",
@@ -141,6 +152,7 @@ export const analyteStore = createEntityStore<LabAnalyte>(
     accreditedNo: "optnum",
     sort: "number",
     active: "bool",
+    unitPrice: "number",
   }),
 );
 
@@ -175,10 +187,11 @@ export type OrderLine = {
   technician: string;
   sort: number;
   batchId: string;
+  matrix: string;
 };
 
 const LINE_COLS = `r.id, r.result_code, r.sample_code, r.criterion, r.unit, r.method, r.subcontractor, r.result_prefix,
-            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort, r.batch_id`;
+            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort, r.batch_id, r.matrix`;
 
 /** Các dòng kết quả thuộc những mẫu của đơn hàng, theo thứ tự mẫu → thứ tự chỉ tiêu. */
 export async function orderLines(orderId: string): Promise<OrderLine[]> {
@@ -234,6 +247,7 @@ function toLine(r: Record<string, unknown>): OrderLine {
     technician: (r.technician as string) ?? "",
     sort: Number(r.sort) || 0,
     batchId: (r.batch_id as string) ?? "",
+    matrix: (r.matrix as string) ?? "",
   };
 }
 
@@ -336,3 +350,12 @@ export async function linesByOrder(statuses: string[], technician?: string) {
   ).catch(() => []);
   return rows.map((r) => ({ id: r.id as string, code: r.code as string, name: r.name as string, n: Number(r.n) }));
 }
+
+// ── Báo giá & công nợ (migration 0027) ──────────────────────────────
+
+export type OrderPayment = { id: string; orderId: string; amount: number; paidAt: string; method: string; note: string; createdBy: string };
+export const orderPaymentStore = createEntityStore<OrderPayment>(
+  "order-payments",
+  [],
+  columnsMapping<OrderPayment>("order_payments", { orderId: "ref", amount: "number", paidAt: "date", method: "text", note: "text", createdBy: "text" }),
+);

@@ -6,7 +6,7 @@ import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-
 import { analyteStore, sampleTypeStore } from "@/lib/modules/m2/data/orders";
 import { ANALYTE_SCOPES } from "@/lib/modules/m2/orders";
 import { currentAccess } from "@/lib/platform/data/access";
-import { normalizeVi } from "@/lib/platform/format";
+import { fmtVND, normalizeVi } from "@/lib/platform/format";
 
 export const dynamic = "force-dynamic";
 const PER_PAGE = 25;
@@ -24,6 +24,7 @@ export default async function AnalytesPage({ searchParams }: { searchParams: Pro
     { name: "method", label: "Phương pháp", full: true },
     { name: "loq", label: "Giới hạn định lượng (LOQ)" },
     { name: "scope", label: "Phạm vi thực hiện", type: "select", options: [...ANALYTE_SCOPES] },
+    { name: "unitPrice", label: "Đơn giá tham khảo (đ/mẫu, chưa thuế)", type: "number" },
     { name: "accreditedNo", label: "Số TT phép thử VILAS", type: "number", nullable: true },
     { name: "sort", label: "Thứ tự", type: "number" },
     { name: "active", label: "Đang dùng", type: "bool", boolLabels: ["Đang dùng", "Ngừng dùng"], defaultValue: 1 },
@@ -59,7 +60,7 @@ export default async function AnalytesPage({ searchParams }: { searchParams: Pro
         entity="lab-analytes"
         canWrite={canWrite}
         fields={fields}
-        headers={["Tên", "Loại mẫu", "Nhóm", "Đơn vị", "Phương pháp", "Phạm vi"]}
+        headers={["Tên", "Loại mẫu", "Nhóm", "Đơn vị", "Phương pháp", "Phạm vi", "Đơn giá"]}
         rows={rows.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((a) => ({
           id: a.id,
           label: a.name,
@@ -71,6 +72,7 @@ export default async function AnalytesPage({ searchParams }: { searchParams: Pro
             a.unit || "—",
             <span key="m" className="text-xs">{a.method}</span>,
             a.scope,
+            <span key="p" className="whitespace-nowrap">{a.unitPrice ? fmtVND(a.unitPrice) : "—"}</span>,
           ],
         }))}
       />

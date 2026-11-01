@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, compareLimit, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, overdueDays, parseResultCell, weekOf } from "./orders";
+import { addDays, balance, compareLimit, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -68,5 +68,33 @@ describe("mẻ thử nghiệm & lịch công tác", () => {
   it("số tuần ISO", () => {
     expect(isoWeek("2026-10-26")).toBe(44);
     expect(isoWeek("2026-01-01")).toBe(1);
+  });
+});
+
+describe("báo giá & công nợ", () => {
+  it("giảm giá trước, thuế sau, làm tròn đồng", () => {
+    expect(orderTotals(1_000_000, 10, 8)).toEqual({ sub: 1_000_000, discount: 100_000, afterDiscount: 900_000, vat: 72_000, total: 972_000 });
+    expect(orderTotals(333_333, 0, 0).total).toBe(333_333);
+    expect(orderTotals(100, 150, -5)).toEqual({ sub: 100, discount: 100, afterDiscount: 0, vat: 0, total: 0 });
+  });
+  it("còn lại không âm", () => {
+    expect(balance(1_000_000, [{ amount: 300_000 }, { amount: 200_000 }])).toEqual({ paid: 500_000, remaining: 500_000 });
+    expect(balance(100, [{ amount: 500 }]).remaining).toBe(0);
+  });
+  it("bảng kê gộp theo loại mẫu + chỉ tiêu", () => {
+    const q = quoteLines(
+      [
+        { criterion: "pH", unit: "-", matrix: "Đất" },
+        { criterion: "pH", unit: "-", matrix: "Đất" },
+        { criterion: "pH", unit: "-", matrix: "Nước mặt" },
+        { criterion: "COD", unit: "mg/L", matrix: "Nước mặt" },
+      ],
+      (m, c) => (c === "pH" ? (m === "Đất" ? 50_000 : 40_000) : 0),
+    );
+    expect(q).toEqual([
+      { criterion: "pH", unit: "-", samples: 2, unitPrice: 50_000, amount: 100_000 },
+      { criterion: "pH", unit: "-", samples: 1, unitPrice: 40_000, amount: 40_000 },
+      { criterion: "COD", unit: "mg/L", samples: 1, unitPrice: 0, amount: 0 },
+    ]);
   });
 });

@@ -50,7 +50,7 @@ export default async function WorkSchedulePage({ searchParams }: { searchParams:
         <div className="mt-4 flex flex-wrap items-center gap-1.5">
           <Link href={`/work-schedule?day=${addDays(anchor, -7)}`} className={btn}>Tuần trước</Link>
           <form action="/work-schedule" className="flex">
-            <input type="date" name="day" defaultValue={anchor} className={`${input} w-40 rounded-r-none`} aria-label="Chọn ngày trong tuần" />
+            <input type="date" name="day" defaultValue={anchor} className={`${input} !w-40 rounded-r-none`} aria-label="Chọn ngày trong tuần" />
             <button className={`${btn} rounded-l-none border-l-0`}><CalendarDays className="h-4 w-4" />Chọn tuần</button>
           </form>
           <Link href="/work-schedule" className={btn}>Tuần này</Link>

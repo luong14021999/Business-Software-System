@@ -59,15 +59,15 @@ export default async function TestBatchPage({ params, searchParams }: { params: 
           <form action={`/test-batches/${id}`} className="mt-2 flex flex-wrap items-end gap-2">
             <label className="text-sm">
               <span className="mb-1 block font-bold">Nhận mẫu từ</span>
-              <input type="date" name="from" defaultValue={sp.from ?? ""} className={`${input} w-40`} />
+              <input type="date" name="from" defaultValue={sp.from ?? ""} className={`${input} !w-40`} />
             </label>
             <label className="text-sm">
               <span className="mb-1 block font-bold">đến</span>
-              <input type="date" name="to" defaultValue={sp.to ?? ""} className={`${input} w-40`} />
+              <input type="date" name="to" defaultValue={sp.to ?? ""} className={`${input} !w-40`} />
             </label>
             <label className="text-sm">
               <span className="mb-1 block font-bold">Phương pháp</span>
-              <select name="method" defaultValue={method} className={`${input} w-72`}>
+              <select name="method" defaultValue={method} className={`${input} !w-72`}>
                 <option value="">— Mọi phương pháp —</option>
                 {methods.map((m) => <option key={m}>{m}</option>)}
               </select>

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { List } from "lucide-react";
+import { List, Printer } from "lucide-react";
 import { Dropdown } from "@/components/m2/lab-ui/dropdown";
 import { btnPrimary, btnXs, link, table } from "@/components/m2/lab-ui/page";
 import { toast } from "@/components/ui/toast";
@@ -11,7 +11,7 @@ import { ORDER_STATUS_TONE } from "@/lib/modules/m2/orders";
 import type { Order } from "@/lib/modules/m2/data/orders";
 import { fmtDateTimeVN } from "@/lib/platform/dates";
 
-export type OrderRow = Order & { customerName: string; samples: number; lines: number; approved: number };
+export type OrderRow = Order & { customerName: string; samples: number; lines: number; approved: number; sampleCodes: string[] };
 
 const BULK = ["Quan trắc", "Phân tích", "Trả kết quả", "Thanh lý", "Hủy"] as const;
 
@@ -92,8 +92,22 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
                         { label: "Bóc tách", href: `/orders/${r.id}/split` },
                         { label: "Yêu cầu", href: `/orders/${r.id}/samples` },
                         { label: "Nhập/duyệt kết quả thử nghiệm", href: `/orders/${r.id}/results` },
+                        { label: "Báo giá", href: `/orders/${r.id}/quote` },
+                        { label: "Công nợ", href: `/orders/${r.id}/debit` },
                         { divider: true, label: "" },
                         { label: "Xóa", danger: true, onClick: () => remove(r) },
+                      ]}
+                    />
+                    <Dropdown
+                      className={btnXs}
+                      label="In ấn"
+                      icon={<Printer className="h-3 w-3" aria-hidden />}
+                      align="right"
+                      items={[
+                        { label: "Phiếu yêu cầu phân tích", href: `/order-print/${r.id}?loai=yeu-cau` },
+                        { label: "Tem mã hóa mẫu", href: r.sampleCodes.length ? `/sample-labels?codes=${encodeURIComponent(r.sampleCodes.join(","))}` : `/orders/${r.id}/split` },
+                        { label: "Báo giá", href: `/order-print/${r.id}?loai=bao-gia` },
+                        { label: "Kết quả tổng hợp", href: `/order-print/${r.id}?loai=ket-qua` },
                       ]}
                     />
                   </div>

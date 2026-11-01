@@ -174,3 +174,41 @@ export function isoWeek(isoDate: string) {
   const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
   return 1 + Math.round(((d.getTime() - firstThursday.getTime()) / 86_400_000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
 }
+
+// ── Báo giá & công nợ ───────────────────────────────────────────────
+
+/** Giá trị đơn hàng: trước thuế → giảm giá → thuế GTGT → tổng (làm tròn đồng). */
+export function orderTotals(amount: number, discountPct = 0, vatRate = 0) {
+  const sub = Math.round(Number(amount) || 0);
+  const discount = Math.round((sub * Math.min(100, Math.max(0, Number(discountPct) || 0))) / 100);
+  const afterDiscount = sub - discount;
+  const vat = Math.round((afterDiscount * Math.max(0, Number(vatRate) || 0)) / 100);
+  return { sub, discount, afterDiscount, vat, total: afterDiscount + vat };
+}
+
+/** Đã thanh toán / còn lại (không âm). */
+export function balance(total: number, payments: { amount: number }[]) {
+  const paid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  return { paid, remaining: Math.max(0, total - paid) };
+}
+
+export type QuoteLine = { criterion: string; unit: string; samples: number; unitPrice: number; amount: number };
+
+/**
+ * Bảng kê báo giá từ các dòng kết quả của đơn: gộp theo chỉ tiêu, số mẫu × đơn giá tham khảo.
+ * Đơn giá tìm theo loại mẫu + tên chỉ tiêu, không có thì 0 (người lập báo giá điền tay).
+ */
+export function quoteLines(
+  lines: { criterion: string; unit: string; matrix: string }[],
+  priceOf: (matrix: string, criterion: string) => number,
+): QuoteLine[] {
+  const m = new Map<string, QuoteLine>();
+  for (const l of lines) {
+    const key = `${l.matrix}|${l.criterion}`;
+    const cur = m.get(key) ?? { criterion: l.criterion, unit: l.unit, samples: 0, unitPrice: priceOf(l.matrix, l.criterion), amount: 0 };
+    cur.samples++;
+    cur.amount = cur.samples * cur.unitPrice;
+    m.set(key, cur);
+  }
+  return [...m.values()];
+}

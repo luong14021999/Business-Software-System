@@ -4,7 +4,7 @@ import { LabPage, Pager, btn, input } from "@/components/m2/lab-ui/page";
 import { Dropdown } from "@/components/m2/lab-ui/dropdown";
 import { OrdersTable, type OrderRow } from "@/components/m2/orders/orders-table";
 import { getCustomers } from "@/lib/modules/m2/data/customers";
-import { orderProgress, orderStore } from "@/lib/modules/m2/data/orders";
+import { orderProgress, orderSampleStore, orderStore } from "@/lib/modules/m2/data/orders";
 import { ORDER_STATUSES, overdueDays } from "@/lib/modules/m2/orders";
 import { normalizeVi } from "@/lib/platform/format";
 import { todayISO, vnDateOf } from "@/lib/platform/dates";
@@ -21,7 +21,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const status = sp.status ?? "";
   const kq = sp.kq ?? "Tất cả";
-  const [orders, customers, progress] = await Promise.all([orderStore.list(), getCustomers(), orderProgress()]);
+  const [orders, customers, progress, samples] = await Promise.all([orderStore.list(), getCustomers(), orderProgress(), orderSampleStore.list()]);
   const customerName = new Map(customers.map((c) => [c.id, c.name]));
   const today = todayISO();
   const q = normalizeVi(sp.q ?? "");
@@ -29,7 +29,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const rows: OrderRow[] = orders
     .map((o) => {
       const p = progress.get(o.id) ?? { samples: 0, lines: 0, approved: 0 };
-      return { ...o, customerName: customerName.get(o.customerId) ?? "", samples: p.samples, lines: p.lines, approved: p.approved };
+      return { ...o, customerName: customerName.get(o.customerId) ?? "", samples: p.samples, lines: p.lines, approved: p.approved, sampleCodes: samples.filter((s) => s.orderId === o.id).map((s) => s.code).sort() };
     })
     .filter((o) => !status || o.status === status)
     .filter((o) => {
