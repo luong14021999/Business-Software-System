@@ -1,6 +1,7 @@
 // Đơn hàng, loại mẫu, chỉ tiêu, quy chuẩn (migration 0025) và các truy vấn ghép cho trang đơn hàng.
 import { columnsMapping, createEntityStore } from "@/lib/platform/data/factory";
 import { dbQuery, isDbConfigured } from "@/lib/platform/db";
+import type { DecimalRules } from "@/lib/modules/m2/orders";
 
 export type Order = {
   id: string;
@@ -119,11 +120,32 @@ export const orderSampleStore = createEntityStore<OrderSample>(
   }),
 );
 
-export type SampleType = { id: string; name: string; prefix: string; sort: number; defaultContainer: string; description: string; active: boolean };
+export type SampleType = {
+  id: string;
+  name: string;
+  prefix: string;
+  sort: number;
+  defaultContainer: string;
+  description: string;
+  active: boolean;
+  hazardous: boolean;
+  minQuantity: string;
+  recordTemplate: string;
+};
 export const sampleTypeStore = createEntityStore<SampleType>(
   "sample-types",
   [],
-  columnsMapping<SampleType>("sample_types", { name: "text", prefix: "text", sort: "number", defaultContainer: "text", description: "text", active: "bool" }),
+  columnsMapping<SampleType>("sample_types", {
+    name: "text",
+    prefix: "text",
+    sort: "number",
+    defaultContainer: "text",
+    description: "text",
+    active: "bool",
+    hazardous: "bool",
+    minQuantity: "text",
+    recordTemplate: "text",
+  }),
 );
 
 export type LabAnalyte = {
@@ -139,6 +161,15 @@ export type LabAnalyte = {
   sort: number;
   active: boolean;
   unitPrice: number;
+  printName: string;
+  abbreviation: string;
+  isField: boolean;
+  note: string;
+  formulaCode: string;
+  industry: string;
+  spec1Id: string;
+  spec2Id: string;
+  decimals: DecimalRules | null;
 };
 export const analyteStore = createEntityStore<LabAnalyte>(
   "lab-analytes",
@@ -155,21 +186,30 @@ export const analyteStore = createEntityStore<LabAnalyte>(
     sort: "number",
     active: "bool",
     unitPrice: "number",
+    printName: "text",
+    abbreviation: "text",
+    isField: "bool",
+    note: "text",
+    formulaCode: "text",
+    industry: "text",
+    spec1Id: "ref",
+    spec2Id: "ref",
+    decimals: "json",
   }),
 );
 
-export type Specification = { id: string; name: string; columnName: string; sampleTypeId: string; note: string; active: boolean };
+export type Specification = { id: string; name: string; columnName: string; sampleTypeId: string; note: string; active: boolean; printName: string; printNote: string };
 export const specificationStore = createEntityStore<Specification>(
   "specifications",
   [],
-  columnsMapping<Specification>("specifications", { name: "text", columnName: "text", sampleTypeId: "ref", note: "text", active: "bool" }),
+  columnsMapping<Specification>("specifications", { name: "text", columnName: "text", sampleTypeId: "ref", note: "text", active: "bool", printName: "text", printNote: "text" }),
 );
 
-export type SpecLimit = { id: string; specId: string; analyte: string; minValue: number | null; maxValue: number | null; note: string };
+export type SpecLimit = { id: string; specId: string; analyte: string; minValue: number | null; maxValue: number | null; note: string; notDetected: boolean; ndText: string; printNote: string };
 export const specLimitStore = createEntityStore<SpecLimit>(
   "specification-limits",
   [],
-  columnsMapping<SpecLimit>("specification_limits", { specId: "ref", analyte: "text", minValue: "optnum", maxValue: "optnum", note: "text" }),
+  columnsMapping<SpecLimit>("specification_limits", { specId: "ref", analyte: "text", minValue: "optnum", maxValue: "optnum", note: "text", notDetected: "bool", ndText: "text", printNote: "text" }),
 );
 
 

@@ -81,3 +81,58 @@ export async function priceResolver(priceListId: string) {
     return analytes.find((a) => a.sampleTypeId === tid && normalizeVi(a.name) === n)?.unitPrice ?? 0;
   };
 }
+
+// ── Danh mục chi tiết (migration 0029) ──────────────────────────────
+
+export type LabMethod = { id: string; name: string; description: string; active: boolean };
+export const labMethodStore = createEntityStore<LabMethod>("lab-methods", [], columnsMapping<LabMethod>("lab_methods", { name: "text", description: "text", active: "bool" }));
+
+export type AnalyteGroup = { id: string; name: string; sort: number; isMtld: boolean };
+export const analyteGroupStore = createEntityStore<AnalyteGroup>("analyte-groups", [], columnsMapping<AnalyteGroup>("analyte_groups", { name: "text", sort: "number", isMtld: "bool" }));
+
+export type NamedItem = { id: string; name: string; note: string };
+export const instrumentTypeStore = createEntityStore<NamedItem>("instrument-types", [], columnsMapping<NamedItem>("instrument_types", { name: "text", note: "text" }));
+export type Manufacturer = NamedItem & { country: string };
+export const manufacturerStore = createEntityStore<Manufacturer>("manufacturers", [], columnsMapping<Manufacturer>("manufacturers", { name: "text", country: "text", note: "text" }));
+
+export type AnalyteMethod = { id: string; analyteId: string; method: string; isDefault: boolean; minValue: number | null; maxValue: number | null; subcontractor: string };
+export const analyteMethodStore = createEntityStore<AnalyteMethod>(
+  "analyte-methods",
+  [],
+  columnsMapping<AnalyteMethod>("analyte_methods", { analyteId: "ref", method: "text", isDefault: "bool", minValue: "optnum", maxValue: "optnum", subcontractor: "text" }),
+);
+
+export type ResourceKind = "instrument" | "container" | "preservation";
+export type AnalyteResource = { id: string; analyteId: string; kind: ResourceKind; name: string; isDefault: boolean };
+export const analyteResourceStore = createEntityStore<AnalyteResource>(
+  "analyte-resources",
+  [],
+  columnsMapping<AnalyteResource>("analyte_resources", { analyteId: "ref", kind: "text", name: "text", isDefault: "bool" }),
+);
+
+/** Chỉ một phương pháp mặc định cho mỗi chỉ tiêu: bỏ cờ mặc định ở các phương pháp khác. */
+export async function setDefaultMethod(analyteId: string, methodId: string) {
+  await dbQuery(`update public.analyte_methods set is_default = (id = $2) where analyte_id = $1`, [analyteId, methodId]);
+  await dbQuery(`update public.lab_analytes a set method = m.method from public.analyte_methods m where m.id = $2 and a.id = $1`, [analyteId, methodId]);
+}
+
+/** Tạo / ghi đè giới hạn của quy chuẩn đích từ quy chuẩn nguồn nhân công thức (VD Cmax = C × Kp × Kq). */
+export async function deriveSpecLimits(targetId: string, sourceId: string, f: (v: number) => number) {
+  const src = (await specLimitStoreRef()).filter((l) => l.specId === sourceId);
+  let n = 0;
+  for (const l of src) {
+    await dbQuery(
+      `insert into public.specification_limits (spec_id, analyte, min_value, max_value, note, not_detected, nd_text, print_note)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       on conflict (spec_id, analyte) do update set min_value = excluded.min_value, max_value = excluded.max_value,
+         not_detected = excluded.not_detected, nd_text = excluded.nd_text`,
+      [targetId, l.analyte, l.minValue == null || l.notDetected ? l.minValue : f(l.minValue), l.maxValue == null || l.notDetected || l.maxValue === 0 ? l.maxValue : f(l.maxValue), l.note, l.notDetected, l.ndText, l.printNote],
+    );
+    n++;
+  }
+  return n;
+}
+async function specLimitStoreRef() {
+  const { specLimitStore } = await import("@/lib/modules/m2/data/orders");
+  return specLimitStore.list();
+}

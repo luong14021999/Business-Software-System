@@ -15,8 +15,10 @@ export default async function SpecificationsPage() {
     { name: "name", label: "Tên quy chuẩn", required: true, placeholder: "VD: QCVN 08:2023/BTNMT" },
     { name: "columnName", label: "Cột / mức áp dụng", placeholder: "VD: Bảng 2 – Mức B" },
     { name: "sampleTypeId", label: "Loại mẫu", type: "select", options: [{ value: "", label: "— Mọi loại mẫu —" }, ...types.map((t) => ({ value: t.id, label: t.name }))] },
+    { name: "printName", label: "Tên cột khi in", placeholder: "Trống = dùng cột / mức áp dụng" },
     { name: "active", label: "Đang dùng", type: "bool", boolLabels: ["Đang dùng", "Ngừng dùng"], defaultValue: 1 },
-    { name: "note", label: "Ghi chú", type: "textarea" },
+    { name: "note", label: "Mô tả (giải thích tên quy chuẩn trên phiếu)", type: "textarea" },
+    { name: "printNote", label: "Ghi chú khi in", placeholder: "VD: Kp = 0,9; Kq = 1", full: true },
   ];
   return (
     <LabPage

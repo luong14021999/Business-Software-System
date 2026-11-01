@@ -2,7 +2,7 @@ import { createEntityStore, dateOrNull } from "../../../platform/data/factory";
 import { equipments, type Equipment } from "@/lib/mock-data";
 
 const SELECT =
-  "id, code, name, model, location, last_calibration, next_calibration, status, usage_hours, serial, manufacturer, commissioned_at, calibration_freq, calibration_place, inspection_freq, inspection_place, purpose, quantity";
+  "id, code, name, model, location, last_calibration, next_calibration, status, usage_hours, serial, manufacturer, commissioned_at, calibration_freq, calibration_place, inspection_freq, inspection_place, purpose, quantity, equipment_type, is_field";
 
 export const equipmentStore = createEntityStore<Equipment>(
   "equipment",
@@ -29,6 +29,8 @@ export const equipmentStore = createEntityStore<Equipment>(
       inspectionPlace: (row.inspection_place as string) ?? "",
       purpose: (row.purpose as string) ?? "",
       quantity: (row.quantity as string) ?? "",
+      equipmentType: (row.equipment_type as string) ?? "",
+      isField: Boolean(row.is_field),
     }),
     toRow: (e) => {
       const r: Record<string, unknown> = {};
@@ -56,6 +58,8 @@ export const equipmentStore = createEntityStore<Equipment>(
         r.inspection_place = e.inspectionPlace;
       if (e.purpose !== undefined) r.purpose = e.purpose;
       if (e.quantity !== undefined) r.quantity = e.quantity;
+      if (e.equipmentType !== undefined) r.equipment_type = e.equipmentType;
+      if (e.isField !== undefined) r.is_field = e.isField;
       return r;
     },
   },

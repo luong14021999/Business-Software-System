@@ -192,6 +192,8 @@ export type Equipment = {
   inspectionPlace?: string; // Nơi thực hiện kiểm tra/bảo kiểm
   purpose?: string; // Dùng cho phép thử
   quantity?: string; // Số lượng (VD "1 hệ", "1 bộ/nguyên tố")
+  equipmentType?: string; // Loại thiết bị (danh mục)
+  isField?: boolean; // Thiết bị quan trắc mang ra hiện trường
 };
 
 export const equipments: Equipment[] = [

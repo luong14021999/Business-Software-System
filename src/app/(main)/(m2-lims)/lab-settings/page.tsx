@@ -5,14 +5,18 @@ export const dynamic = "force-dynamic";
 
 /** Danh mục cài đặt của phòng thí nghiệm. */
 const ITEMS: { label: string; href?: string; note?: string }[] = [
-  { label: "Chỉ tiêu phân tích", href: "/lab-analytes" },
+  { label: "Phương pháp phân tích", href: "/lab-methods" },
+  { label: "Nhóm chỉ tiêu phân tích", href: "/analyte-groups" },
   { label: "Loại mẫu (tiền tố mã mẫu)", href: "/sample-types" },
-  { label: "Quy chuẩn & giới hạn", href: "/specifications" },
-  { label: "Phương pháp phân tích (phạm vi công nhận)", href: "/accreditation" },
+  { label: "Chỉ tiêu phân tích", href: "/lab-analytes" },
+  { label: "Quy chuẩn / cột quy chuẩn & giới hạn", href: "/specifications" },
+  { label: "Phạm vi công nhận VILAS", href: "/accreditation" },
   { label: "Công thức tính", href: "/calculation-methods" },
   { label: "Quy tắc quyết định", href: "/decision-rules" },
   { label: "Nhân viên", href: "/personnel" },
-  { label: "Thiết bị", href: "/equipment" },
+  { label: "Loại thiết bị", href: "/instrument-types" },
+  { label: "Nhà sản xuất", href: "/manufacturers" },
+  { label: "Thiết bị phân tích / quan trắc", href: "/equipment" },
   { label: "Hóa chất", href: "/chemicals" },
   { label: "Nhà cung cấp", href: "/suppliers" },
   { label: "Danh mục dùng chung (đơn vị tính, loại khách hàng…)", href: "/master-data" },

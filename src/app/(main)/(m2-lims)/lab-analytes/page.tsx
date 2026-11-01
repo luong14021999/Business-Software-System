@@ -1,10 +1,11 @@
 import { Search } from "lucide-react";
-import { LabPage, Pager, btn, input } from "@/components/m2/lab-ui/page";
+import Link from "next/link";
+import { LabPage, Pager, btn, input, link } from "@/components/m2/lab-ui/page";
 import { Dropdown } from "@/components/m2/lab-ui/dropdown";
 import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { analyteStore, sampleTypeStore } from "@/lib/modules/m2/data/orders";
-import { scopeOptions } from "@/lib/modules/m2/data/settings";
+import { analyteGroupStore, labMethodStore, scopeOptions } from "@/lib/modules/m2/data/settings";
 import { currentAccess } from "@/lib/platform/data/access";
 import { fmtVND, normalizeVi } from "@/lib/platform/format";
 
@@ -13,15 +14,15 @@ const PER_PAGE = 25;
 
 export default async function AnalytesPage({ searchParams }: { searchParams: Promise<{ type?: string; q?: string; page?: string }> }) {
   const sp = await searchParams;
-  const [items, types, access, scopes] = await Promise.all([analyteStore.list(), sampleTypeStore.list(), currentAccess(), scopeOptions()]);
+  const [items, types, access, scopes, groups, methods] = await Promise.all([analyteStore.list(), sampleTypeStore.list(), currentAccess(), scopeOptions(), analyteGroupStore.list(), labMethodStore.list()]);
   const canWrite = access.can("write.quality");
   const typeName = new Map(types.map((t) => [t.id, t.name]));
   const fields: CrudField[] = [
     { name: "sampleTypeId", label: "Loại mẫu", type: "select", required: true, options: types.map((t) => ({ value: t.id, label: t.name })) },
     { name: "name", label: "Tên chỉ tiêu", required: true, full: true },
-    { name: "groupName", label: "Nhóm chỉ tiêu", placeholder: "VD: Kim loại nặng" },
+    { name: "groupName", label: "Nhóm chỉ tiêu", type: "select", options: ["", ...groups.sort((x, y) => x.sort - y.sort).map((g) => g.name)] },
     { name: "unit", label: "Đơn vị" },
-    { name: "method", label: "Phương pháp", full: true },
+    { name: "method", label: "Phương pháp mặc định", type: "select", full: true, options: ["", ...methods.filter((m) => m.active).map((m) => m.name).sort()] },
     { name: "loq", label: "Giới hạn định lượng (LOQ)" },
     { name: "scope", label: "Phạm vi thực hiện", type: "select", options: scopes },
     { name: "unitPrice", label: "Đơn giá tham khảo (đ/mẫu, chưa thuế)", type: "number" },
@@ -66,7 +67,7 @@ export default async function AnalytesPage({ searchParams }: { searchParams: Pro
           label: a.name,
           initial: a,
           cells: [
-            <span key="n" className={a.active ? "" : "text-muted-foreground line-through"}>{a.accreditedNo ? `${String(a.accreditedNo).padStart(2, "0")}. ` : ""}{a.name}</span>,
+            <Link key="n" href={`/lab-analytes/${a.id}`} className={`${link} ${a.active ? "" : "line-through"}`}>{a.accreditedNo ? `${String(a.accreditedNo).padStart(2, "0")}. ` : ""}{a.name}</Link>,
             typeName.get(a.sampleTypeId) ?? "—",
             a.groupName || "—",
             a.unit || "—",

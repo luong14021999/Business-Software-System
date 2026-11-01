@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, balance, compareLimit, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
+import { addDays, balance, compareLimit, judge, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -116,5 +116,45 @@ describe("thống kê định mức", () => {
     ]);
     expect([r.gross, r.deduction, r.net]).toEqual([200_000, 20_000, 180_000]);
     expect(r.missing).toEqual(["Đất · N"]);
+  });
+});
+
+describe("danh mục chi tiết (GĐ5)", () => {
+  it("làm tròn khi in theo độ lớn", () => {
+    const r = { lt0_1: 3, lt1: 2, lt10: 2, lt100: 1, lt1000: 0, ge1000: 0 };
+    expect(roundForPrint(0.0569, r)).toBe("0,057");
+    expect(roundForPrint(7.256, r)).toBe("7,26");
+    expect(roundForPrint(56.78, r)).toBe("56,8");
+    expect(roundForPrint(1234.5, r)).toBe("1.235");
+    expect(roundForPrint(0.5, null)).toBe("0,5");
+  });
+  it("công thức cột Cmax: chỉ nhận chuỗi *số, /số", () => {
+    expect(parseFactorFormula("*0.9*1.2")?.(40)).toBe(43.2);
+    expect(parseFactorFormula("* 0,9 / 2")?.(10)).toBe(4.5);
+    expect(parseFactorFormula("+1")).toBeNull();
+    expect(parseFactorFormula("*0.9;alert(1)")).toBeNull();
+    expect(parseFactorFormula("/0")).toBeNull();
+  });
+  it("ngoài giới hạn phương pháp", () => {
+    expect(outOfMethodRange(0.01, "", 0.05, 100)).toBe(true);
+    expect(outOfMethodRange(150, "", 0.05, 100)).toBe(true);
+    expect(outOfMethodRange(5, "", 0.05, null)).toBe(false);
+    expect(outOfMethodRange(0.01, "<", 0.05, 100)).toBe(false);
+  });
+  it("giới hạn quy chuẩn dạng chữ", () => {
+    expect(specLimitText({ minValue: 0, maxValue: 0, notDetected: true, ndText: "Không mùi" })).toBe("Không mùi");
+    expect(specLimitText({ minValue: 0, maxValue: 0, notDetected: true })).toBe("KPH");
+    expect(specLimitText({ minValue: 0, maxValue: 0 })).toBe("-");
+    expect(specLimitText({ minValue: 5, maxValue: null })).toBe("≥ 5");
+  });
+});
+
+describe("đánh giá theo quy chuẩn", () => {
+  it("quy chuẩn không phát hiện: chỉ KPH, <giới hạn, 0 là đạt", () => {
+    expect(judge({ prefix: "KPH", value: NaN }, { min: null, max: null, ndRequired: true })).toBe("Đạt");
+    expect(judge({ prefix: "<", value: 0.01 }, { min: null, max: null, ndRequired: true })).toBe("Đạt");
+    expect(judge({ prefix: "", value: 0.2 }, { min: null, max: null, ndRequired: true })).toBe("Vượt");
+    expect(judge({ prefix: "", value: 9 }, { min: 6.5, max: 8.5 })).toBe("Vượt");
+    expect(judge(null, { min: 1, max: 2 })).toBe("");
   });
 });

@@ -235,3 +235,58 @@ export function normSummary(lines: { matrix: string; criterion: string }[], rate
   const deduction = Math.round((gross * Math.min(100, Math.max(0, Number(deductionPct) || 0))) / 100);
   return { rows, gross, deduction, net: gross - deduction, missing: [...missing] };
 }
+
+// ── Danh mục chi tiết (GĐ5) ─────────────────────────────────────────
+
+/** Số chữ số thập phân khi in theo độ lớn của kết quả. */
+export type DecimalRules = { lt0_1?: number; lt1?: number; lt10?: number; lt100?: number; lt1000?: number; ge1000?: number };
+export const DECIMAL_BANDS: { key: keyof DecimalRules; label: string }[] = [
+  { key: "lt0_1", label: "< 0,1" },
+  { key: "lt1", label: "< 1" },
+  { key: "lt10", label: "< 10" },
+  { key: "lt100", label: "< 100" },
+  { key: "lt1000", label: "< 1000" },
+  { key: "ge1000", label: "≥ 1000" },
+];
+
+/** Làm tròn để in: chọn số chữ số thập phân theo khoảng giá trị tuyệt đối; không có quy tắc → giữ nguyên. */
+export function roundForPrint(value: number, rules?: DecimalRules | null) {
+  if (!Number.isFinite(value)) return "";
+  const a = Math.abs(value);
+  const d = !rules ? undefined : a < 0.1 ? rules.lt0_1 : a < 1 ? rules.lt1 : a < 10 ? rules.lt10 : a < 100 ? rules.lt100 : a < 1000 ? rules.lt1000 : rules.ge1000;
+  if (d == null || !Number.isInteger(d) || d < 0 || d > 8) return value.toLocaleString("vi-VN", { maximumFractionDigits: 8 });
+  return value.toLocaleString("vi-VN", { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+/**
+ * Công thức tạo cột quy chuẩn mới từ cột có sẵn (VD Cmax = C × Kp × Kq): chuỗi các phép "*số" hoặc "/số".
+ * Trả về hàm áp lên giá trị, hoặc null nếu công thức không hợp lệ (chặn mọi biểu thức khác).
+ */
+export function parseFactorFormula(expr: string): ((v: number) => number) | null {
+  const s = String(expr ?? "").replace(/\s+/g, "").replace(/,/g, ".");
+  if (!/^([*/]\d+(\.\d+)?)+$/.test(s)) return null;
+  const ops = [...s.matchAll(/([*/])(\d+(?:\.\d+)?)/g)].map((m) => ({ op: m[1], n: Number(m[2]) }));
+  if (ops.some((o) => o.op === "/" && o.n === 0)) return null;
+  return (v: number) => Math.round(ops.reduce((x, o) => (o.op === "*" ? x * o.n : x / o.n), v) * 1e6) / 1e6;
+}
+
+/** Kết quả ngoài giới hạn phát hiện của phương pháp (min/max có thể trống; "<x" coi là dưới min nếu x ≤ min). */
+export function outOfMethodRange(value: number, prefix: string, min?: number | null, max?: number | null) {
+  if (prefix === "KPH" || !Number.isFinite(value)) return false;
+  if (prefix === "<") return false; // đã báo dưới giới hạn phát hiện
+  return (min != null && value < min) || (max != null && value > max);
+}
+
+/** Giới hạn quy chuẩn dạng chữ để in: "KPH", "Không mùi", "-" (không quy định) hoặc số. */
+export function specLimitText(l: { minValue: number | null; maxValue: number | null; notDetected?: boolean; ndText?: string }) {
+  if (l.notDetected) return l.ndText?.trim() || "KPH";
+  if (l.minValue === 0 && l.maxValue === 0) return "-";
+  return limitText(l.minValue, l.maxValue);
+}
+
+/** Đánh giá kết quả so với quy chuẩn của dòng: quy chuẩn "không phát hiện" chỉ đạt khi KPH / "<giới hạn" / 0. */
+export function judge(p: { prefix: string; value: number } | null, l: { min: number | null; max: number | null; ndRequired?: boolean }): "Đạt" | "Vượt" | "" {
+  if (!p) return "";
+  if (l.ndRequired) return p.prefix === "KPH" || p.prefix === "<" || p.value === 0 ? "Đạt" : "Vượt";
+  return compareLimit(p.value, l.min, l.max, p.prefix);
+}

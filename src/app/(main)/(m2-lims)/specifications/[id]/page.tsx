@@ -5,7 +5,8 @@ import { LabPage, btn } from "@/components/m2/lab-ui/page";
 import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { analyteStore, specLimitStore, specificationStore } from "@/lib/modules/m2/data/orders";
-import { limitText, specLabel } from "@/lib/modules/m2/orders";
+import { specLabel, specLimitText } from "@/lib/modules/m2/orders";
+import { DeriveSpec } from "@/components/m2/settings/derive-spec";
 import { currentAccess } from "@/lib/platform/data/access";
 
 export const dynamic = "force-dynamic";
@@ -21,12 +22,15 @@ export default async function SpecificationPage({ params }: { params: Promise<{ 
     { name: "analyte", label: "Chỉ tiêu", required: true, full: true, type: names.length ? "select" : "text", options: names },
     { name: "minValue", label: "Giới hạn tối thiểu", type: "number", nullable: true },
     { name: "maxValue", label: "Giới hạn tối đa", type: "number", nullable: true },
-    { name: "note", label: "Ghi chú", placeholder: "VD: đơn vị mg/L" },
+    { name: "notDetected", label: "Quy chuẩn ghi dạng chữ", type: "bool", boolLabels: ["Có (KPH, Không mùi…)", "Không – giới hạn số"], defaultValue: 0 },
+    { name: "ndText", label: "Chữ in ở cột quy chuẩn", placeholder: "VD: KPH, 0, Không mùi" },
+    { name: "printNote", label: "Ghi chú khi in", full: true },
+    { name: "note", label: "Ghi chú nội bộ", placeholder: "VD: đơn vị mg/L" },
   ];
   return (
     <LabPage
       title={`Chỉ tiêu của quy chuẩn ${specLabel(spec)}`}
-      subtitle="Bỏ trống tối thiểu hoặc tối đa nếu quy chuẩn chỉ quy định một phía; khớp chỉ tiêu theo tên (không phân biệt dấu, hoa thường)"
+      subtitle="Bỏ trống tối thiểu hoặc tối đa nếu quy chuẩn chỉ quy định một phía. Tối thiểu = tối đa = 0 → in “-” (không quy định). Quy chuẩn dạng chữ (KPH, Không mùi) → đánh dấu “Quy chuẩn ghi dạng chữ”."
       toolbar={
         <>
           <Link href="/specifications" className={btn} aria-label="Quay lại"><ArrowLeft className="h-4 w-4" /></Link>
@@ -34,17 +38,22 @@ export default async function SpecificationPage({ params }: { params: Promise<{ 
         </>
       }
     >
+      {canWrite && (
+        <div className="mb-4">
+          <DeriveSpec specId={spec.id} sources={specs.filter((x) => x.id !== spec.id).map((x) => ({ id: x.id, label: specLabel(x) }))} />
+        </div>
+      )}
       <CatalogTable
         entity="specification-limits"
         canWrite={canWrite}
         fields={fields}
         emptyText="Chưa nhập giới hạn chỉ tiêu nào"
-        headers={["Chỉ tiêu", "Giới hạn", "Ghi chú"]}
+        headers={["Chỉ tiêu", "Giới hạn (in trên phiếu)", "Ghi chú khi in", "Ghi chú nội bộ"]}
         rows={limits.filter((l) => l.specId === id).sort((a, b) => a.analyte.localeCompare(b.analyte)).map((l) => ({
           id: l.id,
           label: l.analyte,
           initial: l,
-          cells: [l.analyte, limitText(l.minValue, l.maxValue), l.note],
+          cells: [l.analyte, specLimitText(l), l.printNote, l.note],
         }))}
       />
     </LabPage>

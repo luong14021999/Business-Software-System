@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export const { GET, POST } = collectionRoutes<SpecLimit>(
   specLimitStore,
-  { specId: "", analyte: "", minValue: null, maxValue: null, note: "" },
+  { specId: "", analyte: "", minValue: null, maxValue: null, note: "", notDetected: false, ndText: "", printNote: "" },
   (b) =>
-    !b.specId ? "Thiếu quy chuẩn" : !b.analyte?.trim() ? "Nhập tên chỉ tiêu" : b.minValue == null && b.maxValue == null ? "Nhập giới hạn tối thiểu hoặc tối đa" : null,
+    !b.specId ? "Thiếu quy chuẩn" : !b.analyte?.trim() ? "Nhập tên chỉ tiêu" : b.minValue == null && b.maxValue == null && !b.notDetected ? "Nhập giới hạn tối thiểu hoặc tối đa (hoặc đánh dấu quy chuẩn dạng chữ)" : null,
 );

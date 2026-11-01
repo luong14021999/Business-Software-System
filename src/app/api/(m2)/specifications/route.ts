@@ -5,6 +5,6 @@ export const dynamic = "force-dynamic";
 
 export const { GET, POST } = collectionRoutes<Specification>(
   specificationStore,
-  { name: "", columnName: "", sampleTypeId: "", note: "", active: true },
+  { name: "", columnName: "", sampleTypeId: "", note: "", active: true, printName: "", printNote: "" },
   (b) => (!b.name?.trim() ? "Nhập tên quy chuẩn" : null),
 );

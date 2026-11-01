@@ -7,7 +7,7 @@ import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { orderLines, orderSampleStore, orderStore } from "@/lib/modules/m2/data/orders";
 import { priceResolver } from "@/lib/modules/m2/data/settings";
 import { buildGrid } from "@/lib/modules/m2/data/grid";
-import { compareLimit, limitText, orderTotals, parseResultCell, quoteLines } from "@/lib/modules/m2/orders";
+import { judge, orderTotals, parseResultCell, quoteLines } from "@/lib/modules/m2/orders";
 import { fmtDateTimeVN, fmtDateVN, todayISO } from "@/lib/platform/dates";
 import { fmtVND } from "@/lib/platform/format";
 
@@ -82,13 +82,13 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
                 {s.lines.map((l, i) => {
                   const approved = l.status === "Đã duyệt";
                   const p = approved ? parseResultCell(l.text) : null;
-                  const v = p ? compareLimit(p.value, l.min, l.max, p.prefix) : "";
+                  const v = judge(p, l);
                   return (
                     <tr key={l.id}>
-                      <td className={`${cell} text-center`}>{i + 1}</td><td className={cell}>{l.criterion}</td><td className={cell}>{l.unit}</td>
-                      <td className={`${cell} text-right ${v === "Vượt" ? "font-bold" : ""}`}>{approved ? l.text || "—" : <i className="text-[9pt]">chưa duyệt</i>}{v === "Vượt" && " *"}</td>
+                      <td className={`${cell} text-center`}>{i + 1}</td><td className={cell}>{l.printName}</td><td className={cell}>{l.unit}</td>
+                      <td className={`${cell} text-right ${v === "Vượt" ? "font-bold" : ""}`}>{approved ? l.printText || "—" : <i className="text-[9pt]">chưa duyệt</i>}{v === "Vượt" && " *"}</td>
                       <td className={cell}>{l.method}</td>
-                      {s.specName && <td className={cell}>{limitText(l.min, l.max)}</td>}
+                      {s.specName && <td className={cell}>{l.limitLabel}</td>}
                     </tr>
                   );
                 })}

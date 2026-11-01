@@ -13,6 +13,9 @@ const fieldsOf = (containers: string[]): CrudField[] => [
   { name: "prefix", label: "Tiền tố mã mẫu", required: true, mono: true, placeholder: "VD: NM" },
   { name: "sort", label: "Thứ tự", type: "number" },
   { name: "defaultContainer", label: "Dụng cụ lưu mặc định", ...(containers.length ? { type: "select" as const, options: ["", ...containers] } : {}) },
+  { name: "hazardous", label: "Nguy hại", type: "bool", boolLabels: ["Có chất nguy hại", "Không"], defaultValue: 0 },
+  { name: "minQuantity", label: "Số lượng mẫu tối thiểu", placeholder: "VD: 1L, 500 g" },
+  { name: "recordTemplate", label: "Mẫu biên bản lấy mẫu", type: "select", options: ["", "Nước", "Khí", "Đất", "Bùn / chất thải rắn", "Nông sản – thực phẩm", "Phân bón", "Khác"] },
   { name: "active", label: "Đang dùng", type: "bool", boolLabels: ["Đang dùng", "Ngừng dùng"], defaultValue: 1 },
   { name: "description", label: "Mô tả", type: "textarea" },
 ];
@@ -31,12 +34,12 @@ export default async function SampleTypesPage() {
         entity="sample-types"
         canWrite={canWrite}
         fields={FIELDS}
-        headers={["Tên", "Tiền tố", "Thứ tự", "Dụng cụ lưu mặc định", "Mô tả"]}
+        headers={["Tên", "Tiền tố", "Thứ tự", "Dụng cụ lưu mặc định", "Lượng tối thiểu", "Biên bản", "Mô tả"]}
         rows={items.sort((a, b) => a.sort - b.sort).map((t) => ({
           id: t.id,
           label: t.name,
           initial: t,
-          cells: [<span key="n" className={t.active ? "" : "text-muted-foreground line-through"}>{t.name}</span>, <span key="p" className="font-mono">{t.prefix}</span>, t.sort, t.defaultContainer, t.description],
+          cells: [<span key="n" className={t.active ? "" : "text-muted-foreground line-through"}>{t.name}</span>, <span key="p" className="font-mono">{t.prefix}</span>, t.sort, t.defaultContainer, t.minQuantity, t.recordTemplate, <span key="d">{t.hazardous && <b className="mr-1 text-[#a94442]">Nguy hại.</b>}{t.description}</span>],
         }))}
       />
     </LabPage>

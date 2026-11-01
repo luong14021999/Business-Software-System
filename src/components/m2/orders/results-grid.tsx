@@ -3,11 +3,11 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
 import { btn, btnPrimary, input, table } from "@/components/m2/lab-ui/page";
 import { toast } from "@/components/ui/toast";
 import { reauthenticate } from "@/components/platform/sign/sign-dialog";
-import { compareLimit, limitText, parseResultCell } from "@/lib/modules/m2/orders";
+import { judge, outOfMethodRange, parseResultCell } from "@/lib/modules/m2/orders";
 import { cn } from "@/lib/utils";
 
 export type GridLine = {
@@ -21,6 +21,16 @@ export type GridLine = {
   technician: string;
   min: number | null;
   max: number | null;
+  /** Giới hạn quy chuẩn in trên phiếu (số, "-", KPH, Không mùi…). */
+  limitLabel: string;
+  /** Quy chuẩn yêu cầu "không phát hiện": chỉ KPH hoặc "<giới hạn" là đạt. */
+  ndRequired: boolean;
+  /** Giới hạn phát hiện của phương pháp (cảnh báo ⚠ ngoài khoảng). */
+  mMin: number | null;
+  mMax: number | null;
+  /** Tên in trên phiếu và kết quả đã làm tròn theo quy tắc của chỉ tiêu. */
+  printName: string;
+  printText: string;
 };
 export type GridSample = { code: string; locationName: string; type: string; specName: string; stage: string; lines: GridLine[] };
 
@@ -236,7 +246,8 @@ export function ResultsGrid({
                   const l = val(l0);
                   const editable = can.enter && EDITABLE.includes(l.status);
                   const p = parseResultCell(l.text);
-                  const verdict = p ? compareLimit(p.value, l.min, l.max, p.prefix) : "";
+                  const verdict = judge(p, l);
+                  const outOfRange = p ? outOfMethodRange(p.value, p.prefix, l.mMin, l.mMax) : false;
                   return (
                     <tr key={l.id} className={sel.has(l.id) ? "bg-[#f5f5f5]" : undefined}>
                       <td><input type="checkbox" aria-label={`Chọn ${l.criterion}`} checked={sel.has(l.id)} onChange={() => toggle([l.id], !sel.has(l.id))} /></td>
@@ -249,10 +260,16 @@ export function ResultsGrid({
                         ) : (
                           <span className="font-medium">{l.text || "—"}</span>
                         )}
+                        {(verdict === "Vượt" || outOfRange) && (
+                          <div className="mt-0.5 flex gap-1 text-[11px]">
+                            {verdict === "Vượt" && <span className="inline-flex items-center gap-0.5 font-semibold text-[#a94442]" title="Kết quả vượt quy chuẩn"><AlertCircle className="h-3.5 w-3.5" aria-hidden />vượt QC</span>}
+                            {outOfRange && <span className="inline-flex items-center gap-0.5 text-[#8a6d3b]" title={`Ngoài giới hạn phát hiện của phương pháp (${l.mMin ?? "…"} – ${l.mMax ?? "…"})`}><AlertTriangle className="h-3.5 w-3.5" aria-hidden />ngoài GH PP</span>}
+                          </div>
+                        )}
                         {l.technician && <div className="text-[11px] text-muted-foreground">{l.technician}</div>}
                       </td>
                       <td className="whitespace-nowrap text-xs">
-                        {limitText(l.min, l.max) || "—"}
+                        {l.limitLabel || "—"}
                         {verdict && <div className={verdict === "Vượt" ? "font-semibold text-[#a94442]" : "text-[#3c763d]"}>{verdict === "Vượt" ? "Vượt quy chuẩn" : "Đạt"}</div>}
                       </td>
                       <td>

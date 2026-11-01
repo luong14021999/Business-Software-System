@@ -65,6 +65,8 @@ const EQUIPMENT_FIELDS: CrudField[] = [
   { name: "model", label: "Model" },
   { name: "serial", label: "Số serial" },
   { name: "manufacturer", label: "Nhà sản xuất" },
+  { name: "equipmentType", label: "Loại thiết bị", placeholder: "Theo Cài đặt → Loại thiết bị" },
+  { name: "isField", label: "Thiết bị quan trắc (mang ra hiện trường)", type: "bool", boolLabels: ["Có", "Không"], defaultValue: 0 },
   { name: "location", label: "Vị trí" },
   { name: "quantity", label: "Số lượng" },
   { name: "purpose", label: "Dùng cho phép thử", full: true },

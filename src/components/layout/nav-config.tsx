@@ -275,6 +275,10 @@ export const navModules: NavModule[] = [
         items: [
           { href: "/lab-settings", label: "Cài đặt", icon: Settings },
           { href: "/sample-types", label: "Loại mẫu", icon: Layers },
+          { href: "/lab-methods", label: "Phương pháp phân tích", icon: Settings },
+          { href: "/analyte-groups", label: "Nhóm chỉ tiêu", icon: Settings },
+          { href: "/instrument-types", label: "Loại thiết bị", icon: Settings },
+          { href: "/manufacturers", label: "Nhà sản xuất", icon: Settings },
           { href: "/lab-analytes", label: "Chỉ tiêu phân tích", icon: ListChecks },
           { href: "/specifications", label: "Quy chuẩn", icon: Scale },
           { href: "/price-lists", label: "Bảng giá", icon: Settings },
