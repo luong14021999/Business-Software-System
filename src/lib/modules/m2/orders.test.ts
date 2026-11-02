@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, discountedPrice, averageReplicates, balance, cellText, fieldOnlyEntry, matrixCells, ownsOrder, parseCsv, resultMatrix, fieldDuties, lastMonths, orderEvents, stackByMonth, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
+import { addDays, discountedPrice, averageReplicates, balance, cellText, fieldOnlyEntry, matrixCells, ownsOrder, parseCsv, resultMatrix, fieldDuties, orderEvents, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -188,31 +188,7 @@ describe("nhiều lần đo (GĐ7)", () => {
   });
 });
 
-describe("trang chủ và lịch (GĐ8)", () => {
-  it("6 tháng gần nhất, qua năm", () => {
-    expect(lastMonths("2026-02-15", 3)).toEqual([
-      { key: "2025-12", label: "T12/2025" },
-      { key: "2026-01", label: "T1/2026" },
-      { key: "2026-02", label: "T2/2026" },
-    ]);
-  });
-  it("cột chồng giữ thứ tự nhóm và gộp Khác", () => {
-    const months = lastMonths("2026-11-02", 2);
-    const r = stackByMonth(
-      [
-        { month: "2026-11", key: "B" },
-        { month: "2026-11", key: "A", n: 2 },
-        { month: "2026-10", key: "Z" },
-        { month: "2025-01", key: "C" },
-      ],
-      months,
-      ["A", "B", "C"],
-    );
-    expect(r.series).toEqual(["A", "B", "Khác"]);
-    expect(r.months[1]).toMatchObject({ key: "2026-11", total: 3, counts: { A: 2, B: 1, Khác: 0 } });
-    expect(r.months[0].counts.Khác).toBe(1);
-    expect(stackByMonth([{ month: "2026-11", key: "A" }, { month: "2026-11", key: "B" }, { month: "2026-11", key: "C" }], months, ["A", "B", "C"], 2).series).toEqual(["A", "Khác"]);
-  });
+describe("lịch công tác (GĐ8)", () => {
   const order = { id: "o1", code: "26.1", name: "Đơn", status: "Quan trắc", fieldAt: "2026-11-05T08:00:00+07:00", dueAt: "2026-11-20", fieldStaff: "An" };
   it("lịch quan trắc theo đoàn và theo người phụ trách", () => {
     const plan = { orderId: "o1", leader: "Bình", supervisor: "", deputy1: "Chi", deputy2: "", groups: [["Chi", "Dũng"]], startAt: "2026-11-05", endAt: "2026-11-06" };

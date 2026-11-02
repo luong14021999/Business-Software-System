@@ -1,20 +1,11 @@
-import Link from "next/link";
-import { FileStack, FileCheck2, CalendarClock, FilePen } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import { Badge } from "@/components/ui/badge";
-import { CrudTableCard } from "@/components/crud/crud-table-card";
-import {
-  EntityFormDialog,
-  type CrudField,
-} from "@/components/crud/entity-form-dialog";
-import { EntitySearchInput } from "@/components/crud/search-input";
-import { StatGrid } from "@/components/common/stat-grid";
-import {
-  DOC_STATUSES,
-  DOC_TYPES,
-  qmsDocumentStore,
-  type QmsDocument,
-} from "@/lib/modules/m2/data/qms";
+import { Search } from "lucide-react";
+import { Dropdown } from "@/components/m2/lab-ui/dropdown";
+import { LabPage, btn, input } from "@/components/m2/lab-ui/page";
+import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
+import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
+import { DOC_STATUSES, DOC_TYPES, qmsDocumentStore, type QmsDocument } from "@/lib/modules/m2/data/qms";
+import { currentAccess } from "@/lib/platform/data/access";
+import { permissionForEntity } from "@/lib/platform/permissions";
 import { daysUntil, fmtDateVN } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";
@@ -34,121 +25,88 @@ const FIELDS: CrudField[] = [
   { name: "note", label: "Ghi chú", type: "textarea" },
 ];
 
-const statusVariant: Record<QmsDocument["status"], "success" | "warning" | "secondary"> = {
-  "Hiệu lực": "success",
-  "Dự thảo": "warning",
-  "Hết hiệu lực": "secondary",
+/** Màu chữ trạng thái kiểu Bootstrap. */
+const STATUS_COLOR: Record<QmsDocument["status"], string> = {
+  "Hiệu lực": "text-[#3c763d]",
+  "Dự thảo": "text-[#8a6d3b]",
+  "Hết hiệu lực": "text-[#777]",
 };
 
 const REVIEW_WARN_DAYS = 60;
 
-export default async function DocumentsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; type?: string }>;
-}) {
+/** Kiểm soát tài liệu (ISO/IEC 17025 §8.3) kiểu XaLab: lọc loại tài liệu, tìm kiếm, bảng tài liệu thêm / sửa / xóa. */
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ q?: string; type?: string }> }) {
   const { q = "", type = "" } = await searchParams;
-  const all = (await qmsDocumentStore.list()).sort(
-    (a, b) => a.docType.localeCompare(b.docType) || a.code.localeCompare(b.code),
-  );
+  const [list, access] = await Promise.all([qmsDocumentStore.list(), currentAccess()]);
+  const canWrite = access.can(permissionForEntity("qms-documents"));
+  const all = list.sort((a, b) => a.docType.localeCompare(b.docType) || a.code.localeCompare(b.code));
   const query = q.trim().toLowerCase();
-  const docs = all.filter(
-    (d) =>
-      (!type || d.docType === type) &&
-      (!query ||
-        `${d.code} ${d.title} ${d.owner} ${d.approvedBy}`.toLowerCase().includes(query)),
-  );
+  const docs = all.filter((d) => (!type || d.docType === type) && (!query || `${d.code} ${d.title} ${d.owner} ${d.approvedBy}`.toLowerCase().includes(query)));
 
   const active = all.filter((d) => d.status === "Hiệu lực");
   const reviewDue = active.filter((d) => daysUntil(d.reviewDue) <= REVIEW_WARN_DAYS);
+  const href = (t: string) => `/documents?${new URLSearchParams({ ...(q && { q }), ...(t && { type: t }) })}`;
 
   return (
-    <>
-      <Header
-        title="Kiểm soát tài liệu"
-        description="ISO/IEC 17025:2017 §8.3 – danh mục tài liệu nội bộ và bên ngoài: phiên bản, phê duyệt, soát xét, thu hồi"
-      />
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin">
-        <StatGrid
-          stats={[
-            { label: "Tổng tài liệu", value: all.length, icon: FileStack, accent: "bg-emerald-50 text-emerald-700" },
-            { label: "Đang hiệu lực", value: active.length, icon: FileCheck2, accent: "bg-blue-50 text-blue-600" },
-            { label: "Cần soát xét", value: reviewDue.length, icon: CalendarClock, accent: "bg-rose-50 text-rose-600", hint: `quá hạn hoặc ≤ ${REVIEW_WARN_DAYS} ngày` },
-            { label: "Dự thảo", value: all.filter((d) => d.status === "Dự thảo").length, icon: FilePen, accent: "bg-amber-50 text-amber-600", hint: "chờ phê duyệt" },
-          ]}
-        />
-
-        <div className="flex flex-wrap items-center gap-2">
-          {["", ...DOC_TYPES].map((t) => {
-            const n = t ? all.filter((d) => d.docType === t).length : all.length;
-            const href = `/documents?${new URLSearchParams({ ...(q && { q }), ...(t && { type: t }) })}`;
-            return (
-              <Link
-                key={t || "all"}
-                href={href}
-                className={`h-8 px-3 inline-flex items-center rounded-full border text-xs font-medium ${
-                  type === t ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent"
-                }`}
-              >
-                {t || "Tất cả"} <span className="ml-1.5 opacity-70">{n}</span>
-              </Link>
-            );
-          })}
-          <div className="ml-auto w-full sm:w-auto">
-            <EntitySearchInput basePath="/documents" placeholder="Tìm mã, tên, người duyệt…" />
-          </div>
-        </div>
-
-        <CrudTableCard
-          title="Danh mục tài liệu"
-          description="Tài liệu chỉ được dùng khi ở trạng thái Hiệu lực; tài liệu lỗi thời chuyển sang Hết hiệu lực để nhận biết"
-          endpoint="/api/qms-documents"
-          entity="qms-documents"
-          editFields={FIELDS}
-          addNode={
-            <EntityFormDialog
-              mode="add"
-              endpoint="/api/qms-documents"
-              title="Thêm tài liệu"
-              fields={FIELDS}
-              addLabel="Thêm tài liệu"
+    <LabPage
+      title="Kiểm soát tài liệu"
+      rule={false}
+      toolbar={
+        <>
+          <div className="flex">
+            {canWrite && <EntityFormDialog mode="add" endpoint="/api/qms-documents" title="Thêm tài liệu" fields={FIELDS} trigger={<button type="button" className={`${btn} rounded-r-none`}>Thêm +</button>} />}
+            <Dropdown
+              filter
+              className={`${btn} ${canWrite ? "-ml-px rounded-l-none" : ""}`}
+              label={`Loại tài liệu: ${type || "Tất cả"}`}
+              items={["", ...DOC_TYPES].map((t) => ({ label: `${t || "Tất cả"} (${t ? all.filter((d) => d.docType === t).length : all.length})`, href: href(t), active: type === t }))}
             />
-          }
-          headers={["Mã / loại", "Tên tài liệu", "Phiên bản", "Ban hành / phê duyệt", "Soát xét", "Trạng thái"]}
-          emptyText={query || type ? "Không có tài liệu phù hợp" : "Chưa có tài liệu nào"}
-          rows={docs.map((d) => {
-            const days = daysUntil(d.reviewDue);
-            const warn = d.status === "Hiệu lực" && days <= REVIEW_WARN_DAYS;
-            return {
-              id: d.id,
-              label: d.code,
-              initial: d,
-              cells: [
-                <div key="c">
-                  <div className="font-mono text-xs font-semibold">{d.code}</div>
-                  <div className="text-[11px] text-muted-foreground">{d.docType}</div>
-                </div>,
-                <div key="t" className="max-w-[360px]">
-                  <div className="text-sm font-medium leading-snug">{d.title}</div>
-                  {d.distribution && (
-                    <div className="text-[11px] text-muted-foreground">Lưu tại: {d.distribution}</div>
-                  )}
-                </div>,
-                <span key="v" className="text-sm">{d.version || "—"}</span>,
-                <div key="i" className="text-xs">
-                  <div>{fmtDateVN(d.issuedAt) || "—"}</div>
-                  <div className="text-muted-foreground">{d.approvedBy || "chưa ghi người duyệt"}</div>
-                </div>,
-                <div key="r" className={`text-xs ${warn ? "text-rose-600 font-medium" : ""}`}>
-                  {d.reviewDue ? fmtDateVN(d.reviewDue) : "—"}
-                  {warn && <div>{days < 0 ? `quá hạn ${-days} ngày` : `còn ${days} ngày`}</div>}
-                </div>,
-                <Badge key="s" variant={statusVariant[d.status] ?? "secondary"}>{d.status}</Badge>,
-              ],
-            };
-          })}
-        />
-      </main>
-    </>
+          </div>
+          <form action="/documents" className="flex">
+            {type && <input type="hidden" name="type" value={type} />}
+            <input name="q" defaultValue={q} placeholder="Tìm mã, tên, người duyệt…" aria-label="Tìm kiếm" className={`${input} !w-56 rounded-r-none`} />
+            <button className={`${btn} rounded-l-none border-l-0`} aria-label="Tìm"><Search className="h-4 w-4 stroke-[3]" /></button>
+          </form>
+        </>
+      }
+    >
+      <p className="mb-3 text-sm text-[#555]">
+        Tổng {all.length} tài liệu · đang hiệu lực {active.length} ·{" "}
+        <span className={reviewDue.length ? "font-bold text-[#a94442]" : undefined}>cần soát xét {reviewDue.length}</span> (quá hạn hoặc ≤ {REVIEW_WARN_DAYS} ngày) · dự thảo chờ phê duyệt {all.filter((d) => d.status === "Dự thảo").length}.
+        Tài liệu chỉ được dùng khi ở trạng thái Hiệu lực; tài liệu lỗi thời chuyển sang Hết hiệu lực.
+      </p>
+      <CatalogTable
+        entity="qms-documents"
+        canWrite={canWrite}
+        fields={FIELDS}
+        headers={["Mã", "Loại", "Tên tài liệu", "Phiên bản", "Ban hành", "Người phê duyệt", "Soát xét", "Trạng thái"]}
+        emptyText={query || type ? "Không có tài liệu phù hợp" : "Chưa có tài liệu nào"}
+        rows={docs.map((d) => {
+          const days = daysUntil(d.reviewDue);
+          const warn = d.status === "Hiệu lực" && days <= REVIEW_WARN_DAYS;
+          return {
+            id: d.id,
+            label: d.code,
+            initial: d,
+            cells: [
+              <span key="c" className="whitespace-nowrap font-bold">{d.code}</span>,
+              d.docType,
+              <div key="t" className="max-w-[360px]">
+                {d.title}
+                {d.distribution && <div className="text-xs text-[#777]">Lưu tại: {d.distribution}</div>}
+              </div>,
+              d.version,
+              <span key="i" className="whitespace-nowrap">{fmtDateVN(d.issuedAt)}</span>,
+              d.approvedBy,
+              <span key="r" className={`whitespace-nowrap ${warn ? "font-bold text-[#a94442]" : ""}`}>
+                {fmtDateVN(d.reviewDue)}
+                {warn && <div className="text-xs">{days < 0 ? `quá hạn ${-days} ngày` : `còn ${days} ngày`}</div>}
+              </span>,
+              <span key="s" className={STATUS_COLOR[d.status] ?? "text-[#777]"}>{d.status}</span>,
+            ],
+          };
+        })}
+      />
+    </LabPage>
   );
 }

@@ -1,41 +1,8 @@
-// Số liệu trang chủ phòng thí nghiệm (GĐ8): biểu đồ 6 tháng, lịch quan trắc tự sinh từ đơn hàng.
-import { dbQuery, isDbConfigured } from "@/lib/platform/db";
-import { orderStore, sampleTypeStore, workScheduleStore, type WorkItem } from "@/lib/modules/m2/data/orders";
+// Số liệu trang chủ phòng thí nghiệm (GĐ8): lịch quan trắc tự sinh từ đơn hàng, mốc đơn hàng.
+import { orderStore, workScheduleStore, type WorkItem } from "@/lib/modules/m2/data/orders";
 import { orderPlanStore } from "@/lib/modules/m2/data/order-extras";
-import { ORDER_STATUSES, fieldDuties, orderEvents, stackByMonth, type OrderLike, type lastMonths } from "@/lib/modules/m2/orders";
+import { fieldDuties, orderEvents, type OrderLike } from "@/lib/modules/m2/orders";
 import { vnDateOf } from "@/lib/platform/dates";
-
-type Months = ReturnType<typeof lastMonths>;
-const VN = "Asia/Ho_Chi_Minh";
-
-/** Số đơn hàng tạo mới mỗi tháng, chia theo trạng thái hiện tại. */
-export async function ordersByMonth(months: Months) {
-  if (!isDbConfigured() || !months.length) return stackByMonth([], months, [...ORDER_STATUSES]);
-  const rows = await dbQuery(
-    `select to_char(created_at at time zone '${VN}', 'YYYY-MM') m, coalesce(status, 'Báo giá') st, count(*)::int n
-     from public.orders where to_char(created_at at time zone '${VN}', 'YYYY-MM') between $1 and $2 group by 1, 2`,
-    [months[0].key, months[months.length - 1].key],
-  ).catch(() => []);
-  return stackByMonth(rows.map((r) => ({ month: r.m as string, key: r.st as string, n: Number(r.n) })), months, [...ORDER_STATUSES]);
-}
-
-/**
- * Số mẫu đã trả kết quả mỗi tháng theo loại mẫu: mẫu ở trạng thái "Trả kết quả" hoặc thuộc đơn đã trả / thanh lý,
- * tính theo ngày trả thực tế của đơn (chưa ghi thì theo hạn trả).
- */
-export async function returnedSamplesByMonth(months: Months) {
-  const types = (await sampleTypeStore.list()).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)).map((t) => t.name);
-  if (!isDbConfigured() || !months.length) return stackByMonth([], months, types);
-  const rows = await dbQuery(
-    `select to_char(coalesce(o.delivered_at, s.due_at::timestamptz, o.due_at) at time zone '${VN}', 'YYYY-MM') m, coalesce(s.type, 'Khác') t, count(*)::int n
-     from public.samples s join public.orders o on o.id = s.order_id
-     where (s.stage = 'Trả kết quả' or o.status in ('Trả kết quả', 'Thanh lý')) and coalesce(s.stage, '') <> 'Hủy mẫu'
-       and to_char(coalesce(o.delivered_at, s.due_at::timestamptz, o.due_at) at time zone '${VN}', 'YYYY-MM') between $1 and $2
-     group by 1, 2`,
-    [months[0].key, months[months.length - 1].key],
-  ).catch(() => []);
-  return stackByMonth(rows.map((r) => ({ month: r.m as string, key: r.t as string, n: Number(r.n) })), months, types);
-}
 
 /** Đơn hàng với các mốc ngày đã quy về ngày Việt Nam (dùng cho lịch). */
 async function ordersVN(): Promise<OrderLike[]> {

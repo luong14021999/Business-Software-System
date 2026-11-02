@@ -1,28 +1,12 @@
-import {
-  Scale,
-  CheckCircle2,
-  XCircle,
-  HelpCircle,
-  FileSignature,
-  Handshake,
-} from "lucide-react";
-import { Header } from "@/components/layout/header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Search } from "lucide-react";
+import { LabPage, btn, input, link, table } from "@/components/m2/lab-ui/page";
+import { XDeleteLink } from "@/components/m2/lab-ui/x-delete";
 import type { DecisionRule } from "@/lib/mock-data";
 import { LIMIT_DIRECTIONS, RULE_TYPES, decisionRuleStore } from "@/lib/modules/m2/data/quality";
 import {
   EntityFormDialog,
   type CrudField,
 } from "@/components/crud/entity-form-dialog";
-import { DeleteEntityButton } from "@/components/crud/delete-button";
-import { EntitySearchInput } from "@/components/crud/search-input";
 import { fmtDateVN, todayISO } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";
@@ -42,13 +26,6 @@ const FIELDS: CrudField[] = [
   { name: "approvedBy", label: "Người phê duyệt" },
   { name: "approvedAt", label: "Ngày phê duyệt", type: "date", defaultValue: todayISO() },
 ];
-
-function ruleVariant(t: DecisionRule["ruleType"]) {
-  if (t === "Simple acceptance (không guard band)") return "secondary";
-  if (t === "Guarded acceptance (w = U)") return "success";
-  if (t === "Guarded rejection (w = U)") return "warning";
-  return "outline";
-}
 
 function format(n: number, unit: string) {
   const digits = Math.abs(n) < 1 ? 3 : Math.abs(n) < 10 ? 2 : 1;
@@ -279,33 +256,15 @@ function ZoneVisualization({ rule }: { rule: DecisionRule }) {
   );
 }
 
+/** Số quy tắc theo loại (bảng tóm tắt đầu trang). */
 const statsOf = (decisionRules: DecisionRule[]) => [
-  {
-    label: "Quy tắc đã phê duyệt",
-    value: decisionRules.length,
-    icon: FileSignature,
-    accent: "bg-emerald-50 text-emerald-700",
-  },
-  {
-    label: "Áp dụng guard band (w = U)",
-    value: decisionRules.filter((r) => r.ruleType.startsWith("Guarded")).length,
-    icon: Scale,
-    accent: "bg-blue-50 text-blue-600",
-  },
-  {
-    label: "Simple acceptance",
-    value: decisionRules.filter((r) => r.ruleType.startsWith("Simple")).length,
-    icon: CheckCircle2,
-    accent: "bg-violet-50 text-violet-600",
-  },
-  {
-    label: "Theo thỏa thuận KH",
-    value: decisionRules.filter((r) => r.ruleType.startsWith("Theo")).length,
-    icon: Handshake,
-    accent: "bg-amber-50 text-amber-600",
-  },
+  { label: "Quy tắc đã phê duyệt", value: decisionRules.length },
+  { label: "Áp dụng guard band (w = U)", value: decisionRules.filter((r) => r.ruleType.startsWith("Guarded")).length },
+  { label: "Simple acceptance", value: decisionRules.filter((r) => r.ruleType.startsWith("Simple")).length },
+  { label: "Theo thỏa thuận KH", value: decisionRules.filter((r) => r.ruleType.startsWith("Theo")).length },
 ];
 
+/** Quy tắc quyết định (ISO/IEC 17025 §7.8.6) theo kiểu XaLab: tóm tắt, cách áp dụng, bảng quy tắc kèm sơ đồ vùng quyết định. */
 export default async function DecisionRulesPage({
   searchParams,
 }: {
@@ -319,185 +278,96 @@ export default async function DecisionRulesPage({
   );
   const stats = statsOf(all);
   return (
-    <>
-      <Header
-        title="Quy tắc quyết định (Decision rules)"
-        description="ISO/IEC 17025:2017 §7.8.6 – kết luận đạt/không đạt có tính đến độ không đảm bảo đo"
-      />
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin">
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {stats.map((s) => (
-            <Card key={s.label}>
-              <CardContent className="p-5 flex items-start justify-between">
-                <div>
-                  <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                    {s.label}
-                  </div>
-                  <div className="text-3xl font-semibold mt-1.5">{s.value}</div>
-                </div>
-                <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.accent}`}
-                >
-                  <s.icon className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </section>
+    <LabPage
+      title="Quy tắc quyết định (Decision rules)"
+      subtitle={<span className="text-lg text-[#333]">ISO/IEC 17025:2017 §7.8.6 – kết luận đạt/không đạt có tính đến độ không đảm bảo đo</span>}
+      toolbar={
+        <>
+          <EntityFormDialog
+            mode="add"
+            endpoint="/api/decision-rules"
+            title="Thêm quy tắc quyết định"
+            description="Ngưỡng vùng chấp nhận / bác bỏ được tính tự động theo guard band w = U"
+            fields={FIELDS}
+            trigger={<button type="button" className={btn}>Thêm +</button>}
+          />
+          <form action="/decision-rules" className="flex">
+            <input name="q" defaultValue={q} placeholder="Tìm chỉ tiêu, matrix…" aria-label="Tìm quy tắc" className={`${input} !w-52 rounded-r-none`} />
+            <button className={`${btn} rounded-l-none border-l-0`} aria-label="Tìm"><Search className="h-4 w-4 stroke-[3]" /></button>
+          </form>
+        </>
+      }
+    >
+      <table className={`${table} max-w-xl`}>
+        <tbody>
+          {stats.map((s) => <tr key={s.label}><td>{s.label}</td><td className="text-right font-bold">{s.value}</td></tr>)}
+        </tbody>
+      </table>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Scale className="w-4 h-4 text-primary" />
-              <CardTitle>Cách áp dụng quy tắc quyết định</CardTitle>
-            </div>
-            <CardDescription>
-              Tham chiếu JCGM 106:2012 – Đánh giá sự phù hợp với giới hạn quy
-              định
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-              <div className="rounded-lg border bg-emerald-50/50 border-emerald-200 p-3">
-                <div className="flex items-center gap-2 font-semibold text-emerald-700">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Vùng ĐẠT
-                </div>
-                <div className="mt-1 text-foreground/80">
-                  Kết quả + U ≤ giới hạn → kết luận đạt với độ tin cậy 95%
-                </div>
-              </div>
-              <div className="rounded-lg border bg-amber-50/50 border-amber-200 p-3">
-                <div className="flex items-center gap-2 font-semibold text-amber-700">
-                  <HelpCircle className="w-4 h-4" />
-                  Vùng VÔ ĐỊNH (guarded)
-                </div>
-                <div className="mt-1 text-foreground/80">
-                  Giới hạn − U &lt; Kết quả &lt; Giới hạn + U → không thể kết
-                  luận, cần phân tích lại hoặc thoả thuận với KH
-                </div>
-              </div>
-              <div className="rounded-lg border bg-rose-50/50 border-rose-200 p-3">
-                <div className="flex items-center gap-2 font-semibold text-rose-700">
-                  <XCircle className="w-4 h-4" />
-                  Vùng KHÔNG ĐẠT
-                </div>
-                <div className="mt-1 text-foreground/80">
-                  Kết quả − U &gt; giới hạn → kết luận không đạt với độ tin cậy
-                  95%
-                </div>
-              </div>
-            </div>
-            <div className="mt-3 text-xs text-muted-foreground">
-              U là độ không đảm bảo đo mở rộng (Expanded uncertainty, k = 2,
-              tương đương mức tin cậy ~95%). Mặc định Viện áp{" "}
-              <span className="font-medium text-foreground">
-                Guarded acceptance w = U
-              </span>{" "}
-              cho chỉ tiêu an toàn thực phẩm; Simple acceptance cho chỉ tiêu
-              định tính.
-            </div>
-          </CardContent>
-        </Card>
+      <h3 className="mb-1 mt-8 text-xl text-[#333]">Cách áp dụng quy tắc quyết định</h3>
+      <p className="mb-3 text-sm text-[#777]">Tham chiếu JCGM 106:2012 – Đánh giá sự phù hợp với giới hạn quy định</p>
+      <div className="rounded border border-[#bce8f1] bg-[#d9edf7] p-[15px] text-sm text-[#31708f]">
+        <ul className="list-disc space-y-1 pl-5">
+          <li><b className="text-[#3c763d]">Vùng ĐẠT:</b> Kết quả + U ≤ giới hạn → kết luận đạt với độ tin cậy 95%</li>
+          <li><b className="text-[#8a6d3b]">Vùng VÔ ĐỊNH (guarded):</b> Giới hạn − U &lt; Kết quả &lt; Giới hạn + U → không thể kết luận, cần phân tích lại hoặc thoả thuận với KH</li>
+          <li><b className="text-[#a94442]">Vùng KHÔNG ĐẠT:</b> Kết quả − U &gt; giới hạn → kết luận không đạt với độ tin cậy 95%</li>
+        </ul>
+        <p className="mt-2">
+          U là độ không đảm bảo đo mở rộng (Expanded uncertainty, k = 2, tương đương mức tin cậy ~95%). Mặc định Viện áp{" "}
+          <b>Guarded acceptance w = U</b> cho chỉ tiêu an toàn thực phẩm; Simple acceptance cho chỉ tiêu định tính.
+        </p>
+      </div>
 
-        <Card>
-          <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between space-y-0">
-            <div>
-              <CardTitle>Danh mục quy tắc quyết định</CardTitle>
-              <CardDescription>
-                Phê duyệt theo từng chỉ tiêu × matrix × phương pháp – ghi rõ
-                trên phiếu KQ khi có kết luận đạt/không đạt
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <EntitySearchInput basePath="/decision-rules" placeholder="Tìm chỉ tiêu, matrix…" />
-              <EntityFormDialog
-                mode="add"
-                endpoint="/api/decision-rules"
-                title="Thêm quy tắc quyết định"
-                description="Ngưỡng vùng chấp nhận / bác bỏ được tính tự động theo guard band w = U"
-                fields={FIELDS}
-                addLabel="Thêm quy tắc"
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
+      <h3 className="mb-1 mt-8 text-xl text-[#333]">Danh mục quy tắc quyết định</h3>
+      <p className="mb-3 text-sm text-[#777]">Phê duyệt theo từng chỉ tiêu × matrix × phương pháp – ghi rõ trên phiếu KQ khi có kết luận đạt/không đạt</p>
+      <div className="overflow-x-auto">
+        <table className={table}>
+          <thead>
+            <tr><th>Chỉ tiêu</th><th>Đối tượng</th><th>Phương pháp</th><th>Loại quy tắc</th><th>Giới hạn</th><th>U (k=2)</th><th>Nguồn giới hạn</th><th>Phê duyệt</th><th /></tr>
+          </thead>
+          <tbody>
             {decisionRules.length === 0 && (
-              <div className="text-sm text-muted-foreground py-6 text-center">
-                {query ? "Không có quy tắc phù hợp" : "Chưa có quy tắc quyết định nào"}
-              </div>
+              <tr><td colSpan={9} className="py-6 text-center text-muted-foreground">{query ? "Không có quy tắc phù hợp" : "Chưa có quy tắc quyết định nào"}</td></tr>
             )}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-              {decisionRules.map((r) => (
-                <div
-                  key={r.id}
-                  className="p-4 rounded-lg border bg-card space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold">
-                        {r.criterion} trong {r.matrix}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {r.method}
-                      </div>
-                    </div>
-                    <Badge variant={ruleVariant(r.ruleType)} className="shrink-0">
-                      {r.ruleType.split(" ")[0]}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-                    <div>
-                      <div className="text-muted-foreground">Giới hạn</div>
-                      <div className="font-medium">
-                        {r.limitDirection === "range" && r.limitMin !== undefined
-                          ? `${r.limitMin} – ${r.limit} ${r.unit}`
-                          : `${r.limitDirection === "min" ? "≥" : "≤"} ${r.limit} ${r.unit}`}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">U (k=2)</div>
-                      <div className="font-medium">
-                        ±{format(r.uncertainty, r.unit)}
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <div className="text-muted-foreground">Nguồn giới hạn</div>
-                      <div className="text-foreground">{r.limitSource}</div>
-                    </div>
-                  </div>
-
-                  <ZoneVisualization rule={r} />
-
-                  <div className="text-xs text-muted-foreground">
-                    {r.notes}
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs pt-2 border-t">
-                    <span className="text-muted-foreground">
-                      Phê duyệt: <span className="text-foreground">{r.approvedBy}</span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground mr-1">{fmtDateVN(r.approvedAt)}</span>
-                      <EntityFormDialog
-                        mode="edit"
-                        endpoint="/api/decision-rules"
-                        id={r.id}
-                        title={`Sửa quy tắc – ${r.criterion}`}
-                        fields={FIELDS}
-                        initial={{ ...r, limitMin: r.limitMin ?? "" }}
-                        submitLabel="Lưu thay đổi"
-                      />
-                      <DeleteEntityButton entity="decision-rules" id={r.id} label={`${r.criterion} trong ${r.matrix}`} />
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </main>
-    </>
+            {decisionRules.map((r) => [
+              <tr key={r.id}>
+                <td className="font-bold">{r.criterion}</td>
+                <td>{r.matrix}</td>
+                <td>{r.method}</td>
+                <td>{r.ruleType}</td>
+                <td className="whitespace-nowrap">
+                  {r.limitDirection === "range" && r.limitMin !== undefined
+                    ? `${r.limitMin} – ${r.limit} ${r.unit}`
+                    : `${r.limitDirection === "min" ? "≥" : "≤"} ${r.limit} ${r.unit}`}
+                </td>
+                <td className="whitespace-nowrap">±{format(r.uncertainty, r.unit)}</td>
+                <td>{r.limitSource}</td>
+                <td>{r.approvedBy}<div className="text-xs text-[#777]">{fmtDateVN(r.approvedAt)}</div></td>
+                <td className="whitespace-nowrap text-right">
+                  <EntityFormDialog
+                    mode="edit"
+                    endpoint="/api/decision-rules"
+                    id={r.id}
+                    title={`Sửa quy tắc – ${r.criterion}`}
+                    fields={FIELDS}
+                    initial={{ ...r, limitMin: r.limitMin ?? "" }}
+                    submitLabel="Lưu thay đổi"
+                    trigger={<button type="button" className={link}>Sửa</button>}
+                  />
+                  <span className="mx-2 text-[#333]">|</span>
+                  <XDeleteLink url={`/api/decision-rules/${r.id}`} label={`${r.criterion} trong ${r.matrix}`} />
+                </td>
+              </tr>,
+              <tr key={`${r.id}-zone`}>
+                <td colSpan={9} className="!border-t-0 !pt-0">
+                  <div className="max-w-3xl"><ZoneVisualization rule={r} /></div>
+                  {r.notes && <div className="text-xs text-[#777]">{r.notes}</div>}
+                </td>
+              </tr>,
+            ])}
+          </tbody>
+        </table>
+      </div>
+    </LabPage>
   );
 }

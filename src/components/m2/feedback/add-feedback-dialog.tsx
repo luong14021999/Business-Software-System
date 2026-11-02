@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Plus, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { btn } from "@/components/m2/lab-ui/page";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -65,10 +66,9 @@ export function AddFeedbackDialog() {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <Button size="sm">
-          <Plus />
-          Mở phiếu mới
-        </Button>
+        <button type="button" className={btn}>
+          Mở phiếu mới <Plus className="h-4 w-4 stroke-[3]" />
+        </button>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />

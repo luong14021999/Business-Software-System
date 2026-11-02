@@ -317,6 +317,7 @@ export function OrderForm({
                 { label: "Kế hoạch quan trắc", href: `/order-print/${order.id}?loai=ke-hoach` },
                 { label: "Báo giá", href: `/order-print/${order.id}?loai=bao-gia` },
                 { label: "Kết quả tổng hợp", href: `/order-print/${order.id}?loai=ket-qua` },
+                { label: "Phiếu kết quả (có QR xác minh)", href: `/orders/${order.id}/reports` },
               ]}
             />
           </>

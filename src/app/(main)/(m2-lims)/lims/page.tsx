@@ -4,10 +4,9 @@ import { HomeTabs } from "@/components/m2/home/home-tabs";
 import { PostBox } from "@/components/m2/home/post-box";
 import { LabFooter, btn, link } from "@/components/m2/lab-ui/page";
 import { assignmentStore } from "@/lib/modules/m2/data/custody";
-import { MonthStackChart } from "@/components/m2/home/month-stack-chart";
 import { labPostStore, linesByOrder, orderStore } from "@/lib/modules/m2/data/orders";
-import { orderEventsBetween, ordersByMonth, returnedSamplesByMonth, scheduleBetween } from "@/lib/modules/m2/data/home";
-import { addDays, lastMonths, overdueDays } from "@/lib/modules/m2/orders";
+import { orderEventsBetween, scheduleBetween } from "@/lib/modules/m2/data/home";
+import { addDays, overdueDays } from "@/lib/modules/m2/orders";
 import { currentAccess } from "@/lib/platform/data/access";
 import { fmtDateVN, todayISO, vnDateOf } from "@/lib/platform/dates";
 
@@ -15,22 +14,18 @@ export const dynamic = "force-dynamic";
 
 /**
  * Trang chủ phòng thí nghiệm: bảng tin nội bộ, công việc cá nhân, công việc của đơn vị
- * (cảnh báo đơn hàng quá hạn, sự kiện sắp diễn ra, công việc hôm nay – gồm cả mốc quan trắc / trả kết quả của đơn hàng)
- * và biểu đồ 6 tháng (đơn hàng theo trạng thái, mẫu đã trả kết quả theo loại mẫu).
+ * (cảnh báo đơn hàng quá hạn, sự kiện sắp diễn ra, công việc hôm nay – gồm cả mốc quan trắc / trả kết quả của đơn hàng).
  */
 export default async function LabHomePage({ searchParams }: { searchParams: Promise<{ tin?: string }> }) {
   const { tin } = await searchParams;
   const access = await currentAccess();
   const me = access.actor?.name ?? "";
   const today = todayISO();
-  const months = lastMonths(today, 6);
-  const [posts, orders, schedule, events, byStatus, byType, assignments, returned, waitQa, waitManager] = await Promise.all([
+  const [posts, orders, schedule, events, assignments, returned, waitQa, waitManager] = await Promise.all([
     labPostStore.list(),
     orderStore.list(),
     scheduleBetween(today, addDays(today, 7)),
     orderEventsBetween(today, addDays(today, 7)),
-    ordersByMonth(months),
-    returnedSamplesByMonth(months),
     assignmentStore.list(),
     me ? linesByOrder(["Trả lại sửa"], me) : Promise.resolve([]),
     access.can("results.qa") ? linesByOrder(["Chờ QA/QC"]) : Promise.resolve([]),
@@ -145,13 +140,6 @@ export default async function LabHomePage({ searchParams }: { searchParams: Prom
             ) : null}
           </section>
         </div>
-        <section className="mt-4 border border-[#ddd] p-4 lg:-mx-[15px]" aria-labelledby="h-stats">
-          <h2 id="h-stats" className="text-[22px] font-medium uppercase leading-tight text-[#333]">Thống kê 6 tháng gần đây</h2>
-          <div className="mt-3 grid gap-6 lg:grid-cols-2">
-            <MonthStackChart title="Đơn hàng theo trạng thái (theo tháng tạo đơn)" data={byStatus} unit="đơn hàng" />
-            <MonthStackChart title="Mẫu đã trả kết quả theo loại mẫu" data={byType} unit="mẫu" />
-          </div>
-        </section>
         <LabFooter />
       </div>
     </main>

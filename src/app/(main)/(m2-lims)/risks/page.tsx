@@ -1,22 +1,8 @@
-import Link from "next/link";
-import { AlertOctagon, ShieldCheck, TrendingUp, ListChecks, Lightbulb } from "lucide-react";
-import { Header } from "@/components/layout/header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CrudTableCard } from "@/components/crud/crud-table-card";
-import {
-  EntityFormDialog,
-  type CrudField,
-} from "@/components/crud/entity-form-dialog";
-import { DeleteEntityButton } from "@/components/crud/delete-button";
-import { EntitySearchInput } from "@/components/crud/search-input";
-import { StatGrid } from "@/components/common/stat-grid";
+import { Search } from "lucide-react";
+import { Dropdown } from "@/components/m2/lab-ui/dropdown";
+import { LabPage, btn, input, table } from "@/components/m2/lab-ui/page";
+import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
+import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import {
   OPPORTUNITY_STATUSES,
   RISK_CATEGORIES,
@@ -26,6 +12,8 @@ import {
   riskStore,
 } from "@/lib/modules/m2/data/quality";
 import type { Risk } from "@/lib/mock-data";
+import { currentAccess } from "@/lib/platform/data/access";
+import { permissionForEntity } from "@/lib/platform/permissions";
 import { daysUntil, fmtDateVN } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";
@@ -60,25 +48,23 @@ const OPP_FIELDS: CrudField[] = [
   { name: "status", label: "Trạng thái", type: "select", options: OPPORTUNITY_STATUSES },
 ];
 
+/** Mức rủi ro theo điểm L × I: nền ô ma trận và màu chữ kiểu Bootstrap. */
 function levelOf(score: number) {
-  if (score >= 16) return { label: "Rất cao", color: "bg-rose-100 text-rose-700 border-rose-300", swatch: "bg-rose-500", variant: "destructive" as const };
-  if (score >= 10) return { label: "Cao", color: "bg-orange-100 text-orange-700 border-orange-300", swatch: "bg-orange-500", variant: "warning" as const };
-  if (score >= 5) return { label: "Trung bình", color: "bg-amber-100 text-amber-700 border-amber-300", swatch: "bg-amber-400", variant: "secondary" as const };
-  return { label: "Thấp", color: "bg-emerald-100 text-emerald-700 border-emerald-300", swatch: "bg-emerald-500", variant: "success" as const };
+  if (score >= 16) return { label: "Rất cao", cell: "bg-[#f2dede]", text: "text-[#a94442]" };
+  if (score >= 10) return { label: "Cao", cell: "bg-[#fcdcc4]", text: "text-[#c7581b]" };
+  if (score >= 5) return { label: "Trung bình", cell: "bg-[#fcf8e3]", text: "text-[#8a6d3b]" };
+  return { label: "Thấp", cell: "bg-[#dff0d8]", text: "text-[#3c763d]" };
 }
 
-const statusVariant = {
-  "Mở": "destructive",
-  "Đang xử lý": "warning",
-  "Đã giảm thiểu": "secondary",
-  "Đã đóng": "success",
-} as const;
-
-const opStatusVariant = {
-  "Đề xuất": "secondary",
-  "Đang triển khai": "warning",
-  "Đã đạt": "success",
-} as const;
+const STATUS_COLOR: Record<string, string> = {
+  "Mở": "text-[#a94442]",
+  "Đang xử lý": "text-[#8a6d3b]",
+  "Đã giảm thiểu": "text-[#31708f]",
+  "Đã đóng": "text-[#3c763d]",
+  "Đề xuất": "text-[#777]",
+  "Đang triển khai": "text-[#8a6d3b]",
+  "Đã đạt": "text-[#3c763d]",
+};
 
 const scoreOf = (r: Risk) => r.likelihood * r.impact;
 const residualOf = (r: Risk) => r.residualLikelihood * r.residualImpact;
@@ -91,225 +77,174 @@ const FILTERS = [
   { key: "closed", label: "Đã giảm thiểu / đóng", test: (r: Risk) => !isOpen(r) },
 ];
 
+/** Ma trận 5×5: hàng = mức nghiêm trọng I (5 → 1), cột = khả năng xảy ra L (1 → 5); số trong ô là số rủi ro. */
 function RiskMatrix({ risks }: { risks: Risk[] }) {
   return (
-    <div className="overflow-x-auto">
-      <div className="inline-grid grid-cols-[auto_repeat(5,minmax(64px,1fr))] gap-1.5 text-xs">
-        <div />
-        {[1, 2, 3, 4, 5].map((l) => (
-          <div key={`l-${l}`} className="text-center text-[11px] text-muted-foreground font-medium">
-            L{l}
-          </div>
+    <table className="border-collapse text-center text-sm [&_td]:h-12 [&_td]:w-16 [&_td]:border [&_td]:border-[#ddd] [&_th]:px-2 [&_th]:font-bold">
+      <thead>
+        <tr><th />{[1, 2, 3, 4, 5].map((l) => <th key={l}>L{l}</th>)}</tr>
+      </thead>
+      <tbody>
+        {[5, 4, 3, 2, 1].map((impact) => (
+          <tr key={impact}>
+            <th>I{impact}</th>
+            {[1, 2, 3, 4, 5].map((likelihood) => {
+              const score = likelihood * impact;
+              const lv = levelOf(score);
+              const n = risks.filter((r) => r.likelihood === likelihood && r.impact === impact).length;
+              return (
+                <td key={likelihood} className={lv.cell} title={`L${likelihood} × I${impact} = ${score} (${lv.label})`}>
+                  <div className="text-[10px] text-[#777]">{score}</div>
+                  <div className="font-bold">{n || ""}</div>
+                </td>
+              );
+            })}
+          </tr>
         ))}
-        {[5, 4, 3, 2, 1].flatMap((impact) => [
-          <div key={`i-${impact}`} className="text-[11px] text-muted-foreground font-medium flex items-center justify-end pr-2">
-            I{impact}
-          </div>,
-          ...[1, 2, 3, 4, 5].map((likelihood) => {
-            const score = likelihood * impact;
-            const lv = levelOf(score);
-            const n = risks.filter((r) => r.likelihood === likelihood && r.impact === impact).length;
-            return (
-              <div
-                key={`${likelihood}-${impact}`}
-                className={`rounded-md border ${lv.color} min-h-[56px] p-1.5 flex flex-col items-center justify-center text-center`}
-                title={`L${likelihood} × I${impact} = ${score} (${lv.label})`}
-              >
-                <div className="text-[10px] opacity-70">{score}</div>
-                <div className="text-base font-semibold leading-none mt-0.5">{n || ""}</div>
-              </div>
-            );
-          }),
-        ])}
-        <div className="col-span-6 mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-          <span>Trục dọc: Mức nghiêm trọng (I) · Trục ngang: Khả năng xảy ra (L)</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-500" /> Thấp 1–4</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-amber-400" /> TB 5–9</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-500" /> Cao 10–15</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-rose-500" /> Rất cao 16–25</span>
-        </div>
-      </div>
-    </div>
+      </tbody>
+    </table>
   );
 }
 
-export default async function RisksPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; f?: string }>;
-}) {
+/** Đăng ký rủi ro & cơ hội (ISO/IEC 17025 §8.5) kiểu XaLab: ma trận 5×5, rủi ro cần xem xét, bảng rủi ro, cơ hội cải tiến. */
+export default async function RisksPage({ searchParams }: { searchParams: Promise<{ q?: string; f?: string }> }) {
   const { q = "", f = "" } = await searchParams;
-  const [risks, opportunities] = await Promise.all([riskStore.list(), opportunityStore.list()]);
+  const [risks, opportunities, access] = await Promise.all([riskStore.list(), opportunityStore.list(), currentAccess()]);
+  const canWrite = access.can(permissionForEntity("risks"));
+  const canWriteOpp = access.can(permissionForEntity("opportunities"));
   risks.sort((a, b) => a.code.localeCompare(b.code, "vi", { numeric: true }));
 
   const filter = FILTERS.find((x) => x.key === f) ?? FILTERS[0];
   const query = q.trim().toLowerCase();
-  const rows = risks.filter(
-    (r) => filter.test(r) && (!query || `${r.code} ${r.title} ${r.owner} ${r.category}`.toLowerCase().includes(query)),
-  );
+  const rows = risks.filter((r) => filter.test(r) && (!query || `${r.code} ${r.title} ${r.owner} ${r.category}`.toLowerCase().includes(query)));
   const reviewSoon = risks
     .filter((r) => r.status !== "Đã đóng" && daysUntil(r.reviewAt) <= 30)
     .sort((a, b) => (a.reviewAt || "").localeCompare(b.reviewAt || ""))
     .slice(0, 6);
+  const href = (key: string) => `/risks?${new URLSearchParams({ ...(q && { q }), ...(key && { f: key }) })}`;
+  const h2 = "mb-2 mt-6 text-xl font-medium text-[#333]";
 
   return (
-    <>
-      <Header
-        title="Đăng ký rủi ro & cơ hội"
-        description="ISO/IEC 17025:2017 §8.5 – nhận diện, đánh giá và xử lý rủi ro cho hoạt động PTN"
-      />
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin">
-        <StatGrid
-          stats={[
-            { label: "Tổng rủi ro đã đăng ký", value: risks.length, icon: ListChecks, accent: "bg-emerald-50 text-emerald-700" },
-            { label: "Mức Cao / Rất cao", value: risks.filter((r) => scoreOf(r) >= 10).length, icon: AlertOctagon, accent: "bg-rose-50 text-rose-600" },
-            { label: "Đang xử lý / Mở", value: risks.filter(isOpen).length, icon: TrendingUp, accent: "bg-amber-50 text-amber-600" },
-            { label: "Đã giảm thiểu / đóng", value: risks.filter((r) => !isOpen(r)).length, icon: ShieldCheck, accent: "bg-blue-50 text-blue-600" },
-          ]}
-        />
-
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Ma trận rủi ro 5×5</CardTitle>
-              <CardDescription>Phân bố rủi ro theo Khả năng × Mức nghiêm trọng – số trong ô là số lượng rủi ro</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RiskMatrix risks={risks} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Cần xem xét trong 30 ngày</CardTitle>
-              <CardDescription>Quá hạn hoặc sắp đến hạn rà soát biện pháp kiểm soát</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {reviewSoon.length === 0 && <div className="text-sm text-muted-foreground">Không có rủi ro nào đến hạn xem xét</div>}
-              <ul className="space-y-3">
-                {reviewSoon.map((r) => {
-                  const lv = levelOf(scoreOf(r));
-                  const days = daysUntil(r.reviewAt);
-                  return (
-                    <li key={r.id} className="flex items-start gap-3 p-3 rounded-md border bg-card">
-                      <span className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${lv.swatch}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium line-clamp-2">{r.title}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{r.code} · {r.owner}</div>
-                      </div>
-                      <div className={`text-xs text-right shrink-0 ${days < 0 ? "text-rose-600 font-medium" : "text-muted-foreground"}`}>
-                        {fmtDateVN(r.reviewAt)}
-                        {days < 0 && <div>quá {-days} ngày</div>}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </CardContent>
-          </Card>
-        </section>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {FILTERS.map((x) => (
-            <Link
-              key={x.key || "all"}
-              href={`/risks?${new URLSearchParams({ ...(q && { q }), ...(x.key && { f: x.key }) })}`}
-              className={`h-8 px-3 inline-flex items-center rounded-full border text-xs font-medium ${
-                f === x.key ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent"
-              }`}
-            >
-              {x.label} <span className="ml-1.5 opacity-70">{risks.filter(x.test).length}</span>
-            </Link>
-          ))}
-          <div className="ml-auto w-full sm:w-auto">
-            <EntitySearchInput basePath="/risks" placeholder="Tìm mã, tiêu đề, phụ trách…" />
+    <LabPage
+      title="Đăng ký rủi ro & cơ hội"
+      rule={false}
+      toolbar={
+        <>
+          <div className="flex">
+            {canWrite && <EntityFormDialog mode="add" endpoint="/api/risks" title="Thêm rủi ro" fields={RISK_FIELDS} trigger={<button type="button" className={`${btn} rounded-r-none`}>Thêm +</button>} />}
+            <Dropdown
+              filter
+              className={`${btn} ${canWrite ? "-ml-px rounded-l-none" : ""}`}
+              label={`Lọc: ${filter.label}`}
+              items={FILTERS.map((x) => ({ label: `${x.label} (${risks.filter(x.test).length})`, href: href(x.key), active: f === x.key }))}
+            />
           </div>
+          <form action="/risks" className="flex">
+            {f && <input type="hidden" name="f" value={f} />}
+            <input name="q" defaultValue={q} placeholder="Tìm mã, tiêu đề, phụ trách…" aria-label="Tìm kiếm" className={`${input} !w-56 rounded-r-none`} />
+            <button className={`${btn} rounded-l-none border-l-0`} aria-label="Tìm"><Search className="h-4 w-4 stroke-[3]" /></button>
+          </form>
+        </>
+      }
+    >
+      <p className="mb-3 text-sm text-[#555]">
+        Tổng {risks.length} rủi ro · mức Cao / Rất cao <b className="text-[#a94442]">{risks.filter((r) => scoreOf(r) >= 10).length}</b> · đang mở / xử lý {risks.filter(isOpen).length} · đã giảm thiểu / đóng {risks.filter((r) => !isOpen(r)).length}.
+      </p>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div>
+          <h2 className={h2}>Ma trận rủi ro 5×5</h2>
+          <RiskMatrix risks={risks} />
+          <p className="mt-2 text-xs text-[#777]">Trục dọc: mức nghiêm trọng (I) · trục ngang: khả năng xảy ra (L). Thấp 1–4 · Trung bình 5–9 · Cao 10–15 · Rất cao 16–25.</p>
         </div>
+        <div>
+          <h2 className={h2}>Cần xem xét trong 30 ngày</h2>
+          <table className={table}>
+            <thead><tr><th>Mã</th><th>Rủi ro</th><th>Phụ trách</th><th>Xem xét</th></tr></thead>
+            <tbody>
+              {reviewSoon.length === 0 && <tr><td colSpan={4} className="py-4 text-center text-muted-foreground">Không có rủi ro nào đến hạn xem xét</td></tr>}
+              {reviewSoon.map((r) => {
+                const days = daysUntil(r.reviewAt);
+                return (
+                  <tr key={r.id}>
+                    <td className="whitespace-nowrap">{r.code}</td>
+                    <td><span className={levelOf(scoreOf(r)).text}>●</span> {r.title}</td>
+                    <td>{r.owner}</td>
+                    <td className={`whitespace-nowrap ${days < 0 ? "font-bold text-[#a94442]" : ""}`}>{fmtDateVN(r.reviewAt)}{days < 0 && <div className="text-xs">quá {-days} ngày</div>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-        <CrudTableCard
-          title="Danh mục rủi ro"
-          description="Mỗi rủi ro gắn điều khoản ISO/IEC 17025:2017, biện pháp xử lý và mức tồn dư sau xử lý"
-          endpoint="/api/risks"
-          entity="risks"
-          editFields={RISK_FIELDS}
-          addNode={<EntityFormDialog mode="add" endpoint="/api/risks" title="Thêm rủi ro" fields={RISK_FIELDS} addLabel="Thêm rủi ro" />}
-          headers={["Mã", "Rủi ro", "Phân loại", "L × I", "Xử lý / phụ trách", "Tồn dư", "Trạng thái"]}
-          emptyText={query || f ? "Không có rủi ro phù hợp" : "Chưa có rủi ro nào"}
-          rows={rows.map((r) => {
-            const lv = levelOf(scoreOf(r));
-            const rl = levelOf(residualOf(r));
-            return {
-              id: r.id,
-              label: r.code,
-              initial: r,
-              cells: [
-                <div key="c">
-                  <div className="font-mono text-xs font-semibold">{r.code}</div>
-                  {r.isoClause && <div className="text-[11px] text-muted-foreground">{r.isoClause}</div>}
-                </div>,
-                <div key="t" className="max-w-[300px]">
-                  <div className="font-medium text-sm line-clamp-2">{r.title}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.action}</div>
-                </div>,
-                <Badge key="k" variant="secondary" className="text-xs">{r.category}</Badge>,
-                <div key="s" className="font-mono text-xs">
-                  {r.likelihood} × {r.impact} = <span className="font-semibold">{scoreOf(r)}</span>
-                  <div className="mt-0.5"><Badge variant={lv.variant}>{lv.label}</Badge></div>
-                </div>,
-                <div key="o" className="text-xs">
-                  <div>{r.treatment}</div>
-                  <div className="text-muted-foreground">{r.owner}</div>
-                </div>,
-                <div key="r" className="font-mono text-xs">
-                  {r.residualLikelihood} × {r.residualImpact} = <span className="font-semibold">{residualOf(r)}</span>
-                  <div className="mt-0.5"><Badge variant={rl.variant}>{rl.label}</Badge></div>
-                </div>,
-                <Badge key="st" variant={statusVariant[r.status] ?? "secondary"}>{r.status}</Badge>,
-              ],
-            };
-          })}
-        />
+      <h2 className={h2}>Danh mục rủi ro</h2>
+      <CatalogTable
+        entity="risks"
+        canWrite={canWrite}
+        fields={RISK_FIELDS}
+        headers={["Mã", "Rủi ro", "Phân loại", "L × I", "Xử lý / phụ trách", "Tồn dư", "Trạng thái"]}
+        emptyText={query || f ? "Không có rủi ro phù hợp" : "Chưa có rủi ro nào"}
+        rows={rows.map((r) => {
+          const lv = levelOf(scoreOf(r));
+          const rl = levelOf(residualOf(r));
+          return {
+            id: r.id,
+            label: r.code,
+            initial: r,
+            cells: [
+              <div key="c" className="whitespace-nowrap">
+                <b>{r.code}</b>
+                {r.isoClause && <div className="text-xs text-[#777]">{r.isoClause}</div>}
+              </div>,
+              <div key="t" className="max-w-[300px]">
+                {r.title}
+                {r.action && <div className="text-xs text-[#777]">{r.action}</div>}
+              </div>,
+              r.category,
+              <div key="s" className="whitespace-nowrap">
+                {r.likelihood} × {r.impact} = <b>{scoreOf(r)}</b>
+                <div className={`text-xs ${lv.text}`}>{lv.label}</div>
+              </div>,
+              <div key="o">
+                {r.treatment}
+                <div className="text-xs text-[#777]">{r.owner}</div>
+              </div>,
+              <div key="r" className="whitespace-nowrap">
+                {r.residualLikelihood} × {r.residualImpact} = <b>{residualOf(r)}</b>
+                <div className={`text-xs ${rl.text}`}>{rl.label}</div>
+              </div>,
+              <span key="st" className={STATUS_COLOR[r.status] ?? "text-[#777]"}>{r.status}</span>,
+            ],
+          };
+        })}
+      />
 
-        <Card>
-          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0">
-            <div>
-              <div className="flex items-center gap-2">
-                <Lightbulb className="w-4 h-4 text-primary" />
-                <CardTitle>Cơ hội cải tiến</CardTitle>
-              </div>
-              <CardDescription>ISO/IEC 17025:2017 §8.5 yêu cầu xác định cả cơ hội bên cạnh rủi ro</CardDescription>
-            </div>
-            <EntityFormDialog mode="add" endpoint="/api/opportunities" title="Thêm cơ hội cải tiến" fields={OPP_FIELDS} addLabel="Thêm cơ hội" />
-          </CardHeader>
-          <CardContent>
-            {opportunities.length === 0 && <div className="text-sm text-muted-foreground">Chưa có cơ hội cải tiến nào</div>}
-            <ul className="space-y-3">
-              {opportunities.map((o) => (
-                <li key={o.id} className="p-3 rounded-md border bg-card space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium">{o.title}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{o.description}</div>
-                    </div>
-                    <Badge variant={opStatusVariant[o.status] ?? "secondary"}>{o.status}</Badge>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                    <span className="text-muted-foreground">Lợi ích kỳ vọng:</span>
-                    <span>{o.expectedBenefit || "—"}</span>
-                    <span className="text-muted-foreground">·</span>
-                    <span className="text-muted-foreground">Phụ trách:</span>
-                    <span>{o.owner || "—"}</span>
-                    <span className="ml-auto flex gap-1.5">
-                      <EntityFormDialog mode="edit" endpoint="/api/opportunities" id={o.id} title="Sửa cơ hội cải tiến" fields={OPP_FIELDS} initial={o} submitLabel="Lưu thay đổi" />
-                      <DeleteEntityButton entity="opportunities" id={o.id} label={o.title} />
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      </main>
-    </>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+        <h2 className={h2}>Cơ hội cải tiến</h2>
+        {canWriteOpp && <EntityFormDialog mode="add" endpoint="/api/opportunities" title="Thêm cơ hội cải tiến" fields={OPP_FIELDS} trigger={<button type="button" className={btn}>Thêm cơ hội +</button>} />}
+      </div>
+      <CatalogTable
+        entity="opportunities"
+        canWrite={canWriteOpp}
+        fields={OPP_FIELDS}
+        headers={["Cơ hội cải tiến", "Lợi ích kỳ vọng", "Phụ trách", "Trạng thái"]}
+        emptyText="Chưa có cơ hội cải tiến nào"
+        rows={opportunities.map((o) => ({
+          id: o.id,
+          label: o.title,
+          initial: o,
+          cells: [
+            <div key="t" className="max-w-[360px]">
+              {o.title}
+              {o.description && <div className="text-xs text-[#777]">{o.description}</div>}
+            </div>,
+            o.expectedBenefit,
+            o.owner,
+            <span key="s" className={STATUS_COLOR[o.status] ?? "text-[#777]"}>{o.status}</span>,
+          ],
+        }))}
+      />
+    </LabPage>
   );
 }

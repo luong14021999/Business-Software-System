@@ -1,23 +1,16 @@
-import {
-  TestTube,
-  Filter,
-  AlertTriangle,
-  CheckCircle2,
-  PackagePlus,
-  ClipboardCheck,
-} from "lucide-react";
+import { Search } from "lucide-react";
 import { toolsStore } from "@/lib/modules/m2/data/tools";
 import { supplyStore } from "@/lib/modules/m2/data/supplies";
 import { toolUsageLogStore } from "@/lib/modules/m2/data/tool-usage-logs";
 import { AddToolDialog } from "@/components/m2/tools/add-tool-dialog";
 import { EditToolDialog } from "@/components/m2/tools/edit-tool-dialog";
 import { DeleteEntityButton } from "@/components/crud/delete-button";
-import { EntitySearchInput } from "@/components/crud/search-input";
-import {
-  EntityFormDialog,
-  type CrudField,
-} from "@/components/crud/entity-form-dialog";
-import { CrudTableCard } from "@/components/crud/crud-table-card";
+import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
+import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
+import { LabPage, btn, input, table } from "@/components/m2/lab-ui/page";
+import { currentAccess } from "@/lib/platform/data/access";
+import { permissionForEntity } from "@/lib/platform/permissions";
+import { type Tool } from "@/lib/mock-data";
 
 const SUPPLY_FIELDS: CrudField[] = [
   { name: "code", label: "Mã vật tư", required: true, mono: true },
@@ -40,332 +33,122 @@ const TOOL_USAGE_FIELDS: CrudField[] = [
 ];
 
 export const dynamic = "force-dynamic";
-import { Header } from "@/components/layout/header";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { type Tool } from "@/lib/mock-data";
 
-const statusVariant: Record<
-  Tool["status"],
-  "success" | "default" | "destructive" | "warning"
-> = {
-  "Sẵn sàng": "success",
-  "Đang dùng": "default",
-  Hỏng: "destructive",
-  "Chờ kiểm định": "warning",
+/** Màu chữ trạng thái dụng cụ kiểu Bootstrap. */
+const STATUS_COLOR: Record<Tool["status"], string> = {
+  "Sẵn sàng": "text-[#3c763d]",
+  "Đang dùng": "text-[#31708f]",
+  Hỏng: "text-[#a94442]",
+  "Chờ kiểm định": "text-[#8a6d3b]",
 };
 
-
-export default async function ToolsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
+/** Dụng cụ – vật tư kiểu XaLab: danh mục dụng cụ (tồn, kiểm định), danh mục vật tư, nhật ký sử dụng. */
+export default async function ToolsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
-  const all = await toolsStore.list();
+  const [all, supplies, toolUsageLogs, access] = await Promise.all([toolsStore.list(), supplyStore.list(), toolUsageLogStore.list(), currentAccess()]);
   const query = q.trim().toLowerCase();
   const tools = query
-    ? all.filter(
-        (t) =>
-          t.code.toLowerCase().includes(query) ||
-          t.name.toLowerCase().includes(query) ||
-          t.category.toLowerCase().includes(query) ||
-          t.location.toLowerCase().includes(query) ||
-          t.spec.toLowerCase().includes(query),
-      )
+    ? all.filter((t) => [t.code, t.name, t.category, t.location, t.spec].some((x) => x.toLowerCase().includes(query)))
     : all;
-
-  const [supplies, toolUsageLogs] = await Promise.all([
-    supplyStore.list(),
-    toolUsageLogStore.list(),
-  ]);
-
-  const stats = [
-    {
-      label: "Đầu mục dụng cụ",
-      value: all.length,
-      icon: TestTube,
-      accent: "bg-emerald-50 text-emerald-700",
-    },
-    {
-      label: "Cần kiểm định",
-      value: all.filter((t) => t.calibrationRequired).length,
-      icon: ClipboardCheck,
-      accent: "bg-blue-50 text-blue-600",
-    },
-    {
-      label: "Tồn dưới mức tối thiểu",
-      value: all.filter((t) => t.qty < t.minQty).length,
-      icon: AlertTriangle,
-      accent: "bg-rose-50 text-rose-600",
-    },
-    {
-      label: "Sẵn sàng sử dụng",
-      value: all.filter((t) => t.status === "Sẵn sàng").length,
-      icon: CheckCircle2,
-      accent: "bg-violet-50 text-violet-600",
-    },
-  ];
+  const canTools = access.can(permissionForEntity("tools"));
+  const canSupplies = access.can(permissionForEntity("supplies"));
+  const canLogs = access.can(permissionForEntity("tool-usage-logs"));
+  const h2 = "mb-2 mt-6 text-xl font-medium text-[#333]";
 
   return (
-    <>
-      <Header
-        title="Quản lý dụng cụ – vật tư"
-        description="Dụng cụ thể tích/thủy tinh, danh mục vật tư, nhật ký sử dụng và lịch kiểm định"
-      />
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin">
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((s) => (
-            <Card key={s.label}>
-              <CardContent className="p-5 flex items-start justify-between">
-                <div>
-                  <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                    {s.label}
-                  </div>
-                  <div className="text-3xl font-semibold mt-1.5">{s.value}</div>
-                </div>
-                <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.accent}`}
-                >
-                  <s.icon className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </section>
+    <LabPage
+      title="Quản lý dụng cụ – vật tư"
+      rule={false}
+      toolbar={
+        <>
+          {canTools && <AddToolDialog />}
+          <form action="/tools" className="flex">
+            <input name="q" defaultValue={q} placeholder="Tìm mã, tên dụng cụ..." aria-label="Tìm kiếm" className={`${input} !w-56 rounded-r-none`} />
+            <button className={`${btn} rounded-l-none border-l-0`} aria-label="Tìm"><Search className="h-4 w-4 stroke-[3]" /></button>
+          </form>
+        </>
+      }
+    >
+      <p className="mb-3 text-sm text-[#555]">
+        {all.length} đầu mục dụng cụ · cần kiểm định {all.filter((t) => t.calibrationRequired).length} ·{" "}
+        <span className={all.some((t) => t.qty < t.minQty) ? "font-bold text-[#a94442]" : undefined}>tồn dưới mức tối thiểu {all.filter((t) => t.qty < t.minQty).length}</span> · sẵn sàng sử dụng {all.filter((t) => t.status === "Sẵn sàng").length}.
+      </p>
 
-        <Card>
-          <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between space-y-0">
-            <div>
-              <CardTitle>Danh mục dụng cụ</CardTitle>
-              <CardDescription>
-                Bao gồm dụng cụ thể tích (có kiểm định) và vật tư
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <EntitySearchInput
-                basePath="/tools"
-                placeholder="Tìm mã, tên dụng cụ..."
-              />
-              <Button variant="outline" size="sm">
-                <Filter />
-                Lọc
-              </Button>
-              <Button variant="outline" size="sm">
-                <PackagePlus />
-                Nhập kho
-              </Button>
-              <AddToolDialog />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40">
-                    <TableHead>Mã</TableHead>
-                    <TableHead>Tên dụng cụ</TableHead>
-                    <TableHead>Phân loại</TableHead>
-                    <TableHead>Đặc tính</TableHead>
-                    <TableHead>Tồn</TableHead>
-                    <TableHead className="w-[160px]">Mức tồn</TableHead>
-                    <TableHead>Vị trí</TableHead>
-                    <TableHead>Kiểm định</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="w-[160px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tools.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={10}
-                        className="text-center text-sm text-muted-foreground py-8"
-                      >
-                        {query
-                          ? `Không có dụng cụ nào khớp "${query}"`
-                          : "Chưa có dụng cụ nào"}
-                      </TableCell>
-                    </TableRow>
+      <h2 className={h2}>Danh mục dụng cụ</h2>
+      <div className="overflow-x-auto">
+        <table className={table}>
+          <thead>
+            <tr><th>Mã</th><th>Tên dụng cụ</th><th>Phân loại</th><th>Đặc tính</th><th>Tồn</th><th>Tối thiểu</th><th>Vị trí</th><th>Kiểm định</th><th>Trạng thái</th><th /></tr>
+          </thead>
+          <tbody>
+            {tools.length === 0 && <tr><td colSpan={10} className="py-6 text-center text-muted-foreground">{query ? `Không có dụng cụ nào khớp "${query}"` : "Chưa có dụng cụ nào"}</td></tr>}
+            {tools.map((t) => (
+              <tr key={t.id}>
+                <td className="whitespace-nowrap">{t.code}</td>
+                <td className="max-w-[240px]">{t.name}</td>
+                <td>{t.category}</td>
+                <td className="max-w-[220px] text-[#777]">{t.spec}</td>
+                <td className={`whitespace-nowrap ${t.qty < t.minQty ? "font-bold text-[#a94442]" : ""}`}>{t.qty} {t.unit}</td>
+                <td>{t.minQty}</td>
+                <td>{t.location}</td>
+                <td className="whitespace-nowrap text-xs">
+                  {t.calibrationRequired ? (
+                    <>
+                      <div className="text-[#777]">Gần nhất: {t.lastCalibration ?? "—"}</div>
+                      <div>Kế tiếp: {t.nextCalibration ?? "—"}</div>
+                    </>
+                  ) : (
+                    <span className="text-[#777]">Không yêu cầu</span>
                   )}
-                  {tools.map((t) => {
-                    const lowStock = t.qty < t.minQty;
-                    const stockPct = Math.min(
-                      100,
-                      Math.round((t.qty / Math.max(t.minQty * 2, 1)) * 100),
-                    );
-                    return (
-                      <TableRow key={t.id}>
-                        <TableCell className="font-mono">{t.code}</TableCell>
-                        <TableCell className="font-medium max-w-[240px]">
-                          {t.name}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <Badge variant="secondary">{t.category}</Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs max-w-[220px]">
-                          {t.spec}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={
-                              lowStock ? "text-destructive font-medium" : ""
-                            }
-                          >
-                            {t.qty} {t.unit}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Progress value={stockPct} className="flex-1" />
-                            <span className="text-xs text-muted-foreground w-12 text-right">
-                              tối thiểu {t.minQty}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {t.location}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {t.calibrationRequired ? (
-                            <div className="space-y-0.5">
-                              <div className="text-muted-foreground">
-                                Gần nhất: {t.lastCalibration ?? "—"}
-                              </div>
-                              <div>Kế tiếp: {t.nextCalibration ?? "—"}</div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">
-                              Không yêu cầu
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={statusVariant[t.status]}>
-                            {t.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <EditToolDialog row={t} />
-                            <DeleteEntityButton
-                              entity="tools"
-                              id={t.id}
-                              label={t.name}
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                </td>
+                <td className={STATUS_COLOR[t.status]}>{t.status}</td>
+                <td className="whitespace-nowrap">
+                  {canTools && (
+                    <div className="flex items-center justify-end gap-1">
+                      <EditToolDialog row={t} />
+                      <DeleteEntityButton entity="tools" id={t.id} label={t.name} />
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-        {/* Danh mục vật tư */}
-        <CrudTableCard
-          title="Danh mục vật tư"
-          description="Vật tư dùng chung phòng thí nghiệm – tồn kho & vị trí"
-          endpoint="/api/supplies"
-          entity="supplies"
-          editFields={SUPPLY_FIELDS}
-          addNode={
-            <EntityFormDialog
-              mode="add"
-              endpoint="/api/supplies"
-              title="Thêm vật tư"
-              addLabel="Thêm vật tư"
-              fields={SUPPLY_FIELDS}
-              submitLabel="Lưu"
-            />
-          }
-          headers={["Vật tư", "ĐVT", "Tồn", "Tối thiểu", "Vị trí"]}
-          rows={supplies.map((s) => ({
-            id: s.id,
-            label: s.name,
-            initial: s,
-            cells: [
-              <div key="vt">
-                <div className="font-medium text-sm">{s.name}</div>
-                <div className="text-xs text-muted-foreground font-mono">
-                  {s.code}
-                </div>
-              </div>,
-              s.unit,
-              <span
-                key="ton"
-                className={
-                  s.qty < s.minQty ? "text-rose-600 font-medium" : "font-medium"
-                }
-              >
-                {s.qty}
-              </span>,
-              <span key="min" className="text-muted-foreground text-sm">
-                {s.minQty}
-              </span>,
-              s.location,
-            ],
-          }))}
-        />
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+        <h2 className={h2}>Danh mục vật tư</h2>
+        {canSupplies && <EntityFormDialog mode="add" endpoint="/api/supplies" title="Thêm vật tư" fields={SUPPLY_FIELDS} submitLabel="Lưu" trigger={<button type="button" className={btn}>Thêm vật tư +</button>} />}
+      </div>
+      <CatalogTable
+        entity="supplies"
+        canWrite={canSupplies}
+        fields={SUPPLY_FIELDS}
+        headers={["Mã", "Vật tư", "ĐVT", "Tồn", "Tối thiểu", "Vị trí"]}
+        rows={supplies.map((s) => ({
+          id: s.id,
+          label: s.name,
+          initial: s,
+          cells: [s.code, s.name, s.unit, <span key="ton" className={s.qty < s.minQty ? "font-bold text-[#a94442]" : undefined}>{s.qty}</span>, s.minQty, s.location],
+        }))}
+      />
 
-        {/* Nhật ký theo dõi sử dụng dụng cụ, vật tư */}
-        <CrudTableCard
-          title="Nhật ký theo dõi sử dụng dụng cụ, vật tư tiêu hao"
-          description="Tên dụng cụ/vật tư, số lượng, ngày nhập và tình trạng sử dụng"
-          endpoint="/api/tool-usage-logs"
-          entity="tool-usage-logs"
-          editFields={TOOL_USAGE_FIELDS}
-          addNode={
-            <EntityFormDialog
-              mode="add"
-              endpoint="/api/tool-usage-logs"
-              title="Thêm nhật ký sử dụng"
-              addLabel="Thêm nhật ký"
-              fields={TOOL_USAGE_FIELDS}
-              submitLabel="Lưu"
-            />
-          }
-          headers={["Tên dụng cụ / vật tư", "Số lượng", "Ngày nhập", "Tình trạng", "Người dùng"]}
-          rows={toolUsageLogs.map((u) => ({
-            id: u.id,
-            label: u.itemName,
-            initial: u,
-            cells: [
-              <span key="ten" className="font-medium text-sm">
-                {u.itemName}
-              </span>,
-              <span key="sl" className="text-sm">
-                {u.qty} {u.unit}
-              </span>,
-              <span key="nn" className="text-muted-foreground text-sm">
-                {u.importedAt}
-              </span>,
-              <span key="tt" className="text-sm">
-                {u.status}
-              </span>,
-              u.user,
-            ],
-          }))}
-        />
-      </main>
-    </>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+        <h2 className={h2}>Nhật ký theo dõi sử dụng dụng cụ, vật tư tiêu hao</h2>
+        {canLogs && <EntityFormDialog mode="add" endpoint="/api/tool-usage-logs" title="Thêm nhật ký sử dụng" fields={TOOL_USAGE_FIELDS} submitLabel="Lưu" trigger={<button type="button" className={btn}>Thêm nhật ký +</button>} />}
+      </div>
+      <CatalogTable
+        entity="tool-usage-logs"
+        canWrite={canLogs}
+        fields={TOOL_USAGE_FIELDS}
+        headers={["Tên dụng cụ / vật tư", "Số lượng", "Ngày nhập", "Tình trạng", "Người dùng"]}
+        rows={toolUsageLogs.map((u) => ({
+          id: u.id,
+          label: u.itemName,
+          initial: u,
+          cells: [u.itemName, `${u.qty} ${u.unit}`, u.importedAt, u.status, u.user],
+        }))}
+      />
+    </LabPage>
   );
 }

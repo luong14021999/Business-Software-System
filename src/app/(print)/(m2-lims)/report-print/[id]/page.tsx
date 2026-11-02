@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import QRCode from "qrcode";
+import { orderSampleStore } from "@/lib/modules/m2/data/orders";
 import { ArrowLeft } from "lucide-react";
 import { PrintButton } from "@/components/m2/reports/print-button";
 import { getReport, recomputeHash } from "@/lib/modules/m2/data/reports";
@@ -39,12 +40,14 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
   const verifyUrl = `${origin}/verify/${encodeURIComponent(report.code)}?h=${report.contentHash.slice(0, 16)}`;
   const qrSvg = report.contentHash ? await QRCode.toString(verifyUrl, { type: "svg", margin: 0, width: 88 }) : "";
   const intact = report.contentHash ? recomputeHash(report) === report.contentHash : false;
+  // Quay lại trang Phiếu kết quả của đơn hàng chứa mẫu (mẫu không thuộc đơn nào → trang Kết quả).
+  const orderId = (await orderSampleStore.list()).find((x) => x.code === report.sampleCode)?.orderId;
 
   return (
     <div className="py-6 print:py-0">
       <div className="max-w-[210mm] mx-auto mb-4 px-4 flex items-center justify-between print:hidden">
-        <Link href="/results" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-4 h-4" /> Danh sách phiếu
+        <Link href={orderId ? `/orders/${orderId}/reports` : "/results"} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-4 h-4" /> Phiếu kết quả của đơn hàng
         </Link>
         <PrintButton />
       </div>

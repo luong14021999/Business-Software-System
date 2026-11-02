@@ -113,6 +113,7 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
                         { label: "Phiếu yêu cầu phân tích", href: `/order-print/${r.id}?loai=yeu-cau` },
                         { label: "Kết quả tổng hợp", href: `/order-print/${r.id}?loai=ket-qua` },
                         { label: "Báo giá", href: `/order-print/${r.id}?loai=bao-gia` },
+                        { label: "Phiếu kết quả (có QR xác minh)", href: `/orders/${r.id}/reports` },
                         { label: "Tem mã hóa mẫu", href: r.sampleCodes.length ? `/sample-labels?codes=${encodeURIComponent(r.sampleCodes.join(","))}` : `/orders/${r.id}/split` },
                       ]}
                     />

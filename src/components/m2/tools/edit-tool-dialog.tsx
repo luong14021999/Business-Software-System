@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Pencil, X, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { btnXs } from "@/components/m2/lab-ui/page";
 import type { Tool } from "@/lib/mock-data";
 
 const CATEGORIES: Tool["category"][] = [
@@ -70,15 +71,7 @@ export function EditToolDialog({ row }: { row: Tool }) {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-          aria-label={`Sửa ${row.name}`}
-        >
-          <Pencil className="w-3.5 h-3.5" />
-          Sửa
-        </Button>
+        <button type="button" className={btnXs} aria-label={`Sửa ${row.name}`}>Sửa</button>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />

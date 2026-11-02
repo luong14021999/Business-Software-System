@@ -369,40 +369,7 @@ export function averageReplicates(texts: string[]): { prefix: string; value: num
 export const cellText = (r: { prefix: string; value: number } | null) =>
   !r ? "" : r.prefix === "KPH" ? "KPH" : `${r.prefix}${String(r.value).replace(".", ",")}`;
 
-// ── Trang chủ: biểu đồ 6 tháng, lịch quan trắc tự động (GĐ8) ─────────
-
-/** `n` tháng gần nhất tính đến tháng của `todayISO`, cũ → mới: { key: "2026-06", label: "T6/2026" }. */
-export function lastMonths(todayISO: string, n: number) {
-  const y = Number(todayISO.slice(0, 4));
-  const m = Number(todayISO.slice(5, 7)) - 1;
-  return Array.from({ length: n }, (_, i) => {
-    const d = new Date(Date.UTC(y, m - (n - 1 - i), 1));
-    const mm = d.getUTCMonth() + 1;
-    return { key: `${d.getUTCFullYear()}-${String(mm).padStart(2, "0")}`, label: `T${mm}/${d.getUTCFullYear()}` };
-  });
-}
-
-export type MonthStack = { series: string[]; months: { key: string; label: string; counts: Record<string, number>; total: number }[] };
-
-/**
- * Gom số đếm theo tháng × nhóm cho biểu đồ cột chồng. Thứ tự nhóm cố định theo `order` (màu theo nhóm, không theo thứ hạng);
- * nhóm ngoài `order` hoặc vượt `max` nhóm gộp vào "Khác".
- */
-export function stackByMonth(rows: { month: string; key: string; n?: number }[], months: { key: string; label: string }[], order: string[], max = 7): MonthStack {
-  const used = order.filter((k) => rows.some((r) => r.key === k && months.some((m) => m.key === r.month)));
-  const keep = used.length > max ? used.slice(0, max - 1) : used;
-  const other = "Khác";
-  const bucket = (k: string) => (keep.includes(k) ? k : other);
-  const series = [...keep, ...(rows.some((r) => months.some((m) => m.key === r.month) && bucket(r.key) === other) ? [other] : [])];
-  return {
-    series,
-    months: months.map((m) => {
-      const counts: Record<string, number> = Object.fromEntries(series.map((s) => [s, 0]));
-      for (const r of rows) if (r.month === m.key) counts[bucket(r.key)] += r.n ?? 1;
-      return { ...m, counts, total: Object.values(counts).reduce((a, b) => a + b, 0) };
-    }),
-  };
-}
+// ── Lịch quan trắc tự động (GĐ8) ─────────
 
 export type PlanLike = { orderId: string; leader: string; supervisor: string; deputy1: string; deputy2: string; groups: string[][]; startAt: string; endAt: string };
 export type OrderLike = { id: string; code: string; name: string; status: string; fieldAt: string; dueAt: string; fieldStaff: string };
