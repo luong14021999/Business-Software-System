@@ -1,50 +1,64 @@
-import Link from "next/link";
-import { LabPage, btn, link } from "@/components/m2/lab-ui/page";
-import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
-import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
-import { sampleTypeStore, specLimitStore, specificationStore } from "@/lib/modules/m2/data/orders";
+import { Dropdown } from "@/components/m2/lab-ui/dropdown";
+import { XDeleteLink } from "@/components/m2/lab-ui/x-delete";
+import { XActionLinks, XListPage, paginate } from "@/components/m2/lab-ui/x-list";
+import { btn } from "@/components/m2/lab-ui/page";
+import { CopyLink } from "@/components/m2/settings/copy-link";
+import { standardStore } from "@/lib/modules/m2/data/catalogs";
+import { sampleTypeStore, specificationStore } from "@/lib/modules/m2/data/orders";
 import { currentAccess } from "@/lib/platform/data/access";
+import { normalizeVi } from "@/lib/platform/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function SpecificationsPage() {
-  const [specs, types, limits, access] = await Promise.all([specificationStore.list(), sampleTypeStore.list(), specLimitStore.list(), currentAccess()]);
+type SP = { q?: string; status?: string; standard?: string; page?: string };
+
+/** Danh sách cột quy chuẩn như XaLab: Tên, Quy chuẩn, Loại mẫu; cuối dòng Chỉ tiêu | Xóa | Copy. */
+export default async function SpecificationsPage({ searchParams }: { searchParams: Promise<SP> }) {
+  const sp = await searchParams;
+  const [specs, types, standards, access] = await Promise.all([specificationStore.list(), sampleTypeStore.list(), standardStore.list(), currentAccess()]);
   const canWrite = access.can("write.quality");
   const typeName = new Map(types.map((t) => [t.id, t.name]));
-  const fields: CrudField[] = [
-    { name: "name", label: "Tên quy chuẩn", required: true, placeholder: "VD: QCVN 08:2023/BTNMT" },
-    { name: "columnName", label: "Cột / mức áp dụng", placeholder: "VD: Bảng 2 – Mức B" },
-    { name: "sampleTypeId", label: "Loại mẫu", type: "select", options: [{ value: "", label: "— Mọi loại mẫu —" }, ...types.map((t) => ({ value: t.id, label: t.name }))] },
-    { name: "printName", label: "Tên cột khi in", placeholder: "Trống = dùng cột / mức áp dụng" },
-    { name: "active", label: "Đang dùng", type: "bool", boolLabels: ["Đang dùng", "Ngừng dùng"], defaultValue: 1 },
-    { name: "note", label: "Mô tả (giải thích tên quy chuẩn trên phiếu)", type: "textarea" },
-    { name: "printNote", label: "Ghi chú khi in", placeholder: "VD: Kp = 0,9; Kq = 1", full: true },
-  ];
+  const stdName = new Map(standards.map((s) => [s.id, s.name]));
+  const q = normalizeVi(sp.q ?? "");
+  const rows = specs
+    .map((s) => ({ ...s, title: s.columnName || s.name, std: stdName.get(s.standardId) ?? s.name }))
+    .filter((s) => !sp.status || (sp.status === "dang-dung" ? s.active : !s.active))
+    .filter((s) => !sp.standard || s.standardId === sp.standard)
+    .filter((s) => !q || normalizeVi(`${s.title} ${s.std}`).includes(q))
+    .sort((a, b) => a.title.localeCompare(b.title, "vi", { numeric: true }) || a.std.localeCompare(b.std, "vi"));
+  const { page, pages, slice } = paginate(rows, sp);
+  const url = (patch: Partial<SP>) => {
+    const p = new URLSearchParams(Object.entries({ ...sp, page: undefined, ...patch }).filter((e): e is [string, string] => Boolean(e[1])));
+    return `/specifications${p.size ? `?${p}` : ""}`;
+  };
   return (
-    <LabPage
-      title="Danh sách quy chuẩn"
-      subtitle="Giới hạn của từng chỉ tiêu theo quy chuẩn; gắn quy chuẩn cho mẫu khi bóc tách để lưới kết quả báo Đạt / Vượt"
-      toolbar={canWrite && <EntityFormDialog mode="add" endpoint="/api/specifications" title="Thêm quy chuẩn" fields={fields} trigger={<button type="button" className={btn}>Thêm +</button>} />}
-    >
-      <CatalogTable
-        entity="specifications"
-        canWrite={canWrite}
-        fields={fields}
-        emptyText="Chưa có quy chuẩn – thêm quy chuẩn rồi nhập giới hạn cho từng chỉ tiêu"
-        headers={["Tên", "Cột / mức", "Loại mẫu", "Số chỉ tiêu"]}
-        rows={specs.sort((a, b) => a.name.localeCompare(b.name)).map((s) => ({
-          id: s.id,
-          label: s.name,
-          initial: s,
-          cells: [
-            <Link key="n" href={`/specifications/${s.id}`} className={link}>{s.name}</Link>,
-            s.columnName || "—",
-            typeName.get(s.sampleTypeId) ?? "Mọi loại mẫu",
-            limits.filter((l) => l.specId === s.id).length,
-          ],
-          extra: <Link href={`/specifications/${s.id}`} className="text-xs text-[#337ab7] hover:underline">Chỉ tiêu</Link>,
-        }))}
-      />
-    </LabPage>
+    <XListPage
+      title="Danh sách cột quy chuẩn"
+      basePath="/specifications"
+      sp={sp}
+      newHref={canWrite ? "/specifications/new" : undefined}
+      headers={["Tên", "Quy chuẩn", "Loại mẫu"]}
+      searchPlaceholder="Tên hoặc quy chuẩn..."
+      extraFilters={
+        sp.standard ? (
+          <Dropdown filter className={`${btn} -ml-px rounded-none last:rounded-r`} label={`Quy chuẩn: ${stdName.get(sp.standard) ?? ""}`} items={[{ label: "Tất cả", href: url({ standard: undefined }) }]} />
+        ) : undefined
+      }
+      total={rows.length}
+      page={page}
+      pages={pages}
+      rows={slice.map((s, i) => ({
+        id: s.id,
+        no: (page - 1) * 10 + i + 1,
+        href: `/specifications/${s.id}/edit`,
+        cells: [<span key="t" className={s.active ? undefined : "line-through"}>{s.title}</span>, s.std, typeName.get(s.sampleTypeId) ?? ""],
+        actions: (
+          <XActionLinks
+            links={[{ label: "Chỉ tiêu", href: `/specifications/${s.id}`, icon: "list" }]}
+            del={canWrite ? <span className="inline-flex items-center gap-2"><XDeleteLink url={`/api/specifications/${s.id}`} label={s.title} /><span className="text-[#333]">|</span><CopyLink url={`/api/specifications/${s.id}/copy`} openBase="/specifications" label={`cột quy chuẩn "${s.title}" kèm giới hạn các chỉ tiêu`} /></span> : undefined}
+          />
+        ),
+      }))}
+    />
   );
 }

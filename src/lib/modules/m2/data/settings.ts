@@ -1,6 +1,7 @@
 // Danh mục cài đặt phòng thí nghiệm (migration 0028).
 import { columnsMapping, createEntityStore } from "@/lib/platform/data/factory";
 import { dbQuery } from "@/lib/platform/db";
+import { emptyRow, type SpecRow } from "@/lib/modules/m2/spec-rows";
 
 export type RateKind = "price" | "norm";
 export type RateList = { id: string; kind: RateKind; name: string; note: string; active: boolean; costPrice: boolean };
@@ -188,27 +189,6 @@ export async function setDefaultMethod(analyteId: string, methodId: string) {
   await dbQuery(`update public.lab_analytes a set method = m.method from public.analyte_methods m where m.id = $2 and a.id = $1`, [analyteId, methodId]);
 }
 
-/** Tạo / ghi đè giới hạn của quy chuẩn đích từ quy chuẩn nguồn nhân công thức (VD Cmax = C × Kp × Kq). */
-export async function deriveSpecLimits(targetId: string, sourceId: string, f: (v: number) => number) {
-  const src = (await specLimitStoreRef()).filter((l) => l.specId === sourceId);
-  let n = 0;
-  for (const l of src) {
-    await dbQuery(
-      `insert into public.specification_limits (spec_id, analyte, min_value, max_value, note, not_detected, nd_text, print_note)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
-       on conflict (spec_id, analyte) do update set min_value = excluded.min_value, max_value = excluded.max_value,
-         not_detected = excluded.not_detected, nd_text = excluded.nd_text`,
-      [targetId, l.analyte, l.minValue == null || l.notDetected ? l.minValue : f(l.minValue), l.maxValue == null || l.notDetected || l.maxValue === 0 ? l.maxValue : f(l.maxValue), l.note, l.notDetected, l.ndText, l.printNote],
-    );
-    n++;
-  }
-  return n;
-}
-async function specLimitStoreRef() {
-  const { specLimitStore } = await import("@/lib/modules/m2/data/orders");
-  return specLimitStore.list();
-}
-
 /** Chỉ tiêu phụ (migration 0039): bóc tách chỉ tiêu chính (theo loại mẫu, phương pháp) thì tự thêm các chỉ tiêu phụ. */
 export type AnalyteMapping = { id: string; sampleTypeId: string; mainAnalyteId: string; method: string; accessoryIds: string[]; hideAccessory: boolean };
 export const analyteMappingStore = createEntityStore<AnalyteMapping>(
@@ -226,3 +206,41 @@ export const checkMapping = (b: Partial<AnalyteMapping>) =>
       : b.mainAnalyteId && b.accessoryIds?.includes(b.mainAnalyteId)
         ? "Chỉ tiêu phụ không được trùng chỉ tiêu chính"
         : null;
+
+/** Ghi cả lưới chỉ tiêu của một cột quy chuẩn: dòng có giới hạn thì thêm / sửa, dòng trống thì xóa. Trả số dòng đã ghi. */
+export async function saveSpecRows(specId: string, rows: SpecRow[]) {
+  let n = 0;
+  for (const r of rows) {
+    if (!r.analyte.trim()) continue;
+    if (emptyRow(r)) {
+      await dbQuery(`delete from public.specification_limits where spec_id = $1 and analyte = $2`, [specId, r.analyte.trim()]);
+      continue;
+    }
+    await dbQuery(
+      `insert into public.specification_limits (spec_id, analyte, min_value, max_value, not_detected, nd_text, print_note, print_text)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       on conflict (spec_id, analyte) do update set min_value = excluded.min_value, max_value = excluded.max_value, not_detected = excluded.not_detected,
+         nd_text = excluded.nd_text, print_note = excluded.print_note, print_text = excluded.print_text`,
+      [specId, r.analyte.trim(), r.minValue, r.maxValue, r.notDetected, r.ndText.trim(), r.printNote.trim(), r.printText.trim()],
+    );
+    n++;
+  }
+  return n;
+}
+
+/** Copy cột quy chuẩn (thông tin + toàn bộ giới hạn chỉ tiêu) thành cột mới tên "… (bản sao)". */
+export async function copySpecification(id: string): Promise<string | null> {
+  const [row] = await dbQuery(
+    `insert into public.specifications (name, column_name, sample_type_id, note, active, print_name, print_note, standard_id, english_name)
+     select name, coalesce(nullif(column_name, ''), name) || ' (bản sao)', sample_type_id, note, active, print_name, print_note, standard_id, english_name
+     from public.specifications where id = $1 returning id`,
+    [id],
+  );
+  if (!row) return null;
+  await dbQuery(
+    `insert into public.specification_limits (spec_id, analyte, min_value, max_value, note, not_detected, nd_text, print_note, print_text)
+     select $2, analyte, min_value, max_value, note, not_detected, nd_text, print_note, print_text from public.specification_limits where spec_id = $1`,
+    [id, row.id],
+  );
+  return row.id as string;
+}

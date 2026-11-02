@@ -1,61 +1,38 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { LabPage, btn } from "@/components/m2/lab-ui/page";
-import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
-import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
-import { analyteStore, specLimitStore, specificationStore } from "@/lib/modules/m2/data/orders";
-import { specLabel, specLimitText } from "@/lib/modules/m2/orders";
-import { DeriveSpec } from "@/components/m2/settings/derive-spec";
+import { SpecRowsGrid } from "@/components/m2/settings/spec-rows-grid";
+import { specLimitStore, specificationStore } from "@/lib/modules/m2/data/orders";
+import { standardStore } from "@/lib/modules/m2/data/catalogs";
+import { specRows } from "@/lib/modules/m2/data/specs";
+import { specLabel } from "@/lib/modules/m2/orders";
 import { currentAccess } from "@/lib/platform/data/access";
 
 export const dynamic = "force-dynamic";
 
-export default async function SpecificationPage({ params }: { params: Promise<{ id: string }> }) {
+/** Danh sách chỉ tiêu phân tích của một cột quy chuẩn (giới hạn từng chỉ tiêu) như XaLab. */
+export default async function SpecificationRowsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [specs, limits, analytes, access] = await Promise.all([specificationStore.list(), specLimitStore.list(), analyteStore.list(), currentAccess()]);
+  const [specs, limits, standards, access] = await Promise.all([specificationStore.list(), specLimitStore.list(), standardStore.list(), currentAccess()]);
   const spec = specs.find((s) => s.id === id);
   if (!spec) notFound();
   const canWrite = access.can("write.quality");
-  const names = [...new Set(analytes.filter((a) => !spec.sampleTypeId || a.sampleTypeId === spec.sampleTypeId).map((a) => a.name))].sort();
-  const fields: CrudField[] = [
-    { name: "analyte", label: "Chỉ tiêu", required: true, full: true, type: names.length ? "select" : "text", options: names },
-    { name: "minValue", label: "Giới hạn tối thiểu", type: "number", nullable: true },
-    { name: "maxValue", label: "Giới hạn tối đa", type: "number", nullable: true },
-    { name: "notDetected", label: "Quy chuẩn ghi dạng chữ", type: "bool", boolLabels: ["Có (KPH, Không mùi…)", "Không – giới hạn số"], defaultValue: 0 },
-    { name: "ndText", label: "Chữ in ở cột quy chuẩn", placeholder: "VD: KPH, 0, Không mùi" },
-    { name: "printNote", label: "Ghi chú khi in", full: true },
-    { name: "note", label: "Ghi chú nội bộ", placeholder: "VD: đơn vị mg/L" },
-  ];
+  const std = standards.find((s) => s.id === spec.standardId)?.name ?? spec.name;
+  const rows = await specRows(spec);
+  // Cột nguồn để "Tính toán": các cột cùng loại mẫu (hoặc chưa gắn loại mẫu) có giới hạn.
+  const sources = specs
+    .filter((s) => s.id !== id && (!spec.sampleTypeId || !s.sampleTypeId || s.sampleTypeId === spec.sampleTypeId))
+    .map((s) => ({ id: s.id, label: specLabel(s), limits: limits.filter((l) => l.specId === s.id).map((l) => ({ analyte: l.analyte, minValue: l.minValue, maxValue: l.maxValue, notDetected: l.notDetected, ndText: l.ndText })) }))
+    .filter((s) => s.limits.length)
+    .sort((a, b) => a.label.localeCompare(b.label, "vi"));
+  const exportUrl = `/api/specifications/${id}/rows`;
   return (
-    <LabPage
-      title={`Chỉ tiêu của quy chuẩn ${specLabel(spec)}`}
-      subtitle="Bỏ trống tối thiểu hoặc tối đa nếu quy chuẩn chỉ quy định một phía. Tối thiểu = tối đa = 0 → in “-” (không quy định). Quy chuẩn dạng chữ (KPH, Không mùi) → đánh dấu “Quy chuẩn ghi dạng chữ”."
-      toolbar={
-        <>
-          <Link href="/specifications" className={btn} aria-label="Quay lại"><ArrowLeft className="h-4 w-4" /></Link>
-          {canWrite && <EntityFormDialog mode="add" endpoint="/api/specification-limits" title="Thêm giới hạn" fields={[...fields, { name: "specId", label: "", type: "select", options: [{ value: spec.id, label: spec.name }], defaultValue: spec.id }]} trigger={<button type="button" className={btn}>Thêm chỉ tiêu +</button>} />}
-        </>
-      }
-    >
-      {canWrite && (
-        <div className="mb-4">
-          <DeriveSpec specId={spec.id} sources={specs.filter((x) => x.id !== spec.id).map((x) => ({ id: x.id, label: specLabel(x) }))} />
-        </div>
-      )}
-      <CatalogTable
-        entity="specification-limits"
-        canWrite={canWrite}
-        fields={fields}
-        emptyText="Chưa nhập giới hạn chỉ tiêu nào"
-        headers={["Chỉ tiêu", "Giới hạn (in trên phiếu)", "Ghi chú khi in", "Ghi chú nội bộ"]}
-        rows={limits.filter((l) => l.specId === id).sort((a, b) => a.analyte.localeCompare(b.analyte)).map((l) => ({
-          id: l.id,
-          label: l.analyte,
-          initial: l,
-          cells: [l.analyte, specLimitText(l), l.printNote, l.note],
-        }))}
-      />
+    <LabPage title={`Danh sách chỉ tiêu phân tích của ${std}${spec.columnName ? ` - ${spec.columnName}` : ""}`}>
+      <div className="mb-[15px] flex flex-wrap gap-1">
+        <a href={exportUrl} className={btn}>Xuất Excel</a>
+        {canWrite && <Link href={`/specifications/${id}/import`} className={btn}>Nhập Excel</Link>}
+      </div>
+      <SpecRowsGrid specId={id} rows={rows} sources={sources} canWrite={canWrite} />
     </LabPage>
   );
 }

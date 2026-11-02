@@ -275,11 +275,11 @@ export const specificationStore = createEntityStore<Specification>(
   columnsMapping<Specification>("specifications", { name: "text", columnName: "text", sampleTypeId: "ref", note: "text", active: "bool", printName: "text", printNote: "text", standardId: "ref", englishName: "text" }),
 );
 
-export type SpecLimit = { id: string; specId: string; analyte: string; minValue: number | null; maxValue: number | null; note: string; notDetected: boolean; ndText: string; printNote: string };
+export type SpecLimit = { id: string; specId: string; analyte: string; minValue: number | null; maxValue: number | null; note: string; notDetected: boolean; ndText: string; printNote: string; printText: string };
 export const specLimitStore = createEntityStore<SpecLimit>(
   "specification-limits",
   [],
-  columnsMapping<SpecLimit>("specification_limits", { specId: "ref", analyte: "text", minValue: "optnum", maxValue: "optnum", note: "text", notDetected: "bool", ndText: "text", printNote: "text" }),
+  columnsMapping<SpecLimit>("specification_limits", { specId: "ref", analyte: "text", minValue: "optnum", maxValue: "optnum", note: "text", notDetected: "bool", ndText: "text", printNote: "text", printText: "text" }),
 );
 
 

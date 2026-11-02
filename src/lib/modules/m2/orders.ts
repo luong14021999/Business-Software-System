@@ -285,7 +285,8 @@ export function outOfMethodRange(value: number, prefix: string, min?: number | n
 }
 
 /** Giới hạn quy chuẩn dạng chữ để in: "KPH", "Không mùi", "-" (không quy định) hoặc số. */
-export function specLimitText(l: { minValue: number | null; maxValue: number | null; notDetected?: boolean; ndText?: string }) {
+export function specLimitText(l: { minValue: number | null; maxValue: number | null; notDetected?: boolean; ndText?: string; printText?: string }) {
+  if (l.printText?.trim()) return l.printText.trim();
   if (l.notDetected) return l.ndText?.trim() || "KPH";
   if (l.minValue === 0 && l.maxValue === 0) return "-";
   return limitText(l.minValue, l.maxValue);
