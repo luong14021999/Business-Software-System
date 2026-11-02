@@ -48,7 +48,7 @@ export default async function AnalytesPage({ searchParams }: { searchParams: Pro
       toolbar={
         <>
           {canWrite && <EntityFormDialog mode="add" endpoint="/api/lab-analytes" title="Thêm chỉ tiêu" fields={fields} trigger={<button type="button" className={btn}>Thêm +</button>} />}
-          <Dropdown className={btn} label={`Loại mẫu: ${typeName.get(sp.type ?? "") ?? "Tất cả"}`} items={[{ label: "Tất cả", href: qs({ type: undefined }) }, ...types.map((t) => ({ label: t.name, href: qs({ type: t.id }), active: sp.type === t.id }))]} />
+          <Dropdown filter className={btn} label={`Loại mẫu: ${typeName.get(sp.type ?? "") ?? "Tất cả"}`} items={[{ label: "Tất cả", href: qs({ type: undefined }) }, ...types.map((t) => ({ label: t.name, href: qs({ type: t.id }), active: sp.type === t.id }))]} />
           <form action="/lab-analytes" className="flex">
             {sp.type && <input type="hidden" name="type" value={sp.type} />}
             <input name="q" defaultValue={sp.q ?? ""} placeholder="Tên, phương pháp, nhóm..." className={`${input} w-64 rounded-r-none`} />

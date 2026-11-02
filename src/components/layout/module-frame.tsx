@@ -17,7 +17,8 @@ function Frame({ children, canAdmin }: { children: React.ReactNode; canAdmin: bo
   const shell = shellOf(moduleOf(usePathname()));
   if (shell === "topnav") {
     return (
-      <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+      // Phong cách XaLab (Bootstrap 3): Helvetica/Arial 14px cho cả thanh menu và nội dung.
+      <div className="flex flex-1 min-h-0 flex-col overflow-hidden text-[14px] [font-family:'Helvetica_Neue',Helvetica,Arial,sans-serif]">
         <TopNav />
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">{children}</div>
       </div>

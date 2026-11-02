@@ -56,16 +56,18 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
 
   return (
     <LabPage
+      rule={false}
       title={sp.quaHan ? `Danh sách đơn hàng – ${OVERDUE[sp.quaHan] ?? ""}` : "Danh sách đơn hàng"}
       toolbar={
         <>
           <Link href="/orders/new" className={btn}>Thêm <Plus className="h-4 w-4" /></Link>
           <Dropdown
+            filter
             className={btn}
             label={`Trạng thái: ${status || "Tất cả"}`}
             items={[{ label: "Tất cả", href: url({ status: undefined }), active: !status }, ...ORDER_STATUSES.map((s) => ({ label: s, href: url({ status: s }), active: status === s }))]}
           />
-          <Dropdown className={btn} label={`Kết quả: ${kq}`} items={RESULT_FILTERS.map((k) => ({ label: k, href: url({ kq: k === "Tất cả" ? undefined : k }), active: kq === k }))} />
+          <Dropdown filter className={btn} label={`Kết quả: ${kq}`} items={RESULT_FILTERS.map((k) => ({ label: k, href: url({ kq: k === "Tất cả" ? undefined : k }), active: kq === k }))} />
           <form action="/orders" className="flex">
             {status && <input type="hidden" name="status" value={status} />}
             <input name="q" defaultValue={sp.q ?? ""} placeholder="Từ khóa tìm kiếm..." className={`${input} w-64 rounded-r-none`} />

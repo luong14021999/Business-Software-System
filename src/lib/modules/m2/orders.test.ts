@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, averageReplicates, balance, cellText, fieldOnlyEntry, ownsOrder, fieldDuties, lastMonths, orderEvents, stackByMonth, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
+import { addDays, averageReplicates, balance, cellText, fieldOnlyEntry, matrixCells, ownsOrder, parseCsv, resultMatrix, fieldDuties, lastMonths, orderEvents, stackByMonth, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -248,5 +248,28 @@ describe("quyền theo người phụ trách đơn (GĐ9)", () => {
     expect(ownsOrder("field", [], [], o)).toBe(true);
     expect(fieldOnlyEntry(["NV lấy mẫu"])).toBe(true);
     expect(fieldOnlyEntry(["NV lấy mẫu", "NV phân tích"])).toBe(false);
+  });
+});
+
+describe("trang Kết quả: ma trận, xuất / nhập file", () => {
+  const L = (code: string, criterion: string, prefix: string, mean: number) => ({ sampleCode: code, locationName: `VT ${code}`, customerSampleCode: "", criterion, unit: "mg/L", prefix, mean });
+  it("ma trận mẫu × chỉ tiêu, ẩn tiền tố khi xuất", () => {
+    const m = resultMatrix([L("A", "pH", "", 7.2), L("A", "Fe", "<", 0.05), L("B", "Fe", "KPH", NaN)]);
+    expect(m.columns.map((c) => c.criterion)).toEqual(["pH", "Fe"]);
+    expect(m.rows).toEqual([
+      { code: "A", locationName: "VT A", customerSampleCode: "", cells: ["7,2", "<0,05"] },
+      { code: "B", locationName: "VT B", customerSampleCode: "", cells: ["", "KPH"] },
+    ]);
+    expect(resultMatrix([L("A", "Fe", "<", 0.05)], true).rows[0].cells).toEqual(["0,05"]);
+  });
+  it("đọc CSV dấu phẩy / chấm phẩy, ngoặc kép, BOM", () => {
+    expect(parseCsv('﻿Mã mẫu;pH (-)\r\nA;"7,2"\n')).toEqual([["Mã mẫu", "pH (-)"], ["A", "7,2"]]);
+    expect(parseCsv('a,"b ""x"", c"\n1,2')).toEqual([["a", 'b "x", c'], ["1", "2"]]);
+  });
+  it("lấy ô kết quả từ file ma trận", () => {
+    const r = matrixCells([["Kết quả"], ["#", "Mã mẫu", "Vị trí lấy mẫu", "pH (-)", "Fe (mg/L)"], ["1", "A", "VT", "7,2", ""], ["2", "B", "", "", "KPH"]]);
+    expect(r.error).toBeNull();
+    expect(r.cells).toEqual([{ code: "A", criterion: "pH", text: "7,2" }, { code: "B", criterion: "Fe", text: "KPH" }]);
+    expect(matrixCells([["x", "y"]]).error).not.toBeNull();
   });
 });

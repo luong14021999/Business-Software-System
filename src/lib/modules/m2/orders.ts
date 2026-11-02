@@ -460,3 +460,75 @@ export function ownsOrder(
 /** Chỉ được nhập chỉ tiêu hiện trường: người nhập kết quả chỉ có vai trò NV lấy mẫu. */
 export const fieldOnlyEntry = (roles: readonly string[]) =>
   roles.includes("NV lấy mẫu") && !roles.some((r) => r === "NV phân tích" || r === "Quản lý");
+
+// ── Bảng kết quả dạng ma trận mẫu × chỉ tiêu (trang Kết quả, xuất / nhập Excel) ──
+
+export type MatrixLine = { sampleCode: string; locationName: string; customerSampleCode: string; criterion: string; unit: string; prefix: string; mean: number };
+
+/** Ma trận kết quả: mỗi dòng một mẫu, mỗi cột một chỉ tiêu (theo thứ tự xuất hiện); `hidePrefix` bỏ dấu "<", ">" khi xuất. */
+export function resultMatrix(lines: MatrixLine[], hidePrefix = false) {
+  const columns: { criterion: string; unit: string }[] = [];
+  for (const l of lines) if (!columns.some((c) => c.criterion === l.criterion)) columns.push({ criterion: l.criterion, unit: l.unit });
+  const codes = [...new Set(lines.map((l) => l.sampleCode))];
+  const rows = codes.map((code) => {
+    const ls = lines.filter((l) => l.sampleCode === code);
+    const cell = (c: string) => {
+      const l = ls.find((x) => x.criterion === c);
+      if (!l) return "";
+      if (l.prefix === "KPH") return "KPH";
+      if (!Number.isFinite(l.mean)) return "";
+      return `${hidePrefix ? "" : l.prefix}${String(l.mean).replace(".", ",")}`;
+    };
+    return { code, locationName: ls[0]?.locationName ?? "", customerSampleCode: ls[0]?.customerSampleCode ?? "", cells: columns.map((c) => cell(c.criterion)) };
+  });
+  return { columns, rows };
+}
+
+/** Tách CSV (dấu phẩy hoặc chấm phẩy, có ngoặc kép) thành các dòng ô. */
+export function parseCsv(text: string): string[][] {
+  const src = text.replace(/^﻿/, "");
+  const firstLine = src.split(/\r?\n/, 1)[0] ?? "";
+  const sep = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ";" : ",";
+  const out: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch === '"' && src[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === sep) { row.push(cell); cell = ""; }
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && src[i + 1] === "\n") i++;
+      row.push(cell); out.push(row); row = []; cell = "";
+    } else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); out.push(row); }
+  return out.filter((r) => r.some((c) => c.trim()));
+}
+
+/**
+ * Đọc file kết quả dạng ma trận (cột "Mã mẫu", các cột chỉ tiêu – tên có thể kèm "(đơn vị)").
+ * Trả về danh sách { mã mẫu, chỉ tiêu, ô kết quả } cho các ô có giá trị.
+ */
+export function matrixCells(csv: string[][]) {
+  const head = csv.findIndex((r) => r.some((c) => c.trim().toLowerCase() === "mã mẫu"));
+  if (head < 0) return { error: 'Không tìm thấy cột "Mã mẫu" trong file', cells: [] as { code: string; criterion: string; text: string }[] };
+  const h = csv[head].map((c) => c.trim());
+  const codeCol = h.findIndex((c) => c.toLowerCase() === "mã mẫu");
+  const skip = new Set(["#", "stt", "tt", "mã mẫu", "vị trí", "vị trí lấy mẫu", "mã mẫu của khách", "mã mẫu phụ"]);
+  const cols = h.map((c, i) => ({ i, name: c.replace(/\s*\([^)]*\)\s*$/, "").trim() })).filter((c) => c.i !== codeCol && c.name && !skip.has(c.name.toLowerCase()));
+  const cells: { code: string; criterion: string; text: string }[] = [];
+  for (const r of csv.slice(head + 1)) {
+    const code = (r[codeCol] ?? "").trim();
+    if (!code) continue;
+    for (const c of cols) {
+      const text = (r[c.i] ?? "").trim();
+      if (text) cells.push({ code, criterion: c.name, text });
+    }
+  }
+  return { error: null, cells };
+}

@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type DropItem = { label: string; href?: string; onClick?: () => void; danger?: boolean; divider?: boolean; active?: boolean };
 
-/** Nút mở danh sách lựa chọn (bộ lọc, "Chức năng", "In ấn"…). */
-export function Dropdown({ label, items, className, align = "left", icon }: { label: ReactNode; items: DropItem[]; className?: string; align?: "left" | "right"; icon?: ReactNode }) {
+/** Nút mở danh sách lựa chọn (bộ lọc, "Chức năng", "In ấn"…); `filter` = nút lọc, dùng biểu tượng phễu như XaLab. */
+export function Dropdown({ label, items, className, align = "left", icon, filter = false }: { label: ReactNode; items: DropItem[]; className?: string; align?: "left" | "right"; icon?: ReactNode; filter?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -26,7 +26,7 @@ export function Dropdown({ label, items, className, align = "left", icon }: { la
     <div ref={ref} className="relative inline-block">
       <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)} className={className}>
         {label}
-        {icon ?? <ChevronDown className="h-3.5 w-3.5" aria-hidden />}
+        {icon ?? (filter ? <Filter className="h-3.5 w-3.5 fill-current" aria-hidden /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden />)}
       </button>
       {open && (
         <ul role="menu" className={cn("absolute top-full z-40 mt-0.5 min-w-[12rem] rounded border border-black/15 bg-white py-1.5 text-sm text-[#333] shadow-[0_6px_12px_rgba(0,0,0,0.175)]", align === "right" ? "right-0" : "left-0")}>

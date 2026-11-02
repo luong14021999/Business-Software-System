@@ -33,7 +33,7 @@ export default async function TestBatchesPage({ searchParams }: { searchParams: 
       toolbar={
         <>
           {canWrite && <EntityFormDialog mode="add" endpoint="/api/test-batches" title="Thêm mẻ thử nghiệm" fields={fields} trigger={<button type="button" className={btn}>Thêm <Plus className="h-4 w-4" /></button>} />}
-          <Dropdown className={btn} label={`Trạng thái: ${sp.status || "Tất cả"}`} items={[{ label: "Tất cả", href: url(), active: !sp.status }, ...BATCH_STATUSES.map((s) => ({ label: s, href: url(s), active: sp.status === s }))]} />
+          <Dropdown filter className={btn} label={`Trạng thái: ${sp.status || "Tất cả"}`} items={[{ label: "Tất cả", href: url(), active: !sp.status }, ...BATCH_STATUSES.map((s) => ({ label: s, href: url(s), active: sp.status === s }))]} />
           <form action="/test-batches" className="flex">
             <input name="q" defaultValue={sp.q ?? ""} placeholder="Mã mẻ, phương pháp, người phân tích" className={`${input} w-72 rounded-r-none`} />
             <button className={`${btn} rounded-l-none border-l-0`} aria-label="Tìm"><Search className="h-4 w-4" /></button>

@@ -1,17 +1,32 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** Khung trang nghiệp vụ phòng thí nghiệm: nội dung ở giữa, tiêu đề lớn, thanh công cụ bên dưới. */
-export function LabPage({ title, subtitle, toolbar, children, wide = false }: { title: ReactNode; subtitle?: ReactNode; toolbar?: ReactNode; children: ReactNode; wide?: boolean }) {
+/**
+ * Khung trang nghiệp vụ phòng thí nghiệm (theo XaLab): khung 1170px, tiêu đề lớn, gạch ngang, thanh công cụ, nội dung,
+ * cuối trang gạch ngang và dòng bản quyền.
+ */
+export function LabPage({ title, subtitle, toolbar, children, wide = false, rule = true }: { title: ReactNode; subtitle?: ReactNode; toolbar?: ReactNode; children: ReactNode; wide?: boolean; /** Gạch ngang dưới tiêu đề (một số trang XaLab không có). */ rule?: boolean }) {
   return (
     <main className="flex-1 overflow-y-auto bg-white scrollbar-thin">
-      <div className={cn("mx-auto px-4 pb-10 pt-5", wide ? "max-w-[1500px]" : "max-w-[1170px]")}>
+      <div className={cn("mx-auto px-[15px] pb-6 pt-5", wide ? "max-w-[1500px]" : "max-w-[1170px]")}>
         <h1 className="text-[28px] font-medium leading-tight text-[#333] sm:text-[30px]">{title}</h1>
         {subtitle && <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>}
-        {toolbar && <div className="mt-3 flex flex-wrap items-center gap-1.5">{toolbar}</div>}
-        <div className="mt-4">{children}</div>
+        {rule ? <hr className="my-5 border-[#eee]" /> : <div className="h-2.5" />}
+        {toolbar && <div className="mb-4 flex flex-wrap items-center gap-1.5">{toolbar}</div>}
+        <div>{children}</div>
+        <LabFooter />
       </div>
     </main>
+  );
+}
+
+/** Chân trang như XaLab: gạch ngang và dòng bản quyền của Viện. */
+export function LabFooter() {
+  return (
+    <footer className="mt-10">
+      <hr className="mb-5 border-[#eee]" />
+      <p className="text-sm text-[#333]">© {new Date().getFullYear()} - Viện Nông nghiệp Thanh Hóa</p>
+    </footer>
   );
 }
 

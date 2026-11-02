@@ -439,3 +439,42 @@ export const orderPaymentStore = createEntityStore<OrderPayment>(
   [],
   columnsMapping<OrderPayment>("order_payments", { orderId: "ref", amount: "number", paidAt: "date", method: "text", note: "text", createdBy: "text" }),
 );
+
+// ── Trang "Kết quả" (tra cứu / xuất / nhập kết quả theo khoảng ngày, mã mẫu) ──
+
+export type ResultQuery = { by: "quan-trac" | "nhan-mau" | "ma-mau"; from?: string; to?: string; method?: string; typeId?: string; criterion?: string; code?: string };
+export type ResultRowLine = OrderLine & { locationName: string; customerSampleCode: string; fieldAt: string; receivedAt: string };
+
+/** Dòng kết quả thuộc các mẫu của đơn hàng theo bộ lọc của trang Kết quả (tối đa 5000 dòng). */
+export async function searchResultLines(f: ResultQuery): Promise<ResultRowLine[]> {
+  if (!isDbConfigured()) return [];
+  const rows = await dbQuery(
+    `select ${LINE_COLS}, s.location_name, s.customer_sample_code, o.field_at, s.received_at
+     from public.analysis_results r
+     join public.samples s on s.code = r.sample_code
+     join public.orders o on o.id = s.order_id
+     where ($1 <> 'quan-trac' or (($2 = '' or (o.field_at at time zone 'Asia/Ho_Chi_Minh')::date >= $2::date) and ($3 = '' or (o.field_at at time zone 'Asia/Ho_Chi_Minh')::date <= $3::date) and o.field_at is not null))
+       and ($1 <> 'nhan-mau' or (($2 = '' or s.received_at >= $2::date) and ($3 = '' or s.received_at <= $3::date) and s.received_at is not null))
+       and ($1 <> 'ma-mau' or s.code ilike '%' || $7 || '%' or s.customer_sample_code ilike '%' || $7 || '%')
+       and ($4 = '' or r.method = $4)
+       and ($5 = '' or s.sample_type_id::text = $5)
+       and ($6 = '' or lower(r.criterion) = lower($6))
+     order by s.code, coalesce(r.sort, 0), r.criterion
+     limit 5000`,
+    [f.by, f.from ?? "", f.to ?? "", f.method ?? "", f.typeId ?? "", f.criterion ?? "", f.code ?? ""],
+  );
+  return rows.map((r) => ({
+    ...toLine(r),
+    locationName: (r.location_name as string) ?? "",
+    customerSampleCode: (r.customer_sample_code as string) ?? "",
+    fieldAt: (r.field_at as string) ?? "",
+    receivedAt: (r.received_at as string) ?? "",
+  }));
+}
+
+/** Dòng kết quả theo danh sách mã mẫu (để nhập kết quả từ file). */
+export async function linesBySampleCodes(codes: string[]): Promise<OrderLine[]> {
+  if (!isDbConfigured() || !codes.length) return [];
+  const rows = await dbQuery(`select ${LINE_COLS} from public.analysis_results r where r.sample_code = any($1::text[])`, [codes]);
+  return rows.map(toLine);
+}
