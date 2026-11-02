@@ -123,7 +123,7 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
       : quoteLines(lines, await priceResolver(order.priceListId)).map((l) => ({ label: l.criterion, unit: "mẫu", quantity: l.samples, unitPrice: l.unitPrice, group: l.matrix }));
     const discountPct = version ? version.discountPct : order.discountPct;
     const vatRate = version ? version.vatRate : order.vatRate;
-    const t = quoteItemsTotal(items, discountPct, vatRate);
+    const t = quoteItemsTotal(items, discountPct, vatRate, version?.managementFeePct ?? 0);
     quoteHead = version ? { code: version.code, at: version.quotedAt } : order.quoteNo ? { code: order.quoteNo, at: order.quotedAt } : null;
     body = (
       <>
@@ -136,6 +136,7 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
                 <td className={`${cell} text-right`}>{l.quantity.toLocaleString("vi-VN")}</td><td className={`${cell} text-right`}>{l.unitPrice.toLocaleString("vi-VN")}</td><td className={`${cell} text-right`}>{Math.round(l.quantity * l.unitPrice).toLocaleString("vi-VN")}</td>
               </tr>
             ))}
+            {t.fee > 0 && <tr><td className={`${cell} text-right`} colSpan={5}>Phí quản lý {version?.managementFeePct}%</td><td className={`${cell} text-right`}>{t.fee.toLocaleString("vi-VN")}</td></tr>}
             <tr><td className={`${cell} text-right`} colSpan={5}>Giá trị trước thuế</td><td className={`${cell} text-right`}>{t.sub.toLocaleString("vi-VN")}</td></tr>
             {t.discount > 0 && <tr><td className={`${cell} text-right`} colSpan={5}>Giảm giá {discountPct}%</td><td className={`${cell} text-right`}>−{t.discount.toLocaleString("vi-VN")}</td></tr>}
             <tr><td className={`${cell} text-right`} colSpan={5}>Thuế GTGT {vatRate || 0}%</td><td className={`${cell} text-right`}>{t.vat.toLocaleString("vi-VN")}</td></tr>

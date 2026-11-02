@@ -54,6 +54,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   "order-documents": "Tài liệu lưu trữ đơn hàng",
   "order-quotes": "Báo giá",
   "order-plans": "Kế hoạch quan trắc",
+  "sample-preservations": "Bảo quản của mẫu",
   departments: "Phòng ban / chi nhánh",
   "sampling-containers": "Nhóm dụng cụ lấy mẫu",
   "lab-formulas": "Công thức",

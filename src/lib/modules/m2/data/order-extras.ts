@@ -39,6 +39,7 @@ export type OrderQuote = {
   quotedAt: string;
   discountPct: number;
   vatRate: number;
+  managementFeePct: number;
   note: string;
   lines: QuoteItem[];
   total: number;
@@ -55,6 +56,7 @@ export const orderQuoteStore = createEntityStore<OrderQuote>(
     quotedAt: "date",
     discountPct: "number",
     vatRate: "number",
+    managementFeePct: "number",
     note: "text",
     lines: "json",
     total: "number",
@@ -177,6 +179,25 @@ export async function savePlan(orderId: string, p: Omit<OrderPlan, "id" | "order
   }
 }
 
+/** Chỉ lưu nhân sự đoàn quan trắc (trang "Nhân sự quan trắc"), giữ nguyên thời gian / phương tiện / vật tư. */
+export async function savePlanTeam(orderId: string, p: Pick<OrderPlan, "leader" | "supervisor" | "deputy1" | "deputy2" | "groups" | "updatedBy">) {
+  await dbQuery(
+    `insert into public.order_plans (order_id, leader, supervisor, deputy1, deputy2, groups, updated_by, updated_at)
+     values ($1, $2, $3, $4, $5, $6::jsonb, $7, now())
+     on conflict (order_id) do update set leader = excluded.leader, supervisor = excluded.supervisor, deputy1 = excluded.deputy1,
+       deputy2 = excluded.deputy2, groups = excluded.groups, updated_by = excluded.updated_by, updated_at = now()`,
+    [orderId, p.leader, p.supervisor, p.deputy1, p.deputy2, JSON.stringify(p.groups), p.updatedBy],
+  );
+}
+
+/** Ghi đè các dòng thiết bị / vật tư / bảo quản của những loại `kinds`, giữ nguyên loại khác. */
+export async function replacePlanItems(orderId: string, kinds: string[], items: Omit<PlanItem, "id" | "orderId">[]) {
+  await dbQuery(`delete from public.order_plan_items where order_id = $1 and kind = any($2::text[])`, [orderId, kinds]);
+  for (const [i, it] of items.entries()) {
+    await dbQuery(`insert into public.order_plan_items (order_id, kind, name, quantity, note, sort) values ($1, $2, $3, $4, $5, $6)`, [orderId, it.kind, it.name, it.quantity, it.note, i + 1]);
+  }
+}
+
 /** Gợi ý thiết bị / dụng cụ chứa / bảo quản từ danh mục gắn với các chỉ tiêu của đơn (tab Thiết bị, Dụng cụ, Bảo quản của chỉ tiêu). */
 export async function suggestPlanItems(orderId: string) {
   const rows = await dbQuery(
@@ -197,3 +218,10 @@ export async function suggestPlanItems(orderId: string) {
     note: r.kind === "container" ? "Dụng cụ chứa mẫu" : "",
   }));
 }
+
+export type SamplePreservation = { id: string; sampleId: string; preservationId: string };
+export const samplePreservationStore = createEntityStore<SamplePreservation>(
+  "sample-preservations",
+  [],
+  columnsMapping<SamplePreservation>("sample_preservations", { sampleId: "ref", preservationId: "ref" }),
+);

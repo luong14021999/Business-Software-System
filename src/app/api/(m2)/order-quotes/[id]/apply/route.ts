@@ -17,7 +17,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!q) return NextResponse.json({ error: "Không tìm thấy báo giá" }, { status: 404 });
   const owner = await orderOwnerGate(q.orderId, "sales");
   if (owner) return owner;
-  const t = quoteItemsTotal(q.lines, q.discountPct, q.vatRate);
+  const t = quoteItemsTotal(q.lines, q.discountPct, q.vatRate, q.managementFeePct);
   await orderStore.update(q.orderId, { amount: t.sub, discountPct: q.discountPct, vatRate: q.vatRate, quoteNo: q.code, quotedAt: q.quotedAt });
   await logChange({ entity: "orders", entityId: q.orderId, action: "Sửa", label: q.code, changes: [{ field: "báo giá chốt", old: "", new: `${q.code} – ${t.total.toLocaleString("vi-VN")} đ` }] });
   return NextResponse.json({ ok: true, total: t.total });

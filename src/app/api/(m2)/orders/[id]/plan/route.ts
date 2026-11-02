@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { authorize } from "@/lib/platform/data/access";
 import { logChange } from "@/lib/platform/data/change-log";
 import { orderStore } from "@/lib/modules/m2/data/orders";
-import { savePlan, suggestPlanItems, type OrderPlan, type PlanItem } from "@/lib/modules/m2/data/order-extras";
+import { replacePlanItems, savePlan, savePlanTeam, suggestPlanItems, type OrderPlan, type PlanItem } from "@/lib/modules/m2/data/order-extras";
 import { PLAN_ITEM_KINDS } from "@/lib/modules/m2/orders";
 
 export const dynamic = "force-dynamic";
@@ -49,5 +49,33 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     label: `${order.code} · ${order.name}`,
     changes: [{ field: "kế hoạch quan trắc", old: "", new: `trưởng đoàn ${t(plan.leader) || "—"}, ${groups.length} nhóm, ${clean.length} thiết bị/vật tư` }],
   });
+  return NextResponse.json({ ok: true });
+}
+
+/**
+ * Lưu một phần kế hoạch (các trang XaLab tách riêng): `team` = nhân sự quan trắc; `kinds` + `items` = ghi đè vật tư
+ * của những loại đó (VD chỉ "Vật tư – hóa chất").
+ */
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await authorize("work.assign");
+  if (!gate.ok) return gate.response;
+  const { id } = await params;
+  const order = (await orderStore.list()).find((o) => o.id === id);
+  if (!order) return NextResponse.json({ error: "Không tìm thấy đơn hàng" }, { status: 404 });
+  const { team, kinds, items = [] } = (await req.json()) as { team?: Partial<OrderPlan>; kinds?: string[]; items?: Partial<PlanItem>[] };
+  const t = (v: unknown) => String(v ?? "").trim();
+  const changes: { field: string; old: string; new: string }[] = [];
+  if (team) {
+    const groups = (Array.isArray(team.groups) ? team.groups : []).map((g) => (Array.isArray(g) ? g.map(t).filter(Boolean) : [])).filter((g) => g.length);
+    await savePlanTeam(id, { leader: t(team.leader), supervisor: t(team.supervisor), deputy1: t(team.deputy1), deputy2: t(team.deputy2), groups, updatedBy: gate.actor.name });
+    changes.push({ field: "nhân sự quan trắc", old: "", new: `trưởng đoàn ${t(team.leader) || "—"}, ${groups.length} nhóm` });
+  }
+  if (kinds?.length) {
+    if (kinds.some((k) => !(PLAN_ITEM_KINDS as readonly string[]).includes(k))) return NextResponse.json({ error: "Loại vật tư không hợp lệ" }, { status: 400 });
+    const clean = items.map((i) => ({ kind: t(i.kind), name: t(i.name), quantity: t(i.quantity), note: t(i.note), sort: 0 })).filter((i) => i.name && kinds.includes(i.kind));
+    await replacePlanItems(id, kinds, clean);
+    changes.push({ field: kinds.join(", "), old: "", new: `${clean.length} dòng` });
+  }
+  if (changes.length) await logChange({ entity: "order-plans", entityId: id, action: "Sửa", label: `${order.code} · ${order.name}`, changes });
   return NextResponse.json({ ok: true });
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, averageReplicates, balance, cellText, fieldOnlyEntry, matrixCells, ownsOrder, parseCsv, resultMatrix, fieldDuties, lastMonths, orderEvents, stackByMonth, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
+import { addDays, discountedPrice, averageReplicates, balance, cellText, fieldOnlyEntry, matrixCells, ownsOrder, parseCsv, resultMatrix, fieldDuties, lastMonths, orderEvents, stackByMonth, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -271,5 +271,15 @@ describe("trang Kết quả: ma trận, xuất / nhập file", () => {
     expect(r.error).toBeNull();
     expect(r.cells).toEqual([{ code: "A", criterion: "pH", text: "7,2" }, { code: "B", criterion: "Fe", text: "KPH" }]);
     expect(matrixCells([["x", "y"]]).error).not.toBeNull();
+  });
+});
+
+describe("báo giá có phí quản lý (XaLab)", () => {
+  it("phí tính trên tiền chỉ tiêu rồi mới giảm giá và VAT", () => {
+    const t = quoteItemsTotal([{ label: "pH", unit: "mẫu", quantity: 2, unitPrice: 100000 }], 10, 8, 5);
+    expect(t).toMatchObject({ lines: 200000, fee: 10000, sub: 210000, discount: 21000, afterDiscount: 189000, vat: 15120, total: 204120 });
+    expect(quoteItemsTotal([{ label: "pH", unit: "mẫu", quantity: 1, unitPrice: 50000 }]).total).toBe(50000);
+    expect(discountedPrice(100000, 10)).toBe(90000);
+    expect(discountedPrice(100000, 150)).toBe(0);
   });
 });

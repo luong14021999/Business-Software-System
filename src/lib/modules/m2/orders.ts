@@ -310,10 +310,15 @@ export function nextQuoteCode(orderCode: string, existing: string[]) {
 }
 
 /** Tổng báo giá từ các dòng (số lượng × đơn giá), rồi giảm giá và thuế như giá trị đơn hàng. */
-export function quoteItemsTotal(items: QuoteItem[], discountPct = 0, vatRate = 0) {
-  const sub = items.reduce((s, i) => s + Math.round((Number(i.quantity) || 0) * (Number(i.unitPrice) || 0)), 0);
-  return orderTotals(sub, discountPct, vatRate);
+export function quoteItemsTotal(items: QuoteItem[], discountPct = 0, vatRate = 0, feePct = 0) {
+  const lines = items.reduce((s, i) => s + Math.round((Number(i.quantity) || 0) * (Number(i.unitPrice) || 0)), 0);
+  // Phí quản lý tính trên tổng tiền chỉ tiêu, cộng vào giá trị trước giảm giá / thuế (giá trị đơn hàng khi chốt).
+  const fee = Math.round((lines * Math.max(0, Number(feePct) || 0)) / 100);
+  return { ...orderTotals(lines + fee, discountPct, vatRate), lines, fee };
 }
+
+/** Đơn giá sau giảm giá đơn hàng (cột "Đơn giá đã giảm" của XaLab). */
+export const discountedPrice = (unitPrice: number, discountPct = 0) => Math.round((Number(unitPrice) || 0) * (1 - Math.min(100, Math.max(0, Number(discountPct) || 0)) / 100));
 
 /** Dòng chi phí ngoài chỉ tiêu hay dùng khi báo giá quan trắc. */
 export const EXTRA_COSTS = [

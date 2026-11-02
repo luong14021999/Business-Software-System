@@ -19,6 +19,7 @@ import {
 } from "@/lib/modules/m2/data/settings";
 import { calcTemplateStore } from "@/lib/modules/m2/data/calc-methods";
 import { equipmentStore } from "@/lib/modules/m2/data/equipment";
+import { samplingContainerStore } from "@/lib/modules/m2/data/catalogs";
 import { specLabel } from "@/lib/modules/m2/orders";
 import { currentAccess } from "@/lib/platform/data/access";
 import { cn } from "@/lib/utils";
@@ -104,7 +105,9 @@ export default async function AnalytePage({ params, searchParams }: { params: Pr
     );
   } else {
     const k = KIND[active];
-    const [resources, equipment, containers, preservations] = await Promise.all([analyteResourceStore.list(), equipmentStore.list(), containerTypeStore.list(), preservationStore.list()]);
+    const [resources, equipment, containerTypes, samplingContainers, preservations] = await Promise.all([analyteResourceStore.list(), equipmentStore.list(), containerTypeStore.list(), samplingContainerStore.list(), preservationStore.list()]);
+    // Dụng cụ lấy mẫu: ưu tiên danh mục "Nhóm dụng cụ lấy mẫu" (khớp trang Vật tư – hóa chất của đơn), chưa có thì dùng loại dụng cụ.
+    const containers = samplingContainers.length ? samplingContainers : containerTypes;
     const options = k.kind === "instrument" ? equipment.map((e) => `${e.code} · ${e.name}`) : k.kind === "container" ? containers.map((c) => c.name) : preservations.map((p) => p.name);
     const fields: CrudField[] = [{ name: "isDefault", label: "Mặc định", type: "bool", boolLabels: ["Mặc định", "Không"], defaultValue: 0 }];
     body = (

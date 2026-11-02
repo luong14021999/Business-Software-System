@@ -105,6 +105,7 @@ const ENTITY_PERMISSION: Record<string, Permission> = {
   "customer-contracts": "write.reception",
   "location-schedules": "write.reception",
   "order-plans": "work.assign",
+  "sample-preservations": "work.assign",
   "order-plan-items": "work.assign",
   "order-type-specs": "write.reception",
   samples: "write.reception",
