@@ -35,11 +35,25 @@ export async function buildGrid(lines: OrderLine[]): Promise<GridSample[]> {
   const spec = new Map(specs.map((s) => [s.id, s]));
   // Khớp tên chỉ tiêu với giới hạn không phân biệt dấu / hoa thường.
   const limitOf = (specId: string, criterion: string) => limits.find((x) => x.specId === specId && normalizeVi(x.analyte) === normalizeVi(criterion));
+  /** Giới hạn của một cột quy chuẩn cho chỉ tiêu: 0 – 0 = "không quy định"; dạng chữ chỉ so KPH / 0 với "không phát hiện". */
+  const limitInfo = (specId: string | undefined, criterion: string) => {
+    const lim = specId ? limitOf(specId, criterion) : undefined;
+    const numeric = lim && !lim.notDetected && !(lim.minValue === 0 && lim.maxValue === 0);
+    const nd = lim?.notDetected ? (lim.ndText?.trim() || "KPH") : "";
+    return {
+      label: lim ? specLimitText(lim) : "",
+      min: numeric ? (lim?.minValue ?? null) : null,
+      max: numeric ? (lim?.maxValue ?? null) : null,
+      ndRequired: nd === "KPH" || nd === "0",
+    };
+  };
   const codes = [...new Set(lines.map((l) => l.sampleCode))].sort();
   return codes.map((code) => {
     const s = byCode.get(code);
     const sp = s?.specId ? spec.get(s.specId) : undefined;
+    const sp2 = s?.spec2Id ? spec.get(s.spec2Id) : undefined;
     return {
+      specName2: sp2 ? specLabel(sp2) : "",
       code,
       locationName: s?.locationName ?? "",
       type: s?.type ?? "",
@@ -48,15 +62,13 @@ export async function buildGrid(lines: OrderLine[]): Promise<GridSample[]> {
       lines: lines
         .filter((l) => l.sampleCode === code)
         .map((l) => {
-          const lim = sp ? limitOf(sp.id, l.criterion) : undefined;
-          // 0 – 0 = "không quy định"; quy chuẩn dạng chữ không so bằng số (chỉ KPH / 0 so với "không phát hiện").
-          const numeric = lim && !lim.notDetected && !(lim.minValue === 0 && lim.maxValue === 0);
-          const nd = lim?.notDetected ? (lim.ndText?.trim() || "KPH") : "";
+          const q1 = limitInfo(sp?.id, l.criterion);
           return {
             ...methodRange(l.matrix, l.criterion, l.method),
             ...printOf(l),
-            limitLabel: lim ? specLimitText(lim) : "",
-            ndRequired: nd === "KPH" || nd === "0",
+            limitLabel: q1.label,
+            ndRequired: q1.ndRequired,
+            lim2: sp2 ? limitInfo(sp2.id, l.criterion) : null,
             id: l.id,
             criterion: l.criterion,
             unit: l.unit,
@@ -65,8 +77,8 @@ export async function buildGrid(lines: OrderLine[]): Promise<GridSample[]> {
             subcontractor: l.subcontractor,
             status: l.status,
             technician: l.technician,
-            min: numeric ? (lim?.minValue ?? null) : null,
-            max: numeric ? (lim?.maxValue ?? null) : null,
+            min: q1.min,
+            max: q1.max,
           };
         }),
     };

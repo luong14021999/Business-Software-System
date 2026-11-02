@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Filter,
   Building2,
@@ -167,6 +168,7 @@ export default async function CustomersPage({
                     <TableHead>Địa chỉ</TableHead>
                     <TableHead className="text-right">Mẫu YTD</TableHead>
                     <TableHead>Mẫu gần nhất</TableHead>
+                    <TableHead />
                     <TableHead className="w-[110px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -204,6 +206,11 @@ export default async function CustomersPage({
                         <TableCell className="text-xs text-muted-foreground">
                           {c.lastSampleAt}
                         </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          <Link href={`/customers/${c.id}/contacts`} className="text-[#337ab7] hover:underline">Liên hệ</Link>
+                          <span className="mx-1 text-muted-foreground">|</span>
+                          <Link href={`/customers/${c.id}/locations`} className="text-[#337ab7] hover:underline">Địa điểm</Link>
+                        </TableCell>
                         <TableCell>
                           <DeleteCustomerButton id={c.id} name={c.name} />
                         </TableCell>
@@ -213,7 +220,7 @@ export default async function CustomersPage({
                   {customers.length === 0 && (
                     <TableRow>
                       <TableCell
-                        colSpan={8}
+                        colSpan={9}
                         className="text-center text-sm text-muted-foreground py-8"
                       >
                         {query

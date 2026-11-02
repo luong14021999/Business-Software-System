@@ -23,14 +23,16 @@ export default async function OrderSamplesPage({ params, searchParams }: { param
     .sort((a, b) => a.code.localeCompare(b.code))
     .map((s) => {
       const ls = lines.filter((l) => l.sampleCode === s.code);
-      return { ...s, specName: specName.get(s.specId) ?? "", lines: ls.length, entered: ls.filter((l) => Number.isFinite(l.mean) || l.prefix).length };
+      return { ...s, specName: [specName.get(s.specId), specName.get(s.spec2Id)].filter(Boolean).join(" · "), lines: ls.length, entered: ls.filter((l) => Number.isFinite(l.mean) || l.prefix).length };
     });
   const editFields: CrudField[] = [
     { name: "locationName", label: "Vị trí / tên mẫu", required: true, full: true },
     { name: "customerSampleCode", label: "Mã mẫu của khách" },
-    { name: "specId", label: "Quy chuẩn so sánh", type: "select", options: [{ value: "", label: "— Không so sánh —" }, ...specs.filter((s) => s.active).map((s) => ({ value: s.id, label: specLabel(s) }))] },
+    { name: "specId", label: "Cột quy chuẩn 1", type: "select", options: [{ value: "", label: "— Không so sánh —" }, ...specs.filter((s) => s.active).map((s) => ({ value: s.id, label: specLabel(s) }))] },
+    { name: "spec2Id", label: "Cột quy chuẩn 2", type: "select", options: [{ value: "", label: "— Không —" }, ...specs.filter((s) => s.active).map((s) => ({ value: s.id, label: specLabel(s) }))] },
     { name: "receivedAt", label: "Ngày nhận mẫu", type: "date" },
     { name: "dueAt", label: "Hạn trả kết quả", type: "date" },
+    { name: "disposeAt", label: "Ngày hủy mẫu", type: "date" },
     { name: "isQc", label: "Mẫu QA/QC", type: "bool", boolLabels: ["Có", "Không"] },
     { name: "isDuplicate", label: "Mẫu lặp", type: "bool", boolLabels: ["Có", "Không"] },
   ];

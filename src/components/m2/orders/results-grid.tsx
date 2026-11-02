@@ -31,8 +31,10 @@ export type GridLine = {
   /** Tên in trên phiếu và kết quả đã làm tròn theo quy tắc của chỉ tiêu. */
   printName: string;
   printText: string;
+  /** Cột quy chuẩn thứ 2 (nếu đơn chọn 2 cột). */
+  lim2: { label: string; min: number | null; max: number | null; ndRequired: boolean } | null;
 };
-export type GridSample = { code: string; locationName: string; type: string; specName: string; stage: string; lines: GridLine[] };
+export type GridSample = { code: string; locationName: string; type: string; specName: string; specName2: string; stage: string; lines: GridLine[] };
 
 type Action = "submit" | "qa_approve" | "qa_reject" | "manager_approve" | "manager_reject";
 const EDITABLE = ["Đang nhập", "Trả lại sửa"];
@@ -239,14 +241,16 @@ export function ResultsGrid({
                   <td className="!border-t-[#bce8f1]"><input type="checkbox" aria-label={`Chọn các dòng của ${s.code}`} checked={allOn} onChange={() => toggle(ids, !allOn)} /></td>
                   <td colSpan={8} className="!border-t-[#bce8f1] font-bold">
                     {s.code}: {s.locationName}
-                    <span className="ml-2 text-xs font-normal text-[#31708f]">{[s.type, s.stage, s.specName && `so với ${s.specName}`].filter(Boolean).join(" · ")}</span>
+                    <span className="ml-2 text-xs font-normal text-[#31708f]">{[s.type, s.stage, s.specName && `so với ${s.specName}`, s.specName2 && `và ${s.specName2}`].filter(Boolean).join(" · ")}</span>
                   </td>
                 </tr>
                 {s.lines.map((l0, i) => {
                   const l = val(l0);
                   const editable = can.enter && EDITABLE.includes(l.status);
                   const p = parseResultCell(l.text);
-                  const verdict = judge(p, l);
+                  const v1 = judge(p, l);
+                  const v2 = l.lim2 ? judge(p, l.lim2) : "";
+                  const verdict = v1 === "Vượt" || v2 === "Vượt" ? "Vượt" : v1 || v2;
                   const outOfRange = p ? outOfMethodRange(p.value, p.prefix, l.mMin, l.mMax) : false;
                   return (
                     <tr key={l.id} className={sel.has(l.id) ? "bg-[#f5f5f5]" : undefined}>
@@ -270,6 +274,7 @@ export function ResultsGrid({
                       </td>
                       <td className="whitespace-nowrap text-xs">
                         {l.limitLabel || "—"}
+                        {l.lim2 && <div className="text-muted-foreground">QC2: {l.lim2.label || "—"}</div>}
                         {verdict && <div className={verdict === "Vượt" ? "font-semibold text-[#a94442]" : "text-[#3c763d]"}>{verdict === "Vượt" ? "Vượt quy chuẩn" : "Đạt"}</div>}
                       </td>
                       <td>

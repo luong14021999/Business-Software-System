@@ -35,6 +35,8 @@ export type Order = {
   discountPct: number;
   vatRate: number;
   priceListId: string;
+  contactId: string;
+  locationId: string;
 };
 
 export const orderStore = createEntityStore<Order>(
@@ -71,6 +73,8 @@ export const orderStore = createEntityStore<Order>(
     discountPct: "number",
     vatRate: "number",
     priceListId: "ref",
+    contactId: "ref",
+    locationId: "ref",
   }),
 );
 
@@ -94,6 +98,9 @@ export type OrderSample = {
   sampledAt: string;
   stage: string;
   specId: string;
+  spec2Id: string;
+  pointId: string;
+  disposeAt: string;
 };
 
 export const orderSampleStore = createEntityStore<OrderSample>(
@@ -117,6 +124,9 @@ export const orderSampleStore = createEntityStore<OrderSample>(
     sampledAt: "date",
     stage: "text",
     specId: "ref",
+    spec2Id: "ref",
+    pointId: "ref",
+    disposeAt: "date",
   }),
 );
 
@@ -230,10 +240,12 @@ export type OrderLine = {
   sort: number;
   batchId: string;
   matrix: string;
+  samplingTimes: number;
+  lineKind: string;
 };
 
 const LINE_COLS = `r.id, r.result_code, r.sample_code, r.criterion, r.unit, r.method, r.subcontractor, r.result_prefix,
-            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort, r.batch_id, r.matrix`;
+            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort, r.batch_id, r.matrix, r.sampling_times, r.line_kind`;
 
 /** Các dòng kết quả thuộc những mẫu của đơn hàng, theo thứ tự mẫu → thứ tự chỉ tiêu. */
 export async function orderLines(orderId: string): Promise<OrderLine[]> {
@@ -290,6 +302,8 @@ function toLine(r: Record<string, unknown>): OrderLine {
     sort: Number(r.sort) || 0,
     batchId: (r.batch_id as string) ?? "",
     matrix: (r.matrix as string) ?? "",
+    samplingTimes: Number(r.sampling_times) || 1,
+    lineKind: (r.line_kind as string) ?? "",
   };
 }
 

@@ -4,12 +4,13 @@ import { logChange } from "@/lib/platform/data/change-log";
 import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { orderSampleStore, orderStore, sampleCodesLike, sampleTypeStore, type OrderSample } from "@/lib/modules/m2/data/orders";
 import { initialApprovals, insertResult, nextResultCode } from "@/lib/modules/m2/data/results";
-import { nextSampleCodes } from "@/lib/modules/m2/orders";
+import { LINE_KINDS, nextSampleCodes } from "@/lib/modules/m2/orders";
+import { orderTypeSpecStore } from "@/lib/modules/m2/data/order-extras";
 import { todayISO, vnDateOf } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";
 
-type Line = { name: string; unit?: string; method?: string; subcontractor?: string };
+type Line = { name: string; unit?: string; method?: string; subcontractor?: string; samplingTimes?: number; lineKind?: string };
 type Body = {
   locationName?: string;
   sampleTypeId?: string;
@@ -18,6 +19,8 @@ type Body = {
   isQc?: boolean;
   isDuplicate?: boolean;
   specId?: string;
+  spec2Id?: string;
+  pointId?: string;
   lines?: Line[];
 };
 
@@ -46,6 +49,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const customer = (await getCustomers()).find((c) => c.id === order.customerId);
   const year = todayISO().slice(0, 4);
   const stage = order.kind === "Mẫu gửi" ? "Nhận mẫu" : "Đợi lấy mẫu";
+  // Không chọn quy chuẩn riêng → dùng quy chuẩn đã đặt cho loại mẫu này ở trang Quy chuẩn của đơn.
+  const typeSpec = (await orderTypeSpecStore.list()).find((t) => t.orderId === order.id && t.sampleTypeId === type.id);
 
   const created: OrderSample[] = [];
   for (const code of codes) {
@@ -67,7 +72,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       isDuplicate: Boolean(b.isDuplicate),
       sampledAt: "",
       stage,
-      specId: b.specId ?? "",
+      specId: b.specId || typeSpec?.spec1Id || "",
+      spec2Id: b.spec2Id || typeSpec?.spec2Id || "",
+      pointId: b.pointId ?? "",
+      disposeAt: order.disposeAt ? order.disposeAt.slice(0, 10) : "",
     });
     created.push(sample);
     let sort = 0;
@@ -82,6 +90,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         method: l.method ?? "",
         subcontractor: l.subcontractor ?? "",
         sort: ++sort,
+        sampling_times: Math.min(20, Math.max(1, Math.round(Number(l.samplingTimes) || 1))),
+        line_kind: (LINE_KINDS as readonly string[]).includes(l.lineKind ?? "") ? l.lineKind : "Phòng TN",
         status: "Đang nhập",
         approvals: initialApprovals(),
         replicates: [],

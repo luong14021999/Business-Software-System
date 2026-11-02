@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, balance, compareLimit, judge, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
+import { addDays, balance, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -92,9 +92,9 @@ describe("báo giá & công nợ", () => {
       (m, c) => (c === "pH" ? (m === "Đất" ? 50_000 : 40_000) : 0),
     );
     expect(q).toEqual([
-      { criterion: "pH", unit: "-", samples: 2, unitPrice: 50_000, amount: 100_000 },
-      { criterion: "pH", unit: "-", samples: 1, unitPrice: 40_000, amount: 40_000 },
-      { criterion: "COD", unit: "mg/L", samples: 1, unitPrice: 0, amount: 0 },
+      { matrix: "Đất", criterion: "pH", unit: "-", samples: 2, unitPrice: 50_000, amount: 100_000 },
+      { matrix: "Nước mặt", criterion: "pH", unit: "-", samples: 1, unitPrice: 40_000, amount: 40_000 },
+      { matrix: "Nước mặt", criterion: "COD", unit: "mg/L", samples: 1, unitPrice: 0, amount: 0 },
     ]);
   });
 });
@@ -156,5 +156,16 @@ describe("đánh giá theo quy chuẩn", () => {
     expect(judge({ prefix: "", value: 0.2 }, { min: null, max: null, ndRequired: true })).toBe("Vượt");
     expect(judge({ prefix: "", value: 9 }, { min: 6.5, max: 8.5 })).toBe("Vượt");
     expect(judge(null, { min: 1, max: 2 })).toBe("");
+  });
+});
+
+describe("báo giá nhiều phiên bản", () => {
+  it("số báo giá tăng theo đơn", () => {
+    expect(nextQuoteCode("26.6", ["26.6/BG.1", "26.6/BG.3", "26.5/BG.9"])).toBe("26.6/BG.4");
+    expect(nextQuoteCode("26.7", [])).toBe("26.7/BG.1");
+  });
+  it("tổng từ dòng: số lượng × đơn giá, giảm giá rồi thuế", () => {
+    const t = quoteItemsTotal([{ label: "pH", unit: "mẫu", quantity: 3, unitPrice: 50_000 }, { label: "Ăn ở", unit: "người × ngày", quantity: 2, unitPrice: 200_000 }], 10, 8);
+    expect([t.sub, t.discount, t.vat, t.total]).toEqual([550_000, 55_000, 39_600, 534_600]);
   });
 });

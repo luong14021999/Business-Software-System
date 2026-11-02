@@ -89,10 +89,12 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
                       align="right"
                       items={[
                         { label: "Sửa thông tin đơn hàng", href: `/orders/${r.id}` },
+                        { label: "Quy chuẩn", href: `/orders/${r.id}/specs` },
                         { label: "Bóc tách", href: `/orders/${r.id}/split` },
                         { label: "Yêu cầu", href: `/orders/${r.id}/samples` },
                         { label: "Nhập/duyệt kết quả thử nghiệm", href: `/orders/${r.id}/results` },
                         { label: "Báo giá", href: `/orders/${r.id}/quote` },
+                        { label: "Báo giá trước bóc tách", href: `/orders/${r.id}/quote-before` },
                         { label: "Công nợ", href: `/orders/${r.id}/debit` },
                         { divider: true, label: "" },
                         { label: "Xóa", danger: true, onClick: () => remove(r) },

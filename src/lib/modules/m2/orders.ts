@@ -192,7 +192,7 @@ export function balance(total: number, payments: { amount: number }[]) {
   return { paid, remaining: Math.max(0, total - paid) };
 }
 
-export type QuoteLine = { criterion: string; unit: string; samples: number; unitPrice: number; amount: number };
+export type QuoteLine = { matrix: string; criterion: string; unit: string; samples: number; unitPrice: number; amount: number };
 
 /**
  * Bảng kê báo giá từ các dòng kết quả của đơn: gộp theo chỉ tiêu, số mẫu × đơn giá tham khảo.
@@ -205,7 +205,7 @@ export function quoteLines(
   const m = new Map<string, QuoteLine>();
   for (const l of lines) {
     const key = `${l.matrix}|${l.criterion}`;
-    const cur = m.get(key) ?? { criterion: l.criterion, unit: l.unit, samples: 0, unitPrice: priceOf(l.matrix, l.criterion), amount: 0 };
+    const cur = m.get(key) ?? { matrix: l.matrix, criterion: l.criterion, unit: l.unit, samples: 0, unitPrice: priceOf(l.matrix, l.criterion), amount: 0 };
     cur.samples++;
     cur.amount = cur.samples * cur.unitPrice;
     m.set(key, cur);
@@ -290,3 +290,31 @@ export function judge(p: { prefix: string; value: number } | null, l: { min: num
   if (l.ndRequired) return p.prefix === "KPH" || p.prefix === "<" || p.value === 0 ? "Đạt" : "Vượt";
   return compareLimit(p.value, l.min, l.max, p.prefix);
 }
+
+// ── Báo giá nhiều phiên bản (GĐ6) ───────────────────────────────────
+
+export type QuoteItem = { label: string; unit: string; quantity: number; unitPrice: number; group?: string };
+
+/** Số báo giá phiên bản kế tiếp của đơn: "26.6/BG.1", "26.6/BG.2"… */
+export function nextQuoteCode(orderCode: string, existing: string[]) {
+  const head = `${orderCode}/BG.`;
+  const max = existing.reduce((m, c) => (c.startsWith(head) && /^\d+$/.test(c.slice(head.length)) ? Math.max(m, Number(c.slice(head.length))) : m), 0);
+  return `${head}${max + 1}`;
+}
+
+/** Tổng báo giá từ các dòng (số lượng × đơn giá), rồi giảm giá và thuế như giá trị đơn hàng. */
+export function quoteItemsTotal(items: QuoteItem[], discountPct = 0, vatRate = 0) {
+  const sub = items.reduce((s, i) => s + Math.round((Number(i.quantity) || 0) * (Number(i.unitPrice) || 0)), 0);
+  return orderTotals(sub, discountPct, vatRate);
+}
+
+/** Dòng chi phí ngoài chỉ tiêu hay dùng khi báo giá quan trắc. */
+export const EXTRA_COSTS = [
+  { label: "Ăn ở", unit: "người × ngày" },
+  { label: "Nhân công", unit: "ngày công" },
+  { label: "Phương tiện đi lại", unit: "chuyến" },
+  { label: "Viết và in báo cáo", unit: "trọn gói" },
+] as const;
+
+export const ORDER_DOC_KINDS = ["Biên bản lấy mẫu", "Biên bản thử nghiệm", "Phiếu kết quả", "Báo cáo hoàn thiện", "Khác"] as const;
+export const LINE_KINDS = ["Phòng TN", "Hiện trường"] as const;

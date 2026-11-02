@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, X } from "lucide-react";
 import { btn, btnPrimary, input, link, table } from "@/components/m2/lab-ui/page";
 import { toast } from "@/components/ui/toast";
-import { specLabel } from "@/lib/modules/m2/orders";
+import { LINE_KINDS, specLabel } from "@/lib/modules/m2/orders";
 import type { LabAnalyte, SampleType, Specification } from "@/lib/modules/m2/data/orders";
 
-type Line = { key: string; name: string; unit: string; method: string; subcontractor: string };
+type Line = { key: string; name: string; unit: string; method: string; subcontractor: string; samplingTimes: string; lineKind: string };
 
 /**
  * Bảng bóc tách: vị trí / tên mẫu, loại mẫu, số mẫu, mẫu QA/QC – mẫu lặp, quy chuẩn so sánh
@@ -23,6 +23,7 @@ export function SplitForm({
   locations,
   templates,
   scopes,
+  points = [],
 }: {
   orderId: string;
   types: SampleType[];
@@ -31,6 +32,8 @@ export function SplitForm({
   locations: string[];
   templates: { id: string; name: string; sampleTypeId: string; lines: { name: string; unit?: string; method?: string; subcontractor?: string }[] }[];
   scopes: string[];
+  /** Vị trí quan trắc của địa điểm trong đơn (gợi ý vị trí / tên mẫu). */
+  points?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [typeId, setTypeId] = useState(types[0]?.id ?? "");
@@ -52,7 +55,7 @@ export function SplitForm({
   function applyTemplate() {
     const t = templates.find((x) => x.id === tplId);
     if (!t) return toast.error("Chọn mẫu bóc tách");
-    setLines(t.lines.map((l, i) => ({ key: `tpl-${i}-${l.name}`, name: l.name, unit: l.unit ?? "", method: l.method ?? "", subcontractor: l.subcontractor || "VILAS" })));
+    setLines(t.lines.map((l, i) => ({ key: `tpl-${i}-${l.name}`, name: l.name, unit: l.unit ?? "", method: l.method ?? "", subcontractor: l.subcontractor || "VILAS", samplingTimes: "1", lineKind: "Phòng TN" })));
   }
   async function saveTemplate() {
     if (!lines.length) return toast.error("Bảng chưa có chỉ tiêu để lưu");
@@ -73,7 +76,7 @@ export function SplitForm({
   const groups = [...new Set(ofType.map((a) => a.groupName).filter(Boolean))];
   const choices = ofType.filter((a) => (!group || a.groupName === group) && !lines.some((l) => l.name === a.name));
   const typeSpecs = specs.filter((s) => s.active && (!s.sampleTypeId || s.sampleTypeId === typeId));
-  const toLine = (a: LabAnalyte): Line => ({ key: a.id, name: a.name, unit: a.unit, method: a.method, subcontractor: a.scope || "VILAS" });
+  const toLine = (a: LabAnalyte): Line => ({ key: a.id, name: a.name, unit: a.unit, method: a.method, subcontractor: a.scope || "VILAS", samplingTimes: "1", lineKind: a.isField ? "Hiện trường" : "Phòng TN" });
 
   function changeType(id: string) {
     setTypeId(id);
@@ -93,7 +96,7 @@ export function SplitForm({
     const name = newName.trim();
     if (!name) return toast.error("Gõ tên chỉ tiêu mới");
     if (lines.some((l) => l.name === name)) return toast.error("Chỉ tiêu đã có trong bảng");
-    setLines((l) => [...l, { key: `new-${Date.now()}`, name, unit: "", method: "", subcontractor: "Nội bộ" }]);
+    setLines((l) => [...l, { key: `new-${Date.now()}`, name, unit: "", method: "", subcontractor: "Nội bộ", samplingTimes: "1", lineKind: "Phòng TN" }]);
     setNewName("");
   }
   const edit = (key: string, k: keyof Line) => (e: { target: { value: string } }) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, [k]: e.target.value } : l)));
@@ -103,7 +106,7 @@ export function SplitForm({
     const res = await fetch(`/api/orders/${orderId}/split`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sampleTypeId: typeId, locationName: location, customerSampleCode: customerCode, count: Number(count), isQc, isDuplicate, specId, lines }),
+      body: JSON.stringify({ sampleTypeId: typeId, locationName: location, pointId: points.find((p) => p.name === location.trim())?.id ?? "", customerSampleCode: customerCode, count: Number(count), isQc, isDuplicate, specId, lines: lines.map((l) => ({ ...l, samplingTimes: Number(l.samplingTimes) || 1 })) }),
     });
     const b = await res.json().catch(() => ({}));
     setBusy(false);
@@ -123,7 +126,7 @@ export function SplitForm({
         <label htmlFor="loc" className={label}>Vị trí/tên mẫu</label>
         <div>
           <input id="loc" list="split-locations" value={location} onChange={(e) => setLocation(e.target.value)} className={input} placeholder="VD: Ruộng số 3 # Điểm lấy mẫu A" />
-          <datalist id="split-locations">{locations.map((l) => <option key={l} value={l} />)}</datalist>
+          <datalist id="split-locations">{[...new Set([...points.map((p) => p.name), ...locations])].map((l) => <option key={l} value={l} />)}</datalist>
         </div>
         <label htmlFor="type" className={label}>Loại mẫu</label>
         <select id="type" value={typeId} onChange={(e) => changeType(e.target.value)} className={input}>
@@ -169,14 +172,20 @@ export function SplitForm({
       <div className="overflow-x-auto">
         <table className={table}>
           <thead>
-            <tr><th className="w-8">#</th><th>Chỉ tiêu</th><th className="w-28">Đơn vị</th><th className="w-36">Thầu phụ</th><th>Phương pháp</th><th className="w-8" /></tr>
+            <tr><th className="w-8">#</th><th>Chỉ tiêu</th><th className="w-20">Số lần lấy mẫu</th><th className="w-32">Loại</th><th className="w-28">Đơn vị</th><th className="w-36">Thầu phụ</th><th>Phương pháp</th><th className="w-8" /></tr>
           </thead>
           <tbody>
-            {lines.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Chưa có chỉ tiêu – chọn ở dòng bên dưới</td></tr>}
+            {lines.length === 0 && <tr><td colSpan={8} className="py-6 text-center text-muted-foreground">Chưa có chỉ tiêu – chọn ở dòng bên dưới</td></tr>}
             {lines.map((l, i) => (
               <tr key={l.key}>
                 <td>{i + 1}</td>
                 <td>{l.name}</td>
+                <td><input type="number" min={1} max={20} value={l.samplingTimes} onChange={edit(l.key, "samplingTimes")} className={`${input} h-8 px-2`} aria-label={`Số lần lấy mẫu ${l.name}`} /></td>
+                <td>
+                  <select value={l.lineKind} onChange={edit(l.key, "lineKind")} aria-label={`Loại ${l.name}`} className={`${input} h-8 px-2 ${l.lineKind === "Hiện trường" ? "text-[#3c763d]" : "text-[#a94442]"}`}>
+                    {LINE_KINDS.map((k) => <option key={k}>{k}</option>)}
+                  </select>
+                </td>
                 <td><input value={l.unit} onChange={edit(l.key, "unit")} className={`${input} h-8`} aria-label={`Đơn vị ${l.name}`} /></td>
                 <td>
                   <select value={l.subcontractor} onChange={edit(l.key, "subcontractor")} className={`${input} h-8 px-2`} aria-label={`Thầu phụ ${l.name}`}>

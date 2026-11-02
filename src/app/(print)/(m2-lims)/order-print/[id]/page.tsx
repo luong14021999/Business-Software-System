@@ -7,7 +7,8 @@ import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { orderLines, orderSampleStore, orderStore } from "@/lib/modules/m2/data/orders";
 import { priceResolver } from "@/lib/modules/m2/data/settings";
 import { buildGrid } from "@/lib/modules/m2/data/grid";
-import { judge, orderTotals, parseResultCell, quoteLines } from "@/lib/modules/m2/orders";
+import { judge, parseResultCell, quoteItemsTotal, quoteLines, type QuoteItem } from "@/lib/modules/m2/orders";
+import { orderQuoteStore } from "@/lib/modules/m2/data/order-extras";
 import { fmtDateTimeVN, fmtDateVN, todayISO } from "@/lib/platform/dates";
 import { fmtVND } from "@/lib/platform/format";
 
@@ -17,9 +18,9 @@ const KINDS = { "yeu-cau": "PHIẾU YÊU CẦU PHÂN TÍCH", "bao-gia": "BÁO GI
 type Kind = keyof typeof KINDS;
 
 /** Bản in theo đơn hàng (A4): phiếu yêu cầu phân tích, báo giá, kết quả tổng hợp. */
-export default async function OrderPrintPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ loai?: string }> }) {
+export default async function OrderPrintPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ loai?: string; v?: string }> }) {
   const { id } = await params;
-  const { loai = "yeu-cau" } = await searchParams;
+  const { loai = "yeu-cau", v } = await searchParams;
   const kind: Kind = loai in KINDS ? (loai as Kind) : "yeu-cau";
   const [orders, customers, samples, lines] = await Promise.all([orderStore.list(), getCustomers(), orderSampleStore.list(), orderLines(id)]);
   const order = orders.find((o) => o.id === id);
@@ -29,6 +30,7 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
   const cell = "border border-black px-1.5 py-1 align-top";
 
   let body: React.ReactNode = null;
+  let quoteHead: { code: string; at: string } | null = null;
   if (kind === "yeu-cau") {
     body = (
       <table className="w-full border-collapse text-[10.5pt]">
@@ -47,25 +49,34 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
       </table>
     );
   } else if (kind === "bao-gia") {
-    const q = quoteLines(lines, await priceResolver(order.priceListId));
-    const t = orderTotals(order.amount || q.reduce((s, l) => s + l.amount, 0), order.discountPct, order.vatRate);
+    // Phiên bản báo giá: chọn theo ?v=, không có thì phiên bản đang áp dụng, rồi phiên bản mới nhất; chưa lưu thì tính từ bảng kê.
+    const versions = (await orderQuoteStore.list()).filter((x) => x.orderId === id).sort((x, y) => y.createdAt.localeCompare(x.createdAt));
+    const version = versions.find((x) => x.id === v) ?? versions.find((x) => x.code === order.quoteNo) ?? versions[0];
+    const items: QuoteItem[] = version
+      ? version.lines
+      : quoteLines(lines, await priceResolver(order.priceListId)).map((l) => ({ label: l.criterion, unit: "mẫu", quantity: l.samples, unitPrice: l.unitPrice, group: l.matrix }));
+    const discountPct = version ? version.discountPct : order.discountPct;
+    const vatRate = version ? version.vatRate : order.vatRate;
+    const t = quoteItemsTotal(items, discountPct, vatRate);
+    quoteHead = version ? { code: version.code, at: version.quotedAt } : order.quoteNo ? { code: order.quoteNo, at: order.quotedAt } : null;
     body = (
       <>
         <table className="w-full border-collapse text-[10.5pt]">
-          <thead><tr><th className={cell}>TT</th><th className={cell}>Chỉ tiêu</th><th className={cell}>Đơn vị</th><th className={cell}>Số mẫu</th><th className={cell}>Đơn giá (đ)</th><th className={cell}>Thành tiền (đ)</th></tr></thead>
+          <thead><tr><th className={cell}>TT</th><th className={cell}>Chỉ tiêu / khoản mục</th><th className={cell}>Đơn vị</th><th className={cell}>Số lượng</th><th className={cell}>Đơn giá (đ)</th><th className={cell}>Thành tiền (đ)</th></tr></thead>
           <tbody>
-            {q.map((l, i) => (
+            {items.map((l, i) => (
               <tr key={i}>
-                <td className={`${cell} text-center`}>{i + 1}</td><td className={cell}>{l.criterion}</td><td className={cell}>{l.unit}</td>
-                <td className={`${cell} text-right`}>{l.samples}</td><td className={`${cell} text-right`}>{l.unitPrice.toLocaleString("vi-VN")}</td><td className={`${cell} text-right`}>{l.amount.toLocaleString("vi-VN")}</td>
+                <td className={`${cell} text-center`}>{i + 1}</td><td className={cell}>{l.label}{l.group && <span className="text-[9pt] italic"> ({l.group})</span>}</td><td className={cell}>{l.unit}</td>
+                <td className={`${cell} text-right`}>{l.quantity.toLocaleString("vi-VN")}</td><td className={`${cell} text-right`}>{l.unitPrice.toLocaleString("vi-VN")}</td><td className={`${cell} text-right`}>{Math.round(l.quantity * l.unitPrice).toLocaleString("vi-VN")}</td>
               </tr>
             ))}
             <tr><td className={`${cell} text-right`} colSpan={5}>Giá trị trước thuế</td><td className={`${cell} text-right`}>{t.sub.toLocaleString("vi-VN")}</td></tr>
-            {t.discount > 0 && <tr><td className={`${cell} text-right`} colSpan={5}>Giảm giá {order.discountPct}%</td><td className={`${cell} text-right`}>−{t.discount.toLocaleString("vi-VN")}</td></tr>}
-            <tr><td className={`${cell} text-right`} colSpan={5}>Thuế GTGT {order.vatRate || 0}%</td><td className={`${cell} text-right`}>{t.vat.toLocaleString("vi-VN")}</td></tr>
+            {t.discount > 0 && <tr><td className={`${cell} text-right`} colSpan={5}>Giảm giá {discountPct}%</td><td className={`${cell} text-right`}>−{t.discount.toLocaleString("vi-VN")}</td></tr>}
+            <tr><td className={`${cell} text-right`} colSpan={5}>Thuế GTGT {vatRate || 0}%</td><td className={`${cell} text-right`}>{t.vat.toLocaleString("vi-VN")}</td></tr>
             <tr><td className={`${cell} text-right font-bold`} colSpan={5}>TỔNG CỘNG</td><td className={`${cell} text-right font-bold`}>{fmtVND(t.total)}</td></tr>
           </tbody>
         </table>
+        {version?.note && <p className="mt-2 text-[10pt]">Ghi chú: {version.note}</p>}
         <p className="mt-2 text-[10pt] italic">Báo giá có hiệu lực 30 ngày kể từ ngày lập. Thời gian trả kết quả: {order.dueAt ? fmtDateVN(order.dueAt.slice(0, 10)) : "theo thỏa thuận"}.</p>
       </>
     );
@@ -75,20 +86,21 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
       <>
         {grid.map((s) => (
           <div key={s.code} className="mb-4 break-inside-avoid">
-            <div className="mb-1 font-bold">{s.code}: {s.locationName} <span className="font-normal">({s.type}{s.specName && ` – so với ${s.specName}`})</span></div>
+            <div className="mb-1 font-bold">{s.code}: {s.locationName} <span className="font-normal">({s.type})</span></div>
             <table className="w-full border-collapse text-[10.5pt]">
-              <thead><tr><th className={cell}>TT</th><th className={cell}>Chỉ tiêu</th><th className={cell}>Đơn vị</th><th className={cell}>Kết quả</th><th className={cell}>Phương pháp</th>{s.specName && <th className={cell}>Giới hạn</th>}</tr></thead>
+              <thead><tr><th className={cell}>TT</th><th className={cell}>Chỉ tiêu</th><th className={cell}>Đơn vị</th><th className={cell}>Kết quả</th><th className={cell}>Phương pháp</th>{s.specName && <th className={cell}>{s.specName}</th>}{s.specName2 && <th className={cell}>{s.specName2}</th>}</tr></thead>
               <tbody>
                 {s.lines.map((l, i) => {
                   const approved = l.status === "Đã duyệt";
                   const p = approved ? parseResultCell(l.text) : null;
-                  const v = judge(p, l);
+                  const v1 = judge(p, l);
+                  const v = v1 === "Vượt" || (l.lim2 && judge(p, l.lim2) === "Vượt") ? "Vượt" : v1;
                   return (
                     <tr key={l.id}>
                       <td className={`${cell} text-center`}>{i + 1}</td><td className={cell}>{l.printName}</td><td className={cell}>{l.unit}</td>
                       <td className={`${cell} text-right ${v === "Vượt" ? "font-bold" : ""}`}>{approved ? l.printText || "—" : <i className="text-[9pt]">chưa duyệt</i>}{v === "Vượt" && " *"}</td>
                       <td className={cell}>{l.method}</td>
-                      {s.specName && <td className={cell}>{l.limitLabel}</td>}
+                      {s.specName && <td className={cell}>{l.limitLabel}</td>}{s.specName2 && <td className={cell}>{l.lim2?.label ?? ""}</td>}
                     </tr>
                   );
                 })}
@@ -119,7 +131,7 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
           <div><div className="font-bold uppercase">Cộng hòa xã hội chủ nghĩa Việt Nam</div><div className="font-bold">Độc lập – Tự do – Hạnh phúc</div><div className="mx-auto mt-0.5 w-40 border-t border-black" /></div>
         </div>
         <h1 className="mt-6 text-center text-[15pt] font-bold">{KINDS[kind]}</h1>
-        {kind === "bao-gia" && order.quoteNo && <p className="text-center">Số: {order.quoteNo}{order.quotedAt && ` · ngày ${fmtDateVN(order.quotedAt.slice(0, 10))}`}</p>}
+        {kind === "bao-gia" && quoteHead && <p className="text-center">Số: {quoteHead.code}{quoteHead.at && ` · ngày ${fmtDateVN(quoteHead.at.slice(0, 10))}`}</p>}
         <div className="mt-4 space-y-0.5">
           <p><b>Đơn hàng:</b> {order.code} – {order.name} ({order.kind})</p>
           <p><b>Khách hàng:</b> {customer?.name ?? "—"}{customer?.address && ` – ${customer.address}`}</p>
