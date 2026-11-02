@@ -66,6 +66,7 @@ const ENTITY_PERMISSION: Record<string, Permission> = {
   "order-samples": "write.reception",
   "sample-types": "write.quality",
   "lab-analytes": "write.quality",
+  "analyte-mappings": "write.quality",
   specifications: "write.quality",
   "specification-limits": "write.quality",
   "lab-posts": "write.any",

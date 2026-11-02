@@ -201,7 +201,7 @@ export async function replacePlanItems(orderId: string, kinds: string[], items: 
   }
 }
 
-/** Gợi ý thiết bị / dụng cụ chứa / bảo quản từ danh mục gắn với các chỉ tiêu của đơn (tab Thiết bị, Dụng cụ, Bảo quản của chỉ tiêu). */
+/** Gợi ý thiết bị quan trắc / dụng cụ chứa / bảo quản / hóa chất lấy mẫu từ các tab tương ứng của chỉ tiêu trong đơn. */
 export async function suggestPlanItems(orderId: string) {
   const rows = await dbQuery(
     `select r.kind, r.name, count(distinct s.id)::int samples
@@ -209,7 +209,7 @@ export async function suggestPlanItems(orderId: string) {
      join public.analysis_results ar on ar.sample_code = s.code
      join public.lab_analytes a on a.sample_type_id = s.sample_type_id and lower(a.name) = lower(ar.criterion)
      join public.analyte_resources r on r.analyte_id = a.id
-     where s.order_id = $1
+     where s.order_id = $1 and r.kind in ('instrument', 'container', 'preservation', 'chemical')
      group by r.kind, r.name order by r.kind, r.name`,
     [orderId],
   );
@@ -218,7 +218,7 @@ export async function suggestPlanItems(orderId: string) {
     kind: kindOf[r.kind as string] ?? "Vật tư – hóa chất",
     name: r.name as string,
     quantity: r.kind === "instrument" ? "1" : String(r.samples),
-    note: r.kind === "container" ? "Dụng cụ chứa mẫu" : "",
+    note: r.kind === "container" ? "Dụng cụ chứa mẫu" : r.kind === "chemical" ? "Hóa chất lấy mẫu" : "",
   }));
 }
 

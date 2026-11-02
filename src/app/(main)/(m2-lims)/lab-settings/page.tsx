@@ -12,7 +12,7 @@ const ITEMS: { label: string; href?: string }[] = [
   { label: "Công thức", href: "/lab-formulas" },
   { label: "Cột quy chuẩn", href: "/specifications" },
   { label: "Chỉ tiêu phân tích", href: "/lab-analytes" },
-  { label: "Chỉ tiêu phụ" },
+  { label: "Chỉ tiêu phụ", href: "/analyte-mappings" },
   { label: "Danh sách số phiếu kết quả" },
   { label: "Danh sách thiết bị", href: "/instrument-types" },
   { label: "Đặt lại mật khẩu", href: "/access-control" },

@@ -138,7 +138,7 @@ export function XActionLinks({ links, del }: { links: { label: string; href: str
   });
   if (del) items.push(<span key="del">{del}</span>);
   return (
-    <span className="inline-flex flex-wrap items-center justify-end gap-x-2">
+    <span className="inline-flex items-center justify-end gap-x-2 whitespace-nowrap">
       {items.map((x, i) => (
         <span key={i} className="inline-flex items-center gap-2">
           {i > 0 && <span className="text-[#333]">|</span>}

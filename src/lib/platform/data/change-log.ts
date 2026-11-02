@@ -29,6 +29,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   "order-samples": "Yêu cầu (mẫu) của đơn hàng",
   "sample-types": "Loại mẫu",
   "lab-analytes": "Chỉ tiêu phân tích",
+  "analyte-mappings": "Chỉ tiêu phụ",
   specifications: "Quy chuẩn",
   "specification-limits": "Giới hạn quy chuẩn",
   "lab-posts": "Bảng tin nội bộ",

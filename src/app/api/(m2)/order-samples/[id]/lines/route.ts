@@ -4,6 +4,7 @@ import { logChange } from "@/lib/platform/data/change-log";
 import { orderSampleStore, orderStore } from "@/lib/modules/m2/data/orders";
 import { initialApprovals, insertResult, nextResultCode } from "@/lib/modules/m2/data/results";
 import { LINE_KINDS } from "@/lib/modules/m2/orders";
+import { withAccessories } from "@/lib/modules/m2/data/accessories";
 import { dbQuery } from "@/lib/platform/db";
 import { normalizeVi } from "@/lib/platform/format";
 import { todayISO } from "@/lib/platform/dates";
@@ -30,7 +31,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const s = await sampleOf(id);
   if (!s) return NextResponse.json({ error: "Không tìm thấy yêu cầu" }, { status: 404 });
   if (s.stage === "Hủy mẫu" || s.stage === "Trả kết quả") return NextResponse.json({ error: `Yêu cầu đang ở trạng thái "${s.stage}"` }, { status: 409 });
-  const { items = [] } = (await req.json()) as { items?: Item[] };
+  const { items: picked = [] } = (await req.json()) as { items?: Item[] };
+  const items: Item[] = await withAccessories(picked, s.sampleTypeId);
   const existing = await dbQuery(`select criterion, coalesce(max(sort) over (), 0) mx from public.analysis_results where sample_code = $1`, [s.code]);
   const have = new Set(existing.map((r) => normalizeVi(r.criterion as string)));
   let sort = Number(existing[0]?.mx ?? 0);

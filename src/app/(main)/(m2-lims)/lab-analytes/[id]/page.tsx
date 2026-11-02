@@ -1,42 +1,45 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { LabPage, btn } from "@/components/m2/lab-ui/page";
+import { XTabs } from "@/components/m2/lab-ui/x-tabs";
+import { AnalyteInfo } from "@/components/m2/settings/analyte-info";
 import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
-import { AnalyteInfoForm } from "@/components/m2/settings/analyte-info-form";
 import { SetDefaultMethod } from "@/components/m2/settings/set-default-method";
-import { analyteStore, sampleTypeStore, specificationStore } from "@/lib/modules/m2/data/orders";
+import { analyteStore } from "@/lib/modules/m2/data/orders";
 import {
-  analyteGroupStore,
   analyteMethodStore,
   analyteResourceStore,
   containerTypeStore,
+  instrumentTypeStore,
   labMethodStore,
   preservationStore,
   scopeOptions,
   type ResourceKind,
 } from "@/lib/modules/m2/data/settings";
-import { calcTemplateStore } from "@/lib/modules/m2/data/calc-methods";
-import { equipmentStore } from "@/lib/modules/m2/data/equipment";
 import { samplingContainerStore } from "@/lib/modules/m2/data/catalogs";
-import { specLabel } from "@/lib/modules/m2/orders";
+import { chemicalsStore } from "@/lib/modules/m2/data/chemicals";
+import { staffStore } from "@/lib/modules/m2/data/staff";
 import { currentAccess } from "@/lib/platform/data/access";
-import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 const TABS = [
   { key: "thong-tin", label: "Thông tin" },
   { key: "phuong-phap", label: "Phương pháp phân tích" },
-  { key: "thiet-bi", label: "Thiết bị quan trắc / phân tích" },
+  { key: "thiet-bi", label: "Thiết bị quan trắc" },
+  { key: "thiet-bi-pt", label: "Thiết bị phân tích" },
   { key: "dung-cu", label: "Dụng cụ lấy mẫu" },
   { key: "bao-quan", label: "Bảo quản" },
+  { key: "nguoi-pt", label: "Người phân tích" },
+  { key: "hoa-chat", label: "Hoá chất lấy mẫu" },
 ] as const;
 const KIND: Record<string, { kind: ResourceKind; label: string }> = {
-  "thiet-bi": { kind: "instrument", label: "Thiết bị" },
+  "thiet-bi": { kind: "instrument", label: "Thiết bị quan trắc" },
+  "thiet-bi-pt": { kind: "instrument_lab", label: "Thiết bị phân tích" },
   "dung-cu": { kind: "container", label: "Dụng cụ lấy mẫu" },
   "bao-quan": { kind: "preservation", label: "Bảo quản" },
+  "nguoi-pt": { kind: "analyst", label: "Người phân tích" },
+  "hoa-chat": { kind: "chemical", label: "Hoá chất lấy mẫu" },
 };
 
 /** Thông tin chỉ tiêu phân tích theo từng tab. */
@@ -50,18 +53,7 @@ export default async function AnalytePage({ params, searchParams }: { params: Pr
 
   let body: React.ReactNode;
   if (active === "thong-tin") {
-    const [types, groups, formulas, specs, scopes] = await Promise.all([sampleTypeStore.list(), analyteGroupStore.list(), calcTemplateStore.list(), specificationStore.list(), scopeOptions()]);
-    body = (
-      <AnalyteInfoForm
-        analyte={a}
-        canWrite={canWrite}
-        types={types.map((t) => ({ value: t.id, label: t.name }))}
-        groups={[...new Set([...groups.sort((x, y) => x.sort - y.sort).map((g) => g.name), ...(a.groupName ? [a.groupName] : [])])]}
-        formulas={formulas.map((f) => ({ value: f.code, label: `${f.code} · ${f.name}` }))}
-        specs={specs.filter((s) => s.active).map((s) => ({ value: s.id, label: specLabel(s) }))}
-        scopes={scopes}
-      />
-    );
+    body = <AnalyteInfo id={a.id} analyte={a} canWrite={canWrite} />;
   } else if (active === "phuong-phap") {
     const [methods, catalog, scopes] = await Promise.all([analyteMethodStore.list(), labMethodStore.list(), scopeOptions()]);
     const fields: CrudField[] = [
@@ -105,10 +97,22 @@ export default async function AnalytePage({ params, searchParams }: { params: Pr
     );
   } else {
     const k = KIND[active];
-    const [resources, equipment, containerTypes, samplingContainers, preservations] = await Promise.all([analyteResourceStore.list(), equipmentStore.list(), containerTypeStore.list(), samplingContainerStore.list(), preservationStore.list()]);
+    const [resources, instrumentTypes, containerTypes, samplingContainers, preservations, staff, chemicals] = await Promise.all([analyteResourceStore.list(), instrumentTypeStore.list(), containerTypeStore.list(), samplingContainerStore.list(), preservationStore.list(), staffStore.list(), chemicalsStore.list()]);
     // Dụng cụ lấy mẫu: ưu tiên danh mục "Nhóm dụng cụ lấy mẫu" (khớp trang Vật tư – hóa chất của đơn), chưa có thì dùng loại dụng cụ.
     const containers = samplingContainers.length ? samplingContainers : containerTypes;
-    const options = k.kind === "instrument" ? equipment.map((e) => `${e.code} · ${e.name}`) : k.kind === "container" ? containers.map((c) => c.name) : preservations.map((p) => p.name);
+    // Thiết bị quan trắc / phân tích chọn từ Danh sách thiết bị (loại thiết bị) theo ô "Thiết bị quan trắc".
+    const instruments = (field: boolean) => {
+      const own = instrumentTypes.filter((t) => t.isField === field);
+      return (own.length ? own : instrumentTypes).map((t) => t.name);
+    };
+    const options = {
+      instrument: () => instruments(true),
+      instrument_lab: () => instruments(false),
+      container: () => containers.map((c) => c.name),
+      preservation: () => preservations.map((p) => p.name),
+      analyst: () => staff.map((s) => s.fullName).filter(Boolean),
+      chemical: () => chemicals.map((c) => c.name),
+    }[k.kind]();
     const fields: CrudField[] = [{ name: "isDefault", label: "Mặc định", type: "bool", boolLabels: ["Mặc định", "Không"], defaultValue: 0 }];
     body = (
       <>
@@ -118,7 +122,7 @@ export default async function AnalytePage({ params, searchParams }: { params: Pr
             endpoint="/api/analyte-resources"
             title={`Thêm ${k.label.toLowerCase()}`}
             fields={[
-              { name: "name", label: k.label, type: "select", required: true, full: true, options: options.sort() },
+              { name: "name", label: k.label, type: "select", required: true, full: true, options: [...new Set(options)].sort((x, y) => x.localeCompare(y, "vi")) },
               ...fields,
               { name: "kind", label: "Loại", type: "select", options: [{ value: k.kind, label: k.label }], defaultValue: k.kind },
               { name: "analyteId", label: "Chỉ tiêu", type: "select", options: [{ value: id, label: a.name }], defaultValue: id },
@@ -126,7 +130,6 @@ export default async function AnalytePage({ params, searchParams }: { params: Pr
             trigger={<button type="button" className={btn}>Chọn {k.label.toLowerCase()} +</button>}
           />
         )}
-        <p className="mt-2 text-xs text-muted-foreground">Dùng khi lập kế hoạch quan trắc (chuẩn bị thiết bị, dụng cụ, bảo quản) và báo cáo môi trường lao động.</p>
         <div className="mt-2">
           <CatalogTable
             entity="analyte-resources"
@@ -141,20 +144,11 @@ export default async function AnalytePage({ params, searchParams }: { params: Pr
     );
   }
 
+  const href = (k: string) => `/lab-analytes/${id}?tab=${k}`;
   return (
-    <LabPage
-      title={a.name}
-      subtitle="Thông tin chỉ tiêu phân tích"
-      toolbar={<Link href="/lab-analytes" className={btn} aria-label="Quay lại danh sách chỉ tiêu"><ArrowLeft className="h-4 w-4" /></Link>}
-    >
-      <div role="tablist" className="mb-4 flex flex-wrap border-b border-[#ddd]">
-        {TABS.map((t) => (
-          <Link key={t.key} role="tab" aria-selected={active === t.key} href={`/lab-analytes/${id}?tab=${t.key}`} className={cn("-mb-px rounded-t border px-4 py-2 text-sm", active === t.key ? "border-[#ddd] border-b-white bg-white text-[#555]" : "border-transparent text-[#337ab7] hover:bg-[#eee]")}>
-            {t.label}
-          </Link>
-        ))}
-      </div>
-      {body}
+    <LabPage title={a.name} subtitle={<span className="text-lg text-[#333]">Thông tin chỉ tiêu phân tích</span>}>
+      <XTabs tabs={TABS.map((t) => ({ label: t.label, href: href(t.key) }))} active={href(active)} />
+      <div className="pt-[10px]">{body}</div>
     </LabPage>
   );
 }

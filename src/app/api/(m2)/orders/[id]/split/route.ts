@@ -6,6 +6,7 @@ import { orderSampleStore, orderStore, sampleCodesLike, sampleTypeStore, type Or
 import { initialApprovals, insertResult, nextResultCode } from "@/lib/modules/m2/data/results";
 import { LINE_KINDS, nextSampleCodes } from "@/lib/modules/m2/orders";
 import { orderTypeSpecStore, pointStore } from "@/lib/modules/m2/data/order-extras";
+import { withAccessories } from "@/lib/modules/m2/data/accessories";
 import { todayISO, vnDateOf } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";
@@ -40,8 +41,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!type) return NextResponse.json({ error: "Chọn loại mẫu" }, { status: 400 });
   const location = String(b.locationName ?? "").trim();
   if (!location) return NextResponse.json({ error: "Nhập vị trí / tên mẫu" }, { status: 400 });
-  const lines = (b.lines ?? []).filter((l) => String(l.name ?? "").trim());
-  if (!lines.length) return NextResponse.json({ error: "Thêm ít nhất một chỉ tiêu" }, { status: 400 });
+  const picked = (b.lines ?? []).filter((l) => String(l.name ?? "").trim());
+  if (!picked.length) return NextResponse.json({ error: "Thêm ít nhất một chỉ tiêu" }, { status: 400 });
+  // Chỉ tiêu phụ khai báo ở Cài đặt được thêm ngay sau chỉ tiêu chính.
+  const lines: Line[] = await withAccessories(picked, type.id);
   const count = Math.min(50, Math.max(1, Math.round(Number(b.count) || 1)));
 
   const day = vnDateOf(order.fieldAt) || todayISO();

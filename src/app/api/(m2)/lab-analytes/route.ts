@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const routes = collectionRoutes<LabAnalyte>(
   analyteStore,
-  { sampleTypeId: "", name: "", groupName: "", unit: "", method: "", loq: "", scope: "VILAS", accreditedNo: null, sort: 0, active: true, unitPrice: 0, printName: "", abbreviation: "", isField: false, note: "", formulaCode: "", industry: "", spec1Id: "", spec2Id: "", decimals: null },
+  { sampleTypeId: "", name: "", groupName: "", unit: "", method: "", loq: "", scope: "VILAS", accreditedNo: null, sort: 0, active: true, unitPrice: 0, printName: "", abbreviation: "", isField: false, note: "", formulaCode: "", industry: "", spec1Id: "", spec2Id: "", decimals: null, englishName: "", samplingMethod: "", noKFactor: false, notInQuote: false, allocatedCost: false },
   (b) => (!b.sampleTypeId ? "Chọn loại mẫu" : !b.name?.trim() ? "Nhập tên chỉ tiêu" : null),
 );
 

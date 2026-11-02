@@ -278,6 +278,7 @@ export const navModules: NavModule[] = [
           { href: "/test-records", label: "Biên bản thử nghiệm", icon: Settings },
           { href: "/equipment", label: "Mã thiết bị", icon: Settings },
           { href: "/chemicals", label: "Hoá chất", icon: Settings },
+          { href: "/analyte-mappings", label: "Chỉ tiêu phụ", icon: Settings },
         ],
       },
       {

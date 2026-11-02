@@ -230,6 +230,11 @@ export type LabAnalyte = {
   spec1Id: string;
   spec2Id: string;
   decimals: DecimalRules | null;
+  englishName: string;
+  samplingMethod: string;
+  noKFactor: boolean;
+  notInQuote: boolean;
+  allocatedCost: boolean;
 };
 export const analyteStore = createEntityStore<LabAnalyte>(
   "lab-analytes",
@@ -255,6 +260,11 @@ export const analyteStore = createEntityStore<LabAnalyte>(
     spec1Id: "ref",
     spec2Id: "ref",
     decimals: "json",
+    englishName: "text",
+    samplingMethod: "text",
+    noKFactor: "bool",
+    notInQuote: "bool",
+    allocatedCost: "bool",
   }),
 );
 

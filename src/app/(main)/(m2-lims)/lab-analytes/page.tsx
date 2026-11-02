@@ -1,83 +1,68 @@
-import { Search } from "lucide-react";
 import Link from "next/link";
-import { LabPage, Pager, btn, input, link } from "@/components/m2/lab-ui/page";
 import { Dropdown } from "@/components/m2/lab-ui/dropdown";
-import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
-import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
+import { XDeleteLink } from "@/components/m2/lab-ui/x-delete";
+import { XActionLinks, XListPage, paginate } from "@/components/m2/lab-ui/x-list";
+import { btn } from "@/components/m2/lab-ui/page";
 import { analyteStore, sampleTypeStore } from "@/lib/modules/m2/data/orders";
-import { analyteGroupStore, labMethodStore, scopeOptions } from "@/lib/modules/m2/data/settings";
+import { analyteGroupStore } from "@/lib/modules/m2/data/settings";
 import { currentAccess } from "@/lib/platform/data/access";
-import { fmtVND, normalizeVi } from "@/lib/platform/format";
+import { normalizeVi } from "@/lib/platform/format";
 
 export const dynamic = "force-dynamic";
-const PER_PAGE = 25;
 
-export default async function AnalytesPage({ searchParams }: { searchParams: Promise<{ type?: string; q?: string; page?: string }> }) {
+type SP = { q?: string; status?: string; type?: string; group?: string; page?: string };
+
+/** Danh sách chỉ tiêu phân tích như XaLab: lọc trạng thái / loại mẫu / loại chỉ tiêu, Copy, Xóa, Xuất / Nhập Excel. */
+export default async function AnalytesPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const [items, types, access, scopes, groups, methods] = await Promise.all([analyteStore.list(), sampleTypeStore.list(), currentAccess(), scopeOptions(), analyteGroupStore.list(), labMethodStore.list()]);
+  const [items, types, groups, access] = await Promise.all([analyteStore.list(), sampleTypeStore.list(), analyteGroupStore.list(), currentAccess()]);
   const canWrite = access.can("write.quality");
   const typeName = new Map(types.map((t) => [t.id, t.name]));
-  const fields: CrudField[] = [
-    { name: "sampleTypeId", label: "Loại mẫu", type: "select", required: true, options: types.map((t) => ({ value: t.id, label: t.name })) },
-    { name: "name", label: "Tên chỉ tiêu", required: true, full: true },
-    { name: "groupName", label: "Nhóm chỉ tiêu", type: "select", options: ["", ...groups.sort((x, y) => x.sort - y.sort).map((g) => g.name)] },
-    { name: "unit", label: "Đơn vị" },
-    { name: "method", label: "Phương pháp mặc định", type: "select", full: true, options: ["", ...methods.filter((m) => m.active).map((m) => m.name).sort()] },
-    { name: "loq", label: "Giới hạn định lượng (LOQ)" },
-    { name: "scope", label: "Phạm vi thực hiện", type: "select", options: scopes },
-    { name: "unitPrice", label: "Đơn giá tham khảo (đ/mẫu, chưa thuế)", type: "number" },
-    { name: "accreditedNo", label: "Số TT phép thử VILAS", type: "number", nullable: true },
-    { name: "sort", label: "Thứ tự", type: "number" },
-    { name: "active", label: "Đang dùng", type: "bool", boolLabels: ["Đang dùng", "Ngừng dùng"], defaultValue: 1 },
-  ];
+  const sorted = [...items].sort((a, b) => a.name.localeCompare(b.name, "vi", { numeric: true }) || (typeName.get(a.sampleTypeId) ?? "").localeCompare(typeName.get(b.sampleTypeId) ?? "", "vi"));
+  const no = new Map(sorted.map((a, i) => [a.id, i + 1]));
   const q = normalizeVi(sp.q ?? "");
-  const rows = items
+  const rows = sorted
+    .filter((a) => !sp.status || (sp.status === "dang-dung" ? a.active : !a.active))
     .filter((a) => !sp.type || a.sampleTypeId === sp.type)
-    .filter((a) => !q || normalizeVi(`${a.name} ${a.method} ${a.groupName}`).includes(q))
-    .sort((a, b) => (typeName.get(a.sampleTypeId) ?? "").localeCompare(typeName.get(b.sampleTypeId) ?? "") || a.sort - b.sort);
-  const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
-  const page = Math.min(pages, Math.max(1, Number(sp.page) || 1));
-  const qs = (p: Record<string, string | undefined>) => {
-    const u = new URLSearchParams(Object.entries({ type: sp.type, q: sp.q, ...p }).filter(([, v]) => v) as [string, string][]);
-    return `/lab-analytes${u.size ? `?${u}` : ""}`;
+    .filter((a) => !sp.group || a.groupName === sp.group)
+    .filter((a) => !q || normalizeVi(`${a.name} ${a.printName} ${a.abbreviation}`).includes(q));
+  const { page, pages, slice } = paginate(rows, sp);
+  const url = (patch: Partial<SP>) => {
+    const p = new URLSearchParams(Object.entries({ ...sp, page: undefined, ...patch }).filter((e): e is [string, string] => Boolean(e[1])));
+    return `/lab-analytes${p.size ? `?${p}` : ""}`;
   };
+  const joined = `${btn} -ml-px rounded-none`;
   return (
-    <LabPage
+    <XListPage
       title="Danh sách chỉ tiêu phân tích"
-      subtitle={`${rows.length} chỉ tiêu – dùng khi bóc tách đơn hàng; mỗi chỉ tiêu gắn với một loại mẫu`}
-      toolbar={
+      basePath="/lab-analytes"
+      sp={sp}
+      newHref={canWrite ? "/lab-analytes/new" : undefined}
+      headers={["Tên", "Loại mẫu", "Nhóm chỉ tiêu", "Thứ tự"]}
+      showIndex
+      searchPlaceholder="Tên chỉ tiêu..."
+      extraFilters={
         <>
-          {canWrite && <EntityFormDialog mode="add" endpoint="/api/lab-analytes" title="Thêm chỉ tiêu" fields={fields} trigger={<button type="button" className={btn}>Thêm +</button>} />}
-          <Dropdown filter className={btn} label={`Loại mẫu: ${typeName.get(sp.type ?? "") ?? "Tất cả"}`} items={[{ label: "Tất cả", href: qs({ type: undefined }) }, ...types.map((t) => ({ label: t.name, href: qs({ type: t.id }), active: sp.type === t.id }))]} />
-          <form action="/lab-analytes" className="flex">
-            {sp.type && <input type="hidden" name="type" value={sp.type} />}
-            <input name="q" defaultValue={sp.q ?? ""} placeholder="Tên, phương pháp, nhóm..." className={`${input} w-64 rounded-r-none`} />
-            <button className={`${btn} rounded-l-none border-l-0`} aria-label="Tìm"><Search className="h-4 w-4" /></button>
-          </form>
+          <Dropdown filter className={joined} label={`Loại mẫu: ${typeName.get(sp.type ?? "") ?? "Tất cả"}`} items={[{ label: "Tất cả", href: url({ type: undefined }), active: !sp.type }, ...types.map((t) => ({ label: t.name, href: url({ type: t.id }), active: sp.type === t.id }))]} />
+          <Dropdown filter className={`${joined} rounded-r`} label={`Loại chỉ tiêu: ${sp.group || "Tất cả"}`} items={[{ label: "Tất cả", href: url({ group: undefined }), active: !sp.group }, ...groups.sort((a, b) => a.sort - b.sort).map((g) => ({ label: g.name, href: url({ group: g.name }), active: sp.group === g.name }))]} />
         </>
       }
-    >
-      <CatalogTable
-        entity="lab-analytes"
-        canWrite={canWrite}
-        fields={fields}
-        headers={["Tên", "Loại mẫu", "Nhóm", "Đơn vị", "Phương pháp", "Phạm vi", "Đơn giá"]}
-        rows={rows.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((a) => ({
-          id: a.id,
-          label: a.name,
-          initial: a,
-          cells: [
-            <Link key="n" href={`/lab-analytes/${a.id}`} className={`${link} ${a.active ? "" : "line-through"}`}>{a.accreditedNo ? `${String(a.accreditedNo).padStart(2, "0")}. ` : ""}{a.name}</Link>,
-            typeName.get(a.sampleTypeId) ?? "—",
-            a.groupName || "—",
-            a.unit || "—",
-            <span key="m" className="text-xs">{a.method}</span>,
-            a.scope,
-            <span key="p" className="whitespace-nowrap">{a.unitPrice ? fmtVND(a.unitPrice) : "—"}</span>,
-          ],
-        }))}
-      />
-      <Pager page={page} pages={pages} href={(p) => qs({ page: String(p) })} />
-    </LabPage>
+      extraToolbar={
+        <>
+          <Link href="/lab-analytes/export" className={btn}>Xuất Excel</Link>
+          {canWrite && <Link href="/lab-analytes/import" className={btn}>Nhập Excel</Link>}
+        </>
+      }
+      total={rows.length}
+      page={page}
+      pages={pages}
+      rows={slice.map((a) => ({
+        id: a.id,
+        no: no.get(a.id) ?? 0,
+        href: `/lab-analytes/${a.id}`,
+        cells: [<span key="n" className={a.active ? undefined : "line-through"}>{a.name}</span>, typeName.get(a.sampleTypeId) ?? "", a.groupName, a.sort || ""],
+        actions: canWrite ? <XActionLinks links={[{ label: "Copy", href: `/lab-analytes/new?copy=${a.id}`, icon: "copy" }]} del={<XDeleteLink url={`/api/lab-analytes/${a.id}`} label={a.name} />} /> : null,
+      }))}
+    />
   );
 }

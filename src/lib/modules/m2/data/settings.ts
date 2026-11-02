@@ -174,7 +174,7 @@ export const analyteMethodStore = createEntityStore<AnalyteMethod>(
   columnsMapping<AnalyteMethod>("analyte_methods", { analyteId: "ref", method: "text", isDefault: "bool", minValue: "optnum", maxValue: "optnum", subcontractor: "text" }),
 );
 
-export type ResourceKind = "instrument" | "container" | "preservation";
+export type ResourceKind = "instrument" | "instrument_lab" | "container" | "preservation" | "analyst" | "chemical";
 export type AnalyteResource = { id: string; analyteId: string; kind: ResourceKind; name: string; isDefault: boolean };
 export const analyteResourceStore = createEntityStore<AnalyteResource>(
   "analyte-resources",
@@ -208,3 +208,21 @@ async function specLimitStoreRef() {
   const { specLimitStore } = await import("@/lib/modules/m2/data/orders");
   return specLimitStore.list();
 }
+
+/** Chỉ tiêu phụ (migration 0039): bóc tách chỉ tiêu chính (theo loại mẫu, phương pháp) thì tự thêm các chỉ tiêu phụ. */
+export type AnalyteMapping = { id: string; sampleTypeId: string; mainAnalyteId: string; method: string; accessoryIds: string[]; hideAccessory: boolean };
+export const analyteMappingStore = createEntityStore<AnalyteMapping>(
+  "analyte-mappings",
+  [],
+  columnsMapping<AnalyteMapping>("analyte_mappings", { sampleTypeId: "ref", mainAnalyteId: "ref", method: "text", accessoryIds: "json", hideAccessory: "bool" }),
+);
+
+/** Kiểm tra khai báo chỉ tiêu phụ: có chỉ tiêu chính, ít nhất một chỉ tiêu phụ, không lấy chính nó làm chỉ tiêu phụ. */
+export const checkMapping = (b: Partial<AnalyteMapping>) =>
+  b.mainAnalyteId === "" || ("mainAnalyteId" in b && !b.mainAnalyteId)
+    ? "Chọn chỉ tiêu chính"
+    : b.accessoryIds && !b.accessoryIds.length
+      ? "Chọn ít nhất một chỉ tiêu phụ"
+      : b.mainAnalyteId && b.accessoryIds?.includes(b.mainAnalyteId)
+        ? "Chỉ tiêu phụ không được trùng chỉ tiêu chính"
+        : null;
