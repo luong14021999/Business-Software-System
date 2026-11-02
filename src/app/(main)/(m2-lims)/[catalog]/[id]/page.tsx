@@ -1,10 +1,9 @@
 import { notFound } from "next/navigation";
 import { LabPage } from "@/components/m2/lab-ui/page";
 import { XForm } from "@/components/m2/lab-ui/x-form";
-import { catalogOf, resolveFields } from "@/lib/modules/m2/catalog-registry";
+import { catalogOf, resolveFields, subtitleOf } from "@/lib/modules/m2/catalog-registry";
 import { currentAccess } from "@/lib/platform/data/access";
 import { permissionForEntity } from "@/lib/platform/permissions";
-import { subtitleOf } from "../new/page";
 
 export const dynamic = "force-dynamic";
 

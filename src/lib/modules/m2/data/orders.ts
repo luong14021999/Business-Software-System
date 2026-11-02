@@ -37,6 +37,23 @@ export type Order = {
   priceListId: string;
   contactId: string;
   locationId: string;
+  contractId: string;
+  requestingUnitId: string;
+  compareOrderIds: string[];
+  growingAreaCode: string;
+  packingFacilityCode: string;
+  vehiclePlate: string;
+  trailerPlate: string;
+  containerNo: string;
+  sealNo: string;
+  showFieldTime: boolean;
+  hideRequests: boolean;
+  activityReport: boolean;
+  industryId: string;
+  departmentId: string;
+  deliveryCount: string;
+  reportNoEn: string;
+  reportNoKind: string;
 };
 
 export const orderStore = createEntityStore<Order>(
@@ -75,6 +92,23 @@ export const orderStore = createEntityStore<Order>(
     priceListId: "ref",
     contactId: "ref",
     locationId: "ref",
+    contractId: "ref",
+    requestingUnitId: "ref",
+    compareOrderIds: "json",
+    growingAreaCode: "text",
+    packingFacilityCode: "text",
+    vehiclePlate: "text",
+    trailerPlate: "text",
+    containerNo: "text",
+    sealNo: "text",
+    showFieldTime: "bool",
+    hideRequests: "bool",
+    activityReport: "bool",
+    industryId: "ref",
+    departmentId: "ref",
+    deliveryCount: "text",
+    reportNoEn: "text",
+    reportNoKind: "text",
   }),
 );
 

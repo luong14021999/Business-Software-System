@@ -510,3 +510,7 @@ export async function decorate(rows: Row[]): Promise<Row[]> {
   const types = new Map((await sampleTypeStore.list()).map((t) => [t.id, t.name]));
   return rows.map((r) => ({ ...r, $sampleType: types.get(r.sampleTypeId) ?? "" }));
 }
+
+/** "Thông tin phương pháp phân tích" từ "Danh sách phương pháp phân tích". */
+export const subtitleOf = (listTitle: string, explicit?: string) =>
+  explicit ?? `Thông tin ${listTitle.replace(/^Danh sách\s+/i, "").replace(/^./, (c) => c.toLowerCase())}`;

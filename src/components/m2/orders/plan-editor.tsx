@@ -138,7 +138,7 @@ export function PlanEditor({
       {PLAN_ITEM_KINDS.map((kind) => {
         const rows = items.map((it, i) => ({ it, i })).filter((x) => x.it.kind === kind);
         return (
-          <section key={kind}>
+          <section key={kind} id={kind === "Bảo quản" ? "bao-quan" : kind === "Thiết bị" ? "thiet-bi" : "vat-tu"}>
             <h2 className="mb-2 flex flex-wrap items-center gap-2 border-b border-[#ddd] pb-1 text-lg font-medium">
               {kind}
               {canWrite && <button type="button" onClick={() => setItems((xs) => [...xs, { kind, name: "", quantity: "", note: "" }])} className={btnXs}><Plus className="h-3 w-3" aria-hidden />Thêm dòng</button>}

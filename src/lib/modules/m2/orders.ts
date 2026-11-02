@@ -2,6 +2,13 @@
 
 export const ORDER_KINDS = ["Mẫu gửi", "Quan trắc môi trường", "Môi trường lao động", "Nông sản – thực phẩm"] as const;
 export type OrderKind = (typeof ORDER_KINDS)[number];
+/** Nhãn loại đơn hàng như XaLab (giá trị lưu giữ nguyên). */
+export const ORDER_KIND_LABEL: Record<string, string> = { "Mẫu gửi": "Mẫu gửi", "Quan trắc môi trường": "Quan trắc MT", "Môi trường lao động": "Môi trường lao động", "Nông sản – thực phẩm": "Thực phẩm" };
+/** Nhãn ngắn ở cột "Loại" của danh sách đơn hàng. */
+export const ORDER_KIND_SHORT: Record<string, string> = { "Mẫu gửi": "Mẫu gửi", "Quan trắc môi trường": "Quan trắc", "Môi trường lao động": "MTLĐ", "Nông sản – thực phẩm": "Thực phẩm" };
+/** Hình thức trả kết quả và loại số phiếu như XaLab. */
+export const DELIVERY_METHODS = ["Bưu điện", "Fax", "Email", "Đến nhận"] as const;
+export const REPORT_NO_KINDS = ["VILAS", "VIMCERTS", "Nội bộ"] as const;
 
 /** Vòng đời đơn hàng theo thứ tự; "Hủy" có thể đặt ở bất kỳ bước nào. */
 export const ORDER_STATUSES = ["Báo giá", "Quan trắc", "Phân tích", "Trả kết quả", "Thanh lý", "Hủy"] as const;

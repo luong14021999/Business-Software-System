@@ -7,7 +7,7 @@ import { List, Printer } from "lucide-react";
 import { Dropdown } from "@/components/m2/lab-ui/dropdown";
 import { btnPrimary, btnXs, link, table } from "@/components/m2/lab-ui/page";
 import { toast } from "@/components/ui/toast";
-import { ORDER_STATUS_TONE } from "@/lib/modules/m2/orders";
+import { ORDER_KIND_SHORT, ORDER_STATUS_TONE } from "@/lib/modules/m2/orders";
 import type { Order } from "@/lib/modules/m2/data/orders";
 import { fmtDateTimeVN } from "@/lib/platform/dates";
 
@@ -72,9 +72,8 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
                 <td><input type="checkbox" aria-label={`Chọn ${r.code}`} checked={sel.has(r.id)} onChange={() => toggle(r.id)} /></td>
                 <td>
                   <Link href={`/orders/${r.id}`} className={link}>{r.name}</Link>
-                  {r.samples > 0 && <div className="text-xs text-muted-foreground">{r.samples} mẫu · {r.approved}/{r.lines} kết quả đã duyệt</div>}
                 </td>
-                <td className="whitespace-nowrap">{r.kind === "Quan trắc môi trường" ? "Quan trắc" : r.kind}</td>
+                <td>{ORDER_KIND_SHORT[r.kind] ?? r.kind}</td>
                 <td className="whitespace-nowrap">{fmtDateTimeVN(r.fieldAt) || "—"}</td>
                 <td className="whitespace-nowrap">{fmtDateTimeVN(r.dueAt) || "—"}</td>
                 <td>{r.customerName || "—"}</td>
@@ -88,17 +87,18 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
                       icon={<List className="h-3 w-3" aria-hidden />}
                       align="right"
                       items={[
-                        { label: "Sửa thông tin đơn hàng", href: `/orders/${r.id}` },
                         { label: "Quy chuẩn", href: `/orders/${r.id}/specs` },
                         { label: "Bóc tách", href: `/orders/${r.id}/split` },
-                        { label: "Yêu cầu", href: `/orders/${r.id}/samples` },
-                        { label: "Kế hoạch quan trắc", href: `/orders/${r.id}/plan` },
-                        { label: "Phân công phân tích", href: `/orders/${r.id}/assign` },
-                        { label: "Nhập/duyệt kết quả thử nghiệm", href: `/orders/${r.id}/results` },
                         { label: "Báo giá", href: `/orders/${r.id}/quote` },
                         { label: "Báo giá trước bóc tách", href: `/orders/${r.id}/quote-before` },
                         { label: "Công nợ", href: `/orders/${r.id}/debit` },
-                        { divider: true, label: "" },
+                        { label: "Nhân sự quan trắc", href: `/orders/${r.id}/plan` },
+                        { label: "Vật tư - hóa chất", href: `/orders/${r.id}/plan#vat-tu` },
+                        { label: "Bảo quản", href: `/orders/${r.id}/plan#bao-quan` },
+                        { label: "Phân công/kết quả phân tích", href: `/orders/${r.id}/assign` },
+                        { label: "Nhập/duyệt kết quả thử nghiệm", href: `/orders/${r.id}/results` },
+                        { label: "Yêu cầu", href: `/orders/${r.id}/samples` },
+                        { label: "Copy", href: `/orders/new?copy=${r.id}` },
                         { label: "Xóa", danger: true, onClick: () => remove(r) },
                       ]}
                     />
@@ -108,11 +108,11 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
                       icon={<Printer className="h-3 w-3" aria-hidden />}
                       align="right"
                       items={[
-                        { label: "Phiếu yêu cầu phân tích", href: `/order-print/${r.id}?loai=yeu-cau` },
                         { label: "Kế hoạch quan trắc", href: `/order-print/${r.id}?loai=ke-hoach` },
-                        { label: "Tem mã hóa mẫu", href: r.sampleCodes.length ? `/sample-labels?codes=${encodeURIComponent(r.sampleCodes.join(","))}` : `/orders/${r.id}/split` },
-                        { label: "Báo giá", href: `/order-print/${r.id}?loai=bao-gia` },
+                        { label: "Phiếu yêu cầu phân tích", href: `/order-print/${r.id}?loai=yeu-cau` },
                         { label: "Kết quả tổng hợp", href: `/order-print/${r.id}?loai=ket-qua` },
+                        { label: "Báo giá", href: `/order-print/${r.id}?loai=bao-gia` },
+                        { label: "Tem mã hóa mẫu", href: r.sampleCodes.length ? `/sample-labels?codes=${encodeURIComponent(r.sampleCodes.join(","))}` : `/orders/${r.id}/split` },
                       ]}
                     />
                   </div>

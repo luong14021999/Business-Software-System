@@ -1,16 +1,16 @@
 import { LabPage } from "@/components/m2/lab-ui/page";
 import { OrderForm } from "@/components/m2/orders/order-form";
-import { getCustomers } from "@/lib/modules/m2/data/customers";
-import { contactStore, locationStore } from "@/lib/modules/m2/data/order-extras";
-import { staffStore } from "@/lib/modules/m2/data/staff";
+import { orderFormData } from "@/lib/modules/m2/data/order-form-data";
+import { orderStore } from "@/lib/modules/m2/data/orders";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewOrderPage() {
-  const [customers, staff, contacts, locations] = await Promise.all([getCustomers(), staffStore.list(), contactStore.list(), locationStore.list()]);
+export default async function NewOrderPage({ searchParams }: { searchParams: Promise<{ copy?: string }> }) {
+  const { copy } = await searchParams;
+  const copyFrom = copy ? (await orderStore.list()).find((o) => o.id === copy) : undefined;
   return (
-    <LabPage title="Thêm đơn hàng">
-      <OrderForm customers={customers.map((c) => ({ id: c.id, name: c.name }))} staff={staff.map((s) => s.fullName).filter(Boolean)} contacts={contacts} locations={locations} />
+    <LabPage title="Tạo đơn hàng" rule={false}>
+      <OrderForm {...await orderFormData()} copyFrom={copyFrom} />
     </LabPage>
   );
 }
