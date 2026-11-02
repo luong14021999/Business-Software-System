@@ -483,14 +483,29 @@ export const orderPaymentStore = createEntityStore<OrderPayment>(
 
 // ── Trang "Kết quả" (tra cứu / xuất / nhập kết quả theo khoảng ngày, mã mẫu) ──
 
-export type ResultQuery = { by: "quan-trac" | "nhan-mau" | "ma-mau"; from?: string; to?: string; method?: string; typeId?: string; criterion?: string; code?: string };
-export type ResultRowLine = OrderLine & { locationName: string; customerSampleCode: string; fieldAt: string; receivedAt: string };
+export type ResultQuery = {
+  by: "quan-trac" | "nhan-mau" | "ma-mau";
+  from?: string;
+  to?: string;
+  method?: string;
+  typeId?: string;
+  criterion?: string;
+  code?: string;
+  /** Bộ lọc thêm của trang Thống kê. */
+  customerId?: string;
+  unitId?: string;
+  departmentId?: string;
+  subcontractor?: string;
+  /** false = bỏ mẫu QA/QC và mẫu lặp. */
+  withQc?: boolean;
+};
+export type ResultRowLine = OrderLine & { locationName: string; customerSampleCode: string; fieldAt: string; receivedAt: string; customer: string; orderCode: string; isQc: boolean; isDuplicate: boolean };
 
-/** Dòng kết quả thuộc các mẫu của đơn hàng theo bộ lọc của trang Kết quả (tối đa 5000 dòng). */
+/** Dòng kết quả thuộc các mẫu của đơn hàng theo bộ lọc của trang Kết quả / Thống kê (tối đa 20000 dòng). */
 export async function searchResultLines(f: ResultQuery): Promise<ResultRowLine[]> {
   if (!isDbConfigured()) return [];
   const rows = await dbQuery(
-    `select ${LINE_COLS}, s.location_name, s.customer_sample_code, o.field_at, s.received_at
+    `select ${LINE_COLS}, s.location_name, s.customer_sample_code, o.field_at, s.received_at, s.customer, o.code order_code, s.is_qc, s.is_duplicate
      from public.analysis_results r
      join public.samples s on s.code = r.sample_code
      join public.orders o on o.id = s.order_id
@@ -500,9 +515,14 @@ export async function searchResultLines(f: ResultQuery): Promise<ResultRowLine[]
        and ($4 = '' or r.method = $4)
        and ($5 = '' or s.sample_type_id::text = $5)
        and ($6 = '' or lower(r.criterion) = lower($6))
+       and ($8 = '' or o.customer_id::text = $8)
+       and ($9 = '' or o.requesting_unit_id::text = $9)
+       and ($10 = '' or o.department_id::text = $10)
+       and ($11 = '' or r.subcontractor = $11)
+       and ($12 or not (coalesce(s.is_qc, false) or coalesce(s.is_duplicate, false)))
      order by s.code, coalesce(r.sort, 0), r.criterion
-     limit 5000`,
-    [f.by, f.from ?? "", f.to ?? "", f.method ?? "", f.typeId ?? "", f.criterion ?? "", f.code ?? ""],
+     limit 20000`,
+    [f.by, f.from ?? "", f.to ?? "", f.method ?? "", f.typeId ?? "", f.criterion ?? "", f.code ?? "", f.customerId ?? "", f.unitId ?? "", f.departmentId ?? "", f.subcontractor ?? "", f.withQc !== false],
   );
   return rows.map((r) => ({
     ...toLine(r),
@@ -510,6 +530,10 @@ export async function searchResultLines(f: ResultQuery): Promise<ResultRowLine[]
     customerSampleCode: (r.customer_sample_code as string) ?? "",
     fieldAt: (r.field_at as string) ?? "",
     receivedAt: (r.received_at as string) ?? "",
+    customer: (r.customer as string) ?? "",
+    orderCode: (r.order_code as string) ?? "",
+    isQc: Boolean(r.is_qc),
+    isDuplicate: Boolean(r.is_duplicate),
   }));
 }
 

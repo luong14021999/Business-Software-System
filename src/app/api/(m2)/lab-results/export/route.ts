@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   const gate = await authorize("results.enter");
   if (!gate.ok) return gate.response;
   const u = new URL(req.url);
-  const q = Object.fromEntries(u.searchParams) as ResultQuery & { an?: string };
+  const q = Object.fromEntries(u.searchParams) as unknown as ResultQuery & { an?: string };
   const lines = await searchResultLines({ ...q, by: q.by === "nhan-mau" || q.by === "ma-mau" ? q.by : "quan-trac" });
   const hide = q.an === "1";
   const m = resultMatrix(lines, hide);
