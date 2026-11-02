@@ -8,7 +8,6 @@ import {
   SidebarBrand,
   SidebarNav,
 } from "@/components/layout/nav-config";
-import { SidebarUser } from "@/components/layout/sidebar-user";
 
 export function MobileSidebar() {
   const [open, setOpen] = useState(false);
@@ -44,7 +43,6 @@ export function MobileSidebar() {
             </Dialog.Close>
           </div>
           <SidebarNav pathname={pathname} onNavigate={() => setOpen(false)} />
-          <SidebarUser />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

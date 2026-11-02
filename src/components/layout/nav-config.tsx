@@ -437,11 +437,11 @@ export const navGroups: NavGroup[] = [{ label: "Tổng quan", items: navHome }, 
 export const isActiveHref = (href: string, pathname: string) =>
   href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
 
-/** Phân hệ chứa trang hiện tại (theo menu); trang in, tài khoản và phiếu diễn biến phân tích (mở từ lưới Kết quả) thuộc M2. */
+/** Phân hệ chứa trang hiện tại (theo menu); trang in và phiếu diễn biến phân tích (mở từ lưới Kết quả) thuộc M2. */
 export function moduleOf(pathname: string): NavModule | undefined {
   const byMenu = navModules.find((m) => m.groups.some((g) => g.items.some((i) => isActiveHref(i.href, pathname))));
   if (byMenu) return byMenu;
-  if (/^\/(sample-labels|report-print|order-print|batch-print|verify|lab-account|result\-entry)(\/|$)/.test(pathname)) return navModules.find((m) => m.code === "M2");
+  if (/^\/(sample-labels|report-print|order-print|batch-print|verify|result\-entry)(\/|$)/.test(pathname)) return navModules.find((m) => m.code === "M2");
   return undefined;
 }
 

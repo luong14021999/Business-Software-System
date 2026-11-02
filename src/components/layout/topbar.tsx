@@ -67,7 +67,8 @@ export function TopBar({ canAdmin = false, canCatalog = false }: { canAdmin?: bo
             <span className="hidden lg:inline">Danh mục</span>
           </Link>
         ) : null}
-        <HeaderUser />
+        {/* Tài khoản / đăng xuất chỉ ở trang chủ các phần mềm, không hiện khi đang ở trong một phần mềm. */}
+        {!mod && <HeaderUser />}
       </div>
       </div>
       <GovGoldRule />
