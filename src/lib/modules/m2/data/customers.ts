@@ -1,4 +1,4 @@
-import { createEntityStore, dateOrNull } from "../../../platform/data/factory";
+import { columnsMapping, createEntityStore, dateOrNull } from "../../../platform/data/factory";
 import { isDbConfigured } from "@/lib/platform/db";
 import { customers as mockCustomers, type Customer } from "@/lib/mock-data";
 
@@ -54,3 +54,61 @@ export const createCustomer = (c: Customer) => customersStore.create(c);
 export const patchCustomer = (id: string, patch: Partial<Customer>) =>
   customersStore.update(id, patch);
 export const removeCustomer = (id: string) => customersStore.remove(id);
+
+/** Hồ sơ khách hàng đầy đủ trường như form XaLab (cùng bảng customers, dùng cho các trang Khách hàng của M2). */
+export type CustomerProfile = {
+  id: string;
+  code: string;
+  name: string;
+  kind: string;
+  contact: string;
+  phone: string;
+  address: string;
+  printName: string;
+  englishName: string;
+  taxCode: string;
+  bankAccount: string;
+  fax: string;
+  email: string;
+  province: string;
+  addressOld: string;
+  invoiceAddress: string;
+  representative: string;
+  representativeTitle: string;
+  departmentId: string;
+  isRequestingUnit: boolean;
+  isInspection: boolean;
+  active: boolean;
+  createdBy: string;
+  createdAt: string;
+};
+export const customerProfileStore = createEntityStore<CustomerProfile>(
+  "customers",
+  [],
+  columnsMapping<CustomerProfile>("customers", {
+    code: "text",
+    name: "text",
+    kind: "text",
+    contact: "text",
+    phone: "text",
+    address: "text",
+    printName: "text",
+    englishName: "text",
+    taxCode: "text",
+    bankAccount: "text",
+    fax: "text",
+    email: "text",
+    province: "text",
+    addressOld: "text",
+    invoiceAddress: "text",
+    representative: "text",
+    representativeTitle: "text",
+    departmentId: "ref",
+    isRequestingUnit: "bool",
+    isInspection: "bool",
+    active: "bool",
+    createdBy: "text",
+    createdAt: "date",
+  }),
+);
+

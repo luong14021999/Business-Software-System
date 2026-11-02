@@ -3,25 +3,25 @@ import { columnsMapping, createEntityStore } from "@/lib/platform/data/factory";
 import { dbQuery } from "@/lib/platform/db";
 import type { QuoteItem } from "@/lib/modules/m2/orders";
 
-export type CustomerContact = { id: string; customerId: string; name: string; title: string; phone: string; email: string; note: string };
+export type CustomerContact = { id: string; customerId: string; name: string; title: string; phone: string; email: string; note: string; salutation: string; department: string; phone2: string };
 export const contactStore = createEntityStore<CustomerContact>(
   "customer-contacts",
   [],
-  columnsMapping<CustomerContact>("customer_contacts", { customerId: "ref", name: "text", title: "text", phone: "text", email: "text", note: "text" }),
+  columnsMapping<CustomerContact>("customer_contacts", { customerId: "ref", name: "text", title: "text", phone: "text", email: "text", note: "text", salutation: "text", department: "text", phone2: "text" }),
 );
 
-export type CustomerLocation = { id: string; customerId: string; name: string; oldName: string; description: string };
+export type CustomerLocation = { id: string; customerId: string; name: string; oldName: string; description: string; englishName: string };
 export const locationStore = createEntityStore<CustomerLocation>(
   "customer-locations",
   [],
-  columnsMapping<CustomerLocation>("customer_locations", { customerId: "ref", name: "text", oldName: "text", description: "text" }),
+  columnsMapping<CustomerLocation>("customer_locations", { customerId: "ref", name: "text", oldName: "text", description: "text", englishName: "text" }),
 );
 
-export type MonitoringPoint = { id: string; locationId: string; name: string; description: string; lat: number | null; lng: number | null };
+export type MonitoringPoint = { id: string; locationId: string; name: string; description: string; lat: number | null; lng: number | null; englishName: string; sort: number; active: boolean };
 export const pointStore = createEntityStore<MonitoringPoint>(
   "monitoring-points",
   [],
-  columnsMapping<MonitoringPoint>("monitoring_points", { locationId: "ref", name: "text", description: "text", lat: "optnum", lng: "optnum" }),
+  columnsMapping<MonitoringPoint>("monitoring_points", { locationId: "ref", name: "text", description: "text", lat: "optnum", lng: "optnum", englishName: "text", sort: "number", active: "bool" }),
 );
 
 export type OrderDocument = { id: string; orderId: string; kind: string; url: string; note: string; createdBy: string; createdAt: string };

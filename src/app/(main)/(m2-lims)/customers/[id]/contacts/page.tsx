@@ -1,51 +1,44 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { LabPage, btn } from "@/components/m2/lab-ui/page";
-import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
-import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
-import { getCustomers } from "@/lib/modules/m2/data/customers";
-import { contactStore } from "@/lib/modules/m2/data/order-extras";
-import { currentAccess } from "@/lib/platform/data/access";
 import { pageGate } from "@/components/m2/lab-ui/page-gate";
+import { XDeleteLink } from "@/components/m2/lab-ui/x-delete";
+import { XListPage, paginate } from "@/components/m2/lab-ui/x-list";
+import { contactStore } from "@/lib/modules/m2/data/order-extras";
+import { customerContext } from "@/lib/modules/m2/data/customer-pages";
+import { normalizeVi } from "@/lib/platform/format";
 
 export const dynamic = "force-dynamic";
 
-const FIELDS: CrudField[] = [
-  { name: "name", label: "Họ và tên", required: true },
-  { name: "title", label: "Chức vụ" },
-  { name: "phone", label: "Điện thoại" },
-  { name: "email", label: "Email" },
-  { name: "note", label: "Ghi chú", type: "textarea" },
-];
-
-export default async function ContactsPage({ params }: { params: Promise<{ id: string }> }) {
+/** Danh sách liên lạc của khách hàng. */
+export default async function ContactsPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ q?: string; page?: string }> }) {
   const denied = await pageGate("view.customers");
   if (denied) return denied;
-  const { id } = await params;
-  const [customers, contacts, access] = await Promise.all([getCustomers(), contactStore.list(), currentAccess()]);
-  const c = customers.find((x) => x.id === id);
-  if (!c) notFound();
-  const canWrite = access.can("write.reception");
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  const ctx = await customerContext(id);
+  if (!ctx) notFound();
+  const q = normalizeVi(sp.q ?? "");
+  const rows = (await contactStore.list()).filter((c) => c.customerId === id && (!q || normalizeVi(`${c.name} ${c.phone} ${c.email}`).includes(q))).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  const { page, pages, slice } = paginate(rows, sp);
+  const base = `/customers/${id}/contacts`;
   return (
-    <LabPage
-      title={`Danh sách liên lạc của ${c.name}`}
-      toolbar={
-        <>
-          <Link href="/customers" className={btn} aria-label="Quay lại"><ArrowLeft className="h-4 w-4" /></Link>
-          {canWrite && <EntityFormDialog mode="add" endpoint="/api/customer-contacts" title="Thêm người liên hệ" fields={[...FIELDS, { name: "customerId", label: "Khách hàng", type: "select", options: [{ value: id, label: c.name }], defaultValue: id }]} trigger={<button type="button" className={btn}>Thêm +</button>} />}
-          <Link href={`/customers/${id}/locations`} className={btn}>Địa điểm</Link>
-        </>
-      }
-    >
-      <CatalogTable
-        entity="customer-contacts"
-        canWrite={canWrite}
-        fields={FIELDS}
-        emptyText="Chưa có người liên hệ"
-        headers={["Họ và tên", "Chức vụ", "Điện thoại", "Email", "Ghi chú"]}
-        rows={contacts.filter((x) => x.customerId === id).sort((a, b) => a.name.localeCompare(b.name, "vi")).map((x) => ({ id: x.id, label: x.name, initial: x, cells: [x.name, x.title, x.phone, x.email, x.note] }))}
-      />
-    </LabPage>
+    <XListPage
+      title={`Danh sách liên lạc của ${ctx.customer.name}`}
+      basePath={base}
+      sp={sp}
+      backHref="/customers"
+      newHref={ctx.canWrite ? `${base}/new` : undefined}
+      statusFilter={false}
+      searchPlaceholder="Tìm kiếm..."
+      headers={["Họ và tên", "Chức danh", "Phòng", "Số điện thoại", "Email"]}
+      total={rows.length}
+      page={page}
+      pages={pages}
+      rows={slice.map((c, i) => ({
+        id: c.id,
+        no: i + 1,
+        href: `${base}/${c.id}`,
+        cells: [[c.salutation, c.name].filter(Boolean).join(" "), c.title, c.department, [c.phone, c.phone2].filter(Boolean).join(" · "), c.email],
+        actions: ctx.canWrite ? <XDeleteLink url={`/api/customer-contacts/${c.id}`} label={c.name} /> : undefined,
+      }))}
+    />
   );
 }

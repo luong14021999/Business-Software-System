@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { ArrowLeft, CalendarDays, Copy, List, Plus, Search } from "lucide-react";
 import { Dropdown } from "@/components/m2/lab-ui/dropdown";
 import { LabPage, Pager, btn, input, link, table } from "@/components/m2/lab-ui/page";
 
@@ -26,6 +26,7 @@ export function XListPage({
   extraToolbar,
   extraFilters,
   footer,
+  backHref,
 }: {
   title: string;
   basePath: string;
@@ -43,6 +44,8 @@ export function XListPage({
   /** Bộ lọc thêm (VD Loại mẫu) đặt cạnh nút Trạng thái. */
   extraFilters?: ReactNode;
   footer?: ReactNode;
+  /** Nút [←] đứng đầu nhóm nút (trang con, VD liên lạc của khách hàng). */
+  backHref?: string;
 }) {
   const url = (patch: Record<string, string | undefined>) => {
     const merged: Record<string, string | undefined> = { ...sp, page: undefined, ...patch };
@@ -63,6 +66,7 @@ export function XListPage({
       toolbar={
         <>
           <div className="flex">
+            {backHref && <Link href={backHref} className={`${btn} ${grouped}`} aria-label="Quay lại"><ArrowLeft className="h-4 w-4 stroke-[3]" /></Link>}
             {newHref && <Link href={newHref} className={`${btn} ${grouped}`}>Thêm <Plus className="h-4 w-4 stroke-[3]" /></Link>}
             {statusFilter && (
               <Dropdown
@@ -117,4 +121,30 @@ export function paginate<T>(items: T[], sp: { page?: string }, perPage = 10) {
   const pages = Math.max(1, Math.ceil(items.length / perPage));
   const page = Math.min(pages, Math.max(1, Number(sp.page) || 1));
   return { page, pages: items.length ? pages : 0, slice: items.slice((page - 1) * perPage, page * perPage) };
+}
+
+const ICONS = { list: List, calendar: CalendarDays, copy: Copy } as const;
+
+/** Các link thao tác cuối dòng kiểu XaLab: "Liên lạc ☰ | Địa điểm ☰ | … | Xóa ✖". */
+export function XActionLinks({ links, del }: { links: { label: string; href: string; icon?: keyof typeof ICONS }[]; del?: ReactNode }) {
+  const items: ReactNode[] = links.map((l) => {
+    const Icon = l.icon ? ICONS[l.icon] : null;
+    return (
+      <Link key={l.href} href={l.href} className={`${link} inline-flex items-center gap-1`}>
+        {l.label}
+        {Icon && <Icon className="h-3.5 w-3.5 stroke-[2.5]" aria-hidden />}
+      </Link>
+    );
+  });
+  if (del) items.push(<span key="del">{del}</span>);
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-x-2">
+      {items.map((x, i) => (
+        <span key={i} className="inline-flex items-center gap-2">
+          {i > 0 && <span className="text-[#333]">|</span>}
+          {x}
+        </span>
+      ))}
+    </span>
+  );
 }
