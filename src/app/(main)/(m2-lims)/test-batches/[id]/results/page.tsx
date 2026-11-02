@@ -14,7 +14,7 @@ export default async function BatchResultsPage({ params }: { params: Promise<{ i
   const batch = batches.find((b) => b.id === id);
   if (!batch) notFound();
   return (
-    <LabPage title="Nhập/duyệt kết quả thử nghiệm" subtitle={`Mẻ ${batch.code} · ${batch.method || "chưa chọn phương pháp"} · ${batch.analyst}`} wide>
+    <LabPage title="Nhập/duyệt kết quả thử nghiệm" rule={false}>
       <ResultsGrid
         saveUrl={`/api/test-batches/${id}/results`}
         backHref={`/test-batches/${id}`}

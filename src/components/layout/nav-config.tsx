@@ -473,7 +473,7 @@ export const isActiveHref = (href: string, pathname: string) =>
 export function moduleOf(pathname: string): NavModule | undefined {
   const byMenu = navModules.find((m) => m.groups.some((g) => g.items.some((i) => isActiveHref(i.href, pathname))));
   if (byMenu) return byMenu;
-  if (/^\/(sample-labels|report-print|order-print|verify|lab-account)(\/|$)/.test(pathname)) return navModules.find((m) => m.code === "M2");
+  if (/^\/(sample-labels|report-print|order-print|batch-print|verify|lab-account)(\/|$)/.test(pathname)) return navModules.find((m) => m.code === "M2");
   return undefined;
 }
 
