@@ -17,6 +17,8 @@ export async function POST(req: Request) {
   if (!b.staffName?.trim()) return NextResponse.json({ error: "Chọn nhân viên" }, { status: 400 });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(b.day ?? "")) return NextResponse.json({ error: "Chọn ngày" }, { status: 400 });
   if (!b.title?.trim()) return NextResponse.json({ error: "Nhập nội dung công việc" }, { status: 400 });
+  const manager = !gate.roles.length || gate.roles.some((r) => r === "Quản lý" || r === "Quản trị");
+  if (!manager && b.staffName.trim() !== gate.actor.name) return NextResponse.json({ error: "Chỉ thêm được kế hoạch cá nhân của chính mình" }, { status: 403 });
   const item = await workScheduleStore.create({
     id: "",
     staffName: b.staffName.trim(),
@@ -26,6 +28,7 @@ export async function POST(req: Request) {
     hours: b.hours == null || String(b.hours) === "" ? null : Number(b.hours),
     orderId: b.orderId ?? "",
     note: b.note ?? "",
+    workTime: String(b.workTime ?? "").trim(),
     createdBy: gate.actor.name,
   });
   return NextResponse.json({ ok: true, item }, { status: 201 });

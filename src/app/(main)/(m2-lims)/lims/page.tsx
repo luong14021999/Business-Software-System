@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { AlertCircle, CalendarClock, ClipboardCheck } from "lucide-react";
+import { CalendarDays, Tag } from "lucide-react";
 import { HomeTabs } from "@/components/m2/home/home-tabs";
 import { PostBox } from "@/components/m2/home/post-box";
-import { btn, link } from "@/components/m2/lab-ui/page";
+import { LabFooter, btn, link } from "@/components/m2/lab-ui/page";
 import { assignmentStore } from "@/lib/modules/m2/data/custody";
 import { MonthStackChart } from "@/components/m2/home/month-stack-chart";
 import { labPostStore, linesByOrder, orderStore } from "@/lib/modules/m2/data/orders";
@@ -59,14 +59,14 @@ export default async function LabHomePage({ searchParams }: { searchParams: Prom
   const todayField = schedule.filter((w) => w.auto && w.day === today);
   const todayWork = manual.filter((w) => w.day === today).sort((a, b) => a.staffName.localeCompare(b.staffName));
 
-  const h2 = "text-[26px] font-medium uppercase leading-tight text-[#333] sm:text-[30px]";
-  const h3 = "flex items-center gap-2 text-lg font-medium uppercase text-[#333] sm:text-xl";
-  const col = "min-w-0 space-y-4 p-4";
+  const h2 = "mt-4 text-[26px] font-medium uppercase leading-tight text-[#333]";
+  const h3 = "flex items-center gap-[5px] text-lg font-medium uppercase text-[#333] sm:text-xl";
+  const col = "min-w-0 space-y-4 px-2 pb-6 pt-2";
   return (
     <main className="flex-1 overflow-y-auto bg-white scrollbar-thin">
-      <div className="mx-auto max-w-[1500px] px-4 pb-10 pt-5">
+      <div className="mx-auto max-w-[1170px] px-[15px] pt-5">
         <HomeTabs active="news" />
-        <div className="mt-0 grid divide-y border border-[#ddd] lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+        <div className="grid divide-y border border-[#ddd] lg:-mx-[15px] lg:grid-cols-3 lg:divide-x lg:divide-y-0">
           <section className={col} aria-labelledby="h-news">
             <h2 id="h-news" className={h2}>Bảng tin nội bộ</h2>
             <PostBox posts={shownPosts} me={me} canPost={access.can("write.any")} isAdmin={access.roles.includes("Quản trị")} />
@@ -77,9 +77,6 @@ export default async function LabHomePage({ searchParams }: { searchParams: Prom
 
           <section className={col} aria-labelledby="h-me">
             <h2 id="h-me" className={h2}>Công việc cá nhân</h2>
-            {!myAssignments.length && !returned.length && !waitQa.length && !waitManager.length && !mySchedule.length && (
-              <p className="text-sm text-muted-foreground">Không có việc nào đang chờ bạn.</p>
-            )}
             {returned.length > 0 && (
               <Block title="Kết quả bị trả lại cần sửa" tone="danger">
                 {returned.map((o) => <li key={o.id}>Đơn hàng <Link href={`/orders/${o.id}/results`} className={link}>{o.code}</Link> – {o.n} chỉ tiêu</li>)}
@@ -110,8 +107,7 @@ export default async function LabHomePage({ searchParams }: { searchParams: Prom
 
           <section className={col} aria-labelledby="h-unit">
             <h2 id="h-unit" className={h2}>Công việc của đơn vị</h2>
-            <h3 className={h3}><AlertCircle className="h-9 w-9 shrink-0 text-[#d9534f]" aria-hidden />Cảnh báo quá hạn</h3>
-            {!overField.length && !overDue.length && <p className="text-sm text-muted-foreground">Không có đơn hàng quá hạn.</p>}
+            <h3 className={h3}><Badge tone="bg-[radial-gradient(circle_at_35%_30%,#ff6b6b,#c9302c)]"><span className="text-[26px] font-black leading-none">!</span></Badge>Cảnh báo quá hạn</h3>
             {overField.length > 0 && (
               <>
                 <ul className="list-disc space-y-1 pl-6 text-[15px]">
@@ -128,15 +124,13 @@ export default async function LabHomePage({ searchParams }: { searchParams: Prom
                 <Link href="/orders?quaHan=tra-ket-qua" className={btn}>Xem <b>{overDue.length}</b> đơn hàng chậm trả kết quả »</Link>
               </>
             )}
-            <h3 className={h3}><CalendarClock className="h-9 w-9 shrink-0 text-[#337ab7]" aria-hidden />Sự kiện sắp diễn ra</h3>
+            <h3 className={h3}><Badge tone="bg-[radial-gradient(circle_at_35%_30%,#8fc3ee,#2e6da4)]"><CalendarDays className="h-5 w-5" /></Badge>Sự kiện sắp diễn ra</h3>
             {upcoming.length ? (
               <ul className="list-disc space-y-1 pl-6 text-[15px]">
                 {upcoming.map((u) => <li key={u.key}>{fmtDateVN(u.day)} · {u.node}</li>)}
               </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Không có lịch hay mốc đơn hàng trong 7 ngày tới.</p>
-            )}
-            <h3 className={h3}><ClipboardCheck className="h-9 w-9 shrink-0 text-[#d9534f]" aria-hidden />Công việc hôm nay</h3>
+            ) : null}
+            <h3 className={h3}><Badge tone="bg-[radial-gradient(circle_at_35%_30%,#ff7a59,#d9381e)]"><Tag className="h-5 w-5 fill-white" /></Badge>Công việc hôm nay</h3>
             {todayEvents.length || todayWork.length ? (
               <ul className="list-disc space-y-1 pl-6 text-[15px]">
                 {todayEvents.map((e) => (
@@ -149,18 +143,17 @@ export default async function LabHomePage({ searchParams }: { searchParams: Prom
                 ))}
                 {todayWork.map((w) => <li key={w.id}>{w.staffName} – {w.kind}: {w.title}{w.hours ? ` (${w.hours} giờ)` : ""}</li>)}
               </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">Hôm nay không có mốc đơn hàng hay việc trong lịch công tác. <Link href="/work-schedule" className={link}>Mở lịch công tác</Link></p>
-            )}
+            ) : null}
           </section>
         </div>
-        <section className="mt-4 border border-[#ddd] p-4" aria-labelledby="h-stats">
+        <section className="mt-4 border border-[#ddd] p-4 lg:-mx-[15px]" aria-labelledby="h-stats">
           <h2 id="h-stats" className="text-[22px] font-medium uppercase leading-tight text-[#333]">Thống kê 6 tháng gần đây</h2>
           <div className="mt-3 grid gap-6 lg:grid-cols-2">
             <MonthStackChart title="Đơn hàng theo trạng thái (theo tháng tạo đơn)" data={byStatus} unit="đơn hàng" />
             <MonthStackChart title="Mẫu đã trả kết quả theo loại mẫu" data={byType} unit="mẫu" />
           </div>
         </section>
+        <LabFooter />
       </div>
     </main>
   );
@@ -173,4 +166,9 @@ function Block({ title, tone, children }: { title: string; tone?: "danger"; chil
       <ul className="mt-1 list-disc space-y-1 pl-6 text-[15px]">{children}</ul>
     </div>
   );
+}
+
+/** Biểu tượng tròn màu đầu mục như trang chủ XaLab. */
+function Badge({ tone, children }: { tone: string; children: React.ReactNode }) {
+  return <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-[inset_0_-2px_3px_rgba(0,0,0,0.25)] ${tone}`} aria-hidden>{children}</span>;
 }

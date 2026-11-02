@@ -396,11 +396,11 @@ export async function sampleCodesLike(prefix: string) {
 export type LabPost = { id: string; author: string; body: string; createdAt: string };
 export const labPostStore = createEntityStore<LabPost>("lab-posts", [], columnsMapping<LabPost>("lab_posts", { author: "text", body: "text", createdAt: "date" }));
 
-export type WorkItem = { id: string; staffName: string; day: string; kind: string; title: string; hours: number | null; orderId: string; note: string; createdBy: string };
+export type WorkItem = { id: string; staffName: string; day: string; kind: string; title: string; hours: number | null; orderId: string; note: string; createdBy: string; workTime: string };
 export const workScheduleStore = createEntityStore<WorkItem>(
   "work-schedule",
   [],
-  columnsMapping<WorkItem>("work_schedule", { staffName: "text", day: "date", kind: "text", title: "text", hours: "optnum", orderId: "ref", note: "text", createdBy: "text" }),
+  columnsMapping<WorkItem>("work_schedule", { staffName: "text", day: "date", kind: "text", title: "text", hours: "optnum", orderId: "ref", note: "text", createdBy: "text", workTime: "text" }),
 );
 
 export type TestBatch = {

@@ -75,6 +75,6 @@ export async function scheduleBetween(from: string, to: string): Promise<Schedul
     ...manual.map((w) => ({ ...w, auto: false })),
     ...duties
       .filter((d) => !has.has(`${d.staffName}|${d.day}|${d.orderId}`))
-      .map((d) => ({ id: `auto-${d.orderId}-${d.day}-${d.staffName}`, ...d, hours: null, note: "Tự động từ kế hoạch quan trắc", createdBy: "", auto: true })),
+      .map((d) => ({ id: `auto-${d.orderId}-${d.day}-${d.staffName}`, ...d, hours: null, workTime: "", note: "Tự động từ kế hoạch quan trắc", createdBy: "", auto: true })),
   ];
 }

@@ -17,8 +17,8 @@ export async function GET(req: Request) {
   const code = new Map(orders.map((o) => [o.id, o.code]));
   const rows = items.sort((a, b) => a.day.localeCompare(b.day) || a.staffName.localeCompare(b.staffName, "vi"));
   const csv = [
-    csvRow(["Ngày", "Nhân viên", "Loại", "Kế hoạch", "Số giờ", "Đơn hàng", "Ghi chú"]),
-    ...rows.map((w) => csvRow([fmtDateVN(w.day), w.staffName, w.kind, w.title, w.hours ?? "", code.get(w.orderId) ?? "", w.note])),
+    csvRow(["Ngày", "Nhân viên", "Loại", "Kế hoạch", "Thời gian làm việc", "Số giờ", "Đơn hàng", "Ghi chú"]),
+    ...rows.map((w) => csvRow([fmtDateVN(w.day), w.staffName, w.kind, w.title, w.workTime ?? "", w.hours ?? "", code.get(w.orderId) ?? "", w.note])),
   ].join("\r\n");
   return new Response(`﻿${csv}`, {
     headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="lich-cong-tac_${from}_${to}.csv"` },
