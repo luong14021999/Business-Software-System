@@ -15,7 +15,7 @@ export default async function OrderResultsPage({ params }: { params: Promise<{ i
   if (!order) notFound();
   const methods = [...new Set(analytes.map((a) => a.method).filter(Boolean))].sort();
   return (
-    <LabPage title="Nhập/duyệt kết quả thử nghiệm" subtitle={`Đơn hàng ${order.code} · ${order.name}`} wide>
+    <LabPage title="Nhập/duyệt kết quả thử nghiệm" rule={false}>
       <ResultsGrid
         saveUrl={`/api/orders/${id}/results`}
         backHref={`/orders/${id}/samples`}

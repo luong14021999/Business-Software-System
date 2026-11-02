@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowLeft, Loader2, Pencil } from "lucide-react";
 import { btn, btnPrimary, input, table } from "@/components/m2/lab-ui/page";
 import { toast } from "@/components/ui/toast";
 import { reauthenticate } from "@/components/platform/sign/sign-dialog";
@@ -28,6 +28,8 @@ export type GridLine = {
   /** Giới hạn phát hiện của phương pháp (cảnh báo ⚠ ngoài khoảng). */
   mMin: number | null;
   mMax: number | null;
+  /** Phương pháp chọn được của chỉ tiêu (mặc định đứng đầu). */
+  methodOptions: string[];
   /** Tên in trên phiếu và kết quả đã làm tròn theo quy tắc của chỉ tiêu. */
   printName: string;
   printText: string;
@@ -39,36 +41,30 @@ export type GridLine = {
   samplingTimes: number;
   reps: string[];
   lineKind: string;
+  /** Mã mẫu phụ. */
+  subCode: string;
 };
 export type GridSample = { code: string; href: string; sampler: string; locationName: string; type: string; specName: string; specName2: string; stage: string; lines: GridLine[] };
 
 type Action = "submit" | "qa_approve" | "qa_reject" | "manager_approve" | "manager_reject";
 const EDITABLE = ["Đang nhập", "Trả lại sửa"];
-const FROM: Record<Action, string[]> = {
-  submit: EDITABLE,
-  qa_approve: ["Chờ QA/QC"],
-  qa_reject: ["Chờ QA/QC"],
-  manager_approve: ["Chờ Trưởng phòng"],
-  manager_reject: ["Chờ Trưởng phòng"],
-};
 const LABEL: Record<Action, string> = {
-  submit: "Nộp QA/QC",
-  qa_approve: "QA/QC duyệt",
-  qa_reject: "QA/QC không duyệt",
+  submit: "Nộp duyệt",
+  qa_approve: "Duyệt (QA/QC)",
+  qa_reject: "Không duyệt (QA/QC)",
   manager_approve: "Phê duyệt (ký điện tử)",
-  manager_reject: "Trưởng phòng không duyệt",
+  manager_reject: "Không duyệt (phê duyệt)",
 };
-const STATUS_TONE: Record<string, string> = {
-  "Đang nhập": "bg-white text-[#333] border-[#ccc]",
-  "Trả lại sửa": "bg-[#f2dede] text-[#a94442] border-[#ebccd1]",
-  "Chờ QA/QC": "bg-[#fcf8e3] text-[#8a6d3b] border-[#faebcc]",
-  "Chờ Trưởng phòng": "bg-[#d9edf7] text-[#31708f] border-[#bce8f1]",
-  "Đã duyệt": "bg-[#337ab7] text-white border-[#2e6da4]",
-};
+const SAMPLES_PER_PAGE = 20;
+
+/** Tách ô kết quả thành tiền tố ("<", ">", "KPH") và giá trị như hai ô của XaLab. */
+const splitText = (t: string) => (/^kph$/i.test(t.trim()) ? { pfx: "KPH", val: "" } : { pfx: t.trim().match(/^[<>]/)?.[0] ?? "", val: t.trim().replace(/^[<>]\s*/, "") });
+const joinText = (pfx: string, val: string) => (pfx.trim().toUpperCase() === "KPH" ? "KPH" : `${pfx.trim()}${val.trim()}`);
 
 /**
- * Nhập / duyệt kết quả cả đơn hàng: nhóm theo mẫu, mỗi dòng một chỉ tiêu.
- * KTV gõ kết quả (số, "<0,05", "KPH") rồi nộp; QA/QC và Trưởng phòng duyệt hàng loạt các dòng được chọn.
+ * Nhập / duyệt kết quả thử nghiệm như XaLab: nhóm theo mẫu; mỗi dòng có Mã mẫu phụ, Kết quả (tiền tố + kết quả),
+ * Phương pháp, Thầu phụ và nút Duyệt / Không duyệt. Vẫn giữ duyệt 3 cấp ISO 17025: nút "Duyệt" thực hiện bước kế tiếp
+ * mà người dùng có quyền (QA/QC hoặc phê duyệt có ký điện tử); người duyệt phải khác người nhập.
  */
 export function ResultsGrid({
   saveUrl,
@@ -94,17 +90,23 @@ export function ResultsGrid({
   const [, start] = useTransition();
   const initial = useMemo(() => new Map(samples.flatMap((s) => s.lines.map((l) => [l.id, l]))), [samples]);
   const [edits, setEdits] = useState<Record<string, Partial<GridLine>>>({});
-  const [sel, setSel] = useState<Set<string>>(new Set());
   const [note, setNote] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [mineOnly, setMineOnly] = useState(false);
+  const [page, setPage] = useState(1);
 
   const val = (l: GridLine) => ({ ...l, ...edits[l.id] });
   const dirty = Object.keys(edits).filter((id) => {
     const a = initial.get(id)!;
     const b = edits[id];
-    return (b.text !== undefined && b.text !== a.text) || (b.reps !== undefined && b.reps.join("|") !== a.reps.join("|")) || (b.method !== undefined && b.method !== a.method) || (b.subcontractor !== undefined && b.subcontractor !== a.subcontractor);
+    return (
+      (b.text !== undefined && b.text !== a.text) ||
+      (b.reps !== undefined && b.reps.join("|") !== a.reps.join("|")) ||
+      (b.method !== undefined && b.method !== a.method) ||
+      (b.subcontractor !== undefined && b.subcontractor !== a.subcontractor) ||
+      (b.subCode !== undefined && b.subCode !== a.subCode)
+    );
   });
   const set = (id: string, k: keyof GridLine, v: string) => setEdits((e) => ({ ...e, [id]: { ...e[id], [k]: v } }));
   /** Sửa lần đo thứ i; ô kết quả hiển thị là trung bình các lần. */
@@ -113,30 +115,27 @@ export function ResultsGrid({
       const reps = Array.from({ length: Math.max(l.samplingTimes, l.reps.length) }, (_, n) => (n === i ? v : ((e[l.id]?.reps ?? l.reps)[n] ?? "")));
       return { ...e, [l.id]: { ...e[l.id], reps, text: cellText(averageReplicates(reps)) } };
     });
-  const toggle = (ids: string[], on: boolean) =>
-    setSel((s) => {
-      const n = new Set(s);
-      for (const id of ids) {
-        if (on) n.add(id);
-        else n.delete(id);
-      }
-      return n;
-    });
-  const allLines = samples.flatMap((s) => s.lines);
+
+  const shown = samples.map((s) => (mineOnly ? { ...s, lines: s.lines.filter((l) => l.analyst === me.name) } : s)).filter((s) => s.lines.length);
+  const pages = Math.max(1, Math.ceil(shown.length / SAMPLES_PER_PAGE));
+  const cur = Math.min(page, pages);
+  const pageSamples = shown.slice((cur - 1) * SAMPLES_PER_PAGE, cur * SAMPLES_PER_PAGE);
+  const allLines = shown.flatMap((s) => s.lines);
+  const pageLines = pageSamples.flatMap((s) => s.lines);
 
   async function save(exit = false) {
     if (!dirty.length) {
       if (exit) router.push(backHref);
       return true;
     }
-    setBusy("save");
+    setBusy(exit ? "exit" : "save");
     const res = await fetch(saveUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         lines: dirty.map((id) => {
-          const { text, reps, method, subcontractor } = edits[id];
-          return reps !== undefined ? { id, reps, method, subcontractor } : { id, text, method, subcontractor };
+          const { text, reps, method, subcontractor, subCode } = edits[id];
+          return reps !== undefined ? { id, reps, method, subcontractor, subCode } : { id, text, method, subcontractor, subCode };
         }),
       }),
     });
@@ -153,18 +152,23 @@ export function ResultsGrid({
     return true;
   }
 
-  async function act(action: Action) {
-    const eligible = allLines.filter((l) => FROM[action].includes(l.status));
-    const chosen = sel.size ? eligible.filter((l) => sel.has(l.id)) : [];
-    const targets = action === "submit" ? chosen.filter((l) => val(l).text.trim()) : chosen;
-    if (!targets.length) {
-      return toast.error("Chưa chọn dòng phù hợp", `Đánh dấu các dòng ở trạng thái "${FROM[action].join(" / ")}"${action === "submit" ? " đã có kết quả" : ""}`);
-    }
-    if (action.endsWith("_reject") && !note.trim()) return toast.error("Ghi lý do không duyệt vào ô ghi chú");
-    if (action === "submit" && dirty.length && !(await save())) return;
-    if (action === "manager_approve") {
+  /** Bước duyệt / không duyệt kế tiếp của một dòng theo trạng thái và quyền của người dùng. */
+  const nextAction = (status: string, approve: boolean): Action | null => {
+    if (status === "Chờ QA/QC" && can.qa) return approve ? "qa_approve" : "qa_reject";
+    if (status === "Chờ Trưởng phòng" && can.approve) return approve ? "manager_approve" : "manager_reject";
+    if (approve && can.enter && EDITABLE.includes(status)) return "submit";
+    return null;
+  };
+
+  async function run(lines: GridLine[], approve: boolean) {
+    const jobs = lines.map((l) => ({ l, a: nextAction(l.status, approve) })).filter((x): x is { l: GridLine; a: Action } => Boolean(x.a));
+    const targets = jobs.filter((x) => x.a !== "submit" || val(x.l).text.trim());
+    if (!targets.length) return toast.error("Không có dòng nào để " + (approve ? "duyệt" : "không duyệt"), "Chỉ các dòng đang chờ bước duyệt bạn có quyền (hoặc đang nhập đã có kết quả) mới thực hiện được");
+    if (!approve && !note.trim()) return toast.error("Ghi lý do không duyệt vào ô ghi chú");
+    if (targets.some((x) => x.a === "submit") && dirty.length && !(await save())) return;
+    if (targets.some((x) => x.a === "manager_approve")) {
       if (!password) return toast.error("Nhập mật khẩu để ký điện tử");
-      setBusy(action);
+      setBusy("act");
       try {
         await reauthenticate(me.email, password);
       } catch (e) {
@@ -172,176 +176,170 @@ export function ResultsGrid({
         return toast.error("Xác thực thất bại", (e as Error).message);
       }
     }
-    setBusy(action);
+    setBusy("act");
     const errors: string[] = [];
     let ok = 0;
-    for (const l of targets) {
-      const res = await fetch(`/api/analysis-results/${l.id}/transition`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, comment: note }),
-      });
+    for (const { l, a } of targets) {
+      const res = await fetch(`/api/analysis-results/${l.id}/transition`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: a, comment: note }) });
       if (res.ok) ok++;
       else errors.push(`${l.criterion}: ${(await res.json().catch(() => ({}))).error ?? res.status}`);
     }
     setBusy(null);
     setPassword("");
-    if (ok) toast.success(`${LABEL[action]}: ${ok} dòng`);
+    if (ok) toast.success(`${approve ? "Đã duyệt" : "Không duyệt"} ${ok} dòng`);
     if (errors.length) toast.error(`${errors.length} dòng không thực hiện được`, errors.slice(0, 3).join(" · ") + (errors.length > 3 ? " …" : ""));
-    setSel(new Set());
     if (ok) setNote("");
     start(() => router.refresh());
   }
 
   const loading = Boolean(busy);
-  const actBtn = (a: Action, show: boolean, cls = btn) =>
-    show && (
-      <button type="button" disabled={loading} onClick={() => act(a)} className={cls}>
-        {busy === a && <Loader2 className="h-4 w-4 animate-spin" />}
-        {LABEL[a]}
-      </button>
+  const anyApprover = can.qa || can.approve;
+  const pager =
+    pages > 1 ? (
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <div className="flex">
+          {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
+            <button key={p} type="button" onClick={() => setPage(p)} className={cn("-ml-px h-[34px] min-w-[34px] border px-3 first:ml-0 first:rounded-l last:rounded-r", p === cur ? "relative z-10 border-[#337ab7] bg-[#337ab7] text-white" : "border-[#ddd] text-[#337ab7] hover:bg-[#eee]")}>{p}</button>
+          ))}
+        </div>
+        <span>Trang {cur} / {pages}</span>
+      </div>
+    ) : (
+      <div className="text-sm">Trang 1 / 1</div>
     );
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Link href={backHref} className={btn} aria-label="Quay lại"><ArrowLeft className="h-4 w-4" /></Link>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-1">
+        <Link href={backHref} className={btn} aria-label="Quay lại"><ArrowLeft className="h-4 w-4 stroke-[3]" /></Link>
         {can.enter && (
           <>
-            <button type="button" disabled={loading} onClick={() => save(true)} className={btnPrimary}>Lưu &amp; thoát</button>
+            <button type="button" disabled={loading} onClick={() => save(true)} className={btnPrimary}>{busy === "exit" && <Loader2 className="h-4 w-4 animate-spin" />}Lưu &amp; thoát</button>
             <button type="button" disabled={loading} onClick={() => save()} className={btnPrimary}>{busy === "save" && <Loader2 className="h-4 w-4 animate-spin" />}Lưu{dirty.length ? ` (${dirty.length})` : ""}</button>
           </>
         )}
-        <button type="button" className={btn} onClick={() => setSel(new Set(allLines.map((l) => l.id)))}>Chọn tất cả</button>
-        <button type="button" className={btn} onClick={() => setSel(new Set())}>Bỏ chọn</button>
-        <label className="ml-1 flex items-center gap-1.5 text-sm"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />Chỉ chỉ tiêu phân công cho tôi</label>
-        {actBtn("submit", can.enter)}
-        {actBtn("qa_approve", can.qa)}
-        {actBtn("qa_reject", can.qa)}
-        {actBtn("manager_reject", can.approve)}
+        <button type="button" disabled={loading} onClick={() => run(pageLines, true)} className={btn}>Duyệt trang</button>
+        <button type="button" disabled={loading || !anyApprover} onClick={() => run(pageLines, false)} className={btn}>Không duyệt trang</button>
+        <button type="button" disabled={loading} onClick={() => run(allLines, true)} className={btn}>Duyệt tất cả</button>
+        <button type="button" disabled={loading || !anyApprover} onClick={() => run(allLines, false)} className={btn}>Không duyệt tất cả</button>
+        {busy === "act" && <Loader2 className="h-4 w-4 animate-spin" />}
+        <label className="ml-2 flex items-center gap-1.5 text-sm"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />Chỉ chỉ tiêu phân công cho tôi</label>
       </div>
-      {(can.qa || can.approve) && (
+      {(anyApprover || can.enter) && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú duyệt / lý do không duyệt" className={`${input} max-w-md`} />
-          {can.approve && (
-            <>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mật khẩu ký điện tử" autoComplete="current-password" className={`${input} max-w-[14rem]`} />
-              {actBtn("manager_approve", true, btnPrimary)}
-            </>
-          )}
+          {anyApprover && <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú / lý do không duyệt" className={`${input} max-w-md`} />}
+          {can.approve && <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mật khẩu ký điện tử (phê duyệt)" autoComplete="current-password" className={`${input} max-w-[16rem]`} />}
+          <span className="text-xs text-muted-foreground">
+            Duyệt 3 cấp: người nhập bấm Duyệt để nộp, QA/QC duyệt, Quản lý phê duyệt (ký điện tử). Người duyệt phải khác người nhập và hai bước duyệt do hai người khác nhau.
+          </span>
         </div>
       )}
-      <p className="text-xs text-muted-foreground">
-        Gõ kết quả dạng số (7,25), nhỏ hơn giới hạn phát hiện (&lt;0,05) hoặc KPH. Người duyệt phải khác người nhập kết quả; phê duyệt là ký điện tử nên cần mật khẩu.
-      </p>
+      {pager}
 
       <datalist id="grid-methods">{methods.map((m) => <option key={m} value={m} />)}</datalist>
       <div className="overflow-x-auto">
         <table className={table}>
           <thead>
             <tr>
-              <th className="w-6" />
               <th className="w-8">#</th>
               <th>Chỉ tiêu</th>
               <th>Đơn vị</th>
-              <th className="w-36">Kết quả</th>
-              <th>Quy chuẩn</th>
-              <th>Phương pháp</th>
-              <th>Thầu phụ</th>
-              <th>Trạng thái</th>
+              <th className="w-24 !whitespace-normal">Mã mẫu phụ</th>
+              <th className="w-56">Kết quả</th>
+              <th className="w-40">Phương pháp</th>
+              <th className="w-40">Thầu phụ</th>
+              <th className="w-28" />
+              <th className="w-6" />
             </tr>
           </thead>
-          {samples.map((s0) => {
-            const s = mineOnly ? { ...s0, lines: s0.lines.filter((l) => l.analyst === me.name) } : s0;
-            if (!s.lines.length) return null;
-            const ids = s.lines.map((l) => l.id);
-            const allOn = ids.length > 0 && ids.every((id) => sel.has(id));
-            return (
-              <tbody key={s.code} id={s.code}>
-                <tr className="bg-[#d9edf7]">
-                  <td className="!border-t-[#bce8f1]"><input type="checkbox" aria-label={`Chọn các dòng của ${s.code}`} checked={allOn} onChange={() => toggle(ids, !allOn)} /></td>
-                  <td colSpan={8} className="!border-t-[#bce8f1] font-bold">
-                    {s.href ? <Link href={s.href} className="hover:underline">{s.code}</Link> : s.code}: {s.locationName}
-                    <span className="ml-2 text-xs font-normal text-[#31708f]">{[s.type, s.stage, s.specName && `so với ${s.specName}`, s.specName2 && `và ${s.specName2}`, s.sampler && `người lấy mẫu: ${s.sampler}`].filter(Boolean).join(" · ")}</span>
-                  </td>
-                </tr>
-                {s.lines.map((l0, i) => {
-                  const l = val(l0);
-                  const editable = can.enter && EDITABLE.includes(l.status);
-                  const p = parseResultCell(l.text);
-                  const v1 = judge(p, l);
-                  const v2 = l.lim2 ? judge(p, l.lim2) : "";
-                  const verdict = v1 === "Vượt" || v2 === "Vượt" ? "Vượt" : v1 || v2;
-                  const outOfRange = p ? outOfMethodRange(p.value, p.prefix, l.mMin, l.mMax) : false;
-                  return (
-                    <tr key={l.id} className={sel.has(l.id) ? "bg-[#f5f5f5]" : undefined}>
-                      <td><input type="checkbox" aria-label={`Chọn ${l.criterion}`} checked={sel.has(l.id)} onChange={() => toggle([l.id], !sel.has(l.id))} /></td>
-                      <td>{i + 1}</td>
-                      <td className="min-w-[14rem]">{l.criterion}{l.lineKind === "Hiện trường" && <div className="text-[11px] text-[#8a6d3b]">Hiện trường</div>}</td>
-                      <td className="whitespace-nowrap">{l.unit || "-"}</td>
-                      <td>
-                        {editable && l.samplingTimes > 1 ? (
-                          <div className="space-y-1">
-                            {Array.from({ length: l.samplingTimes }, (_, n) => {
-                              const r = (l.reps ?? [])[n] ?? "";
-                              return (
-                                <input key={n} value={r} onChange={(e) => setRep(l0, n, e.target.value)} placeholder={`Lần ${n + 1}`} aria-label={`${l.criterion} – lần đo ${n + 1}`} className={cn(`${input} h-7 px-2 text-xs`, r && !parseResultCell(r) && "border-[#a94442]")} />
-                              );
-                            })}
-                            <div className="text-xs">TB: <span className="font-semibold">{l.text || "—"}</span></div>
-                          </div>
-                        ) : editable ? (
-                          <input value={l.text} onChange={(e) => set(l.id, "text", e.target.value)} aria-label={`Kết quả ${l.criterion}`} className={cn(`${input} h-8`, l.text && !p && "border-[#a94442]")} />
-                        ) : (
-                          <>
-                            <span className="font-medium">{l.text || "—"}</span>
-                            {l.reps.filter(Boolean).length > 1 && <div className="text-[11px] text-muted-foreground">TB của {l.reps.filter(Boolean).join("; ")}</div>}
-                          </>
-                        )}
-                        {(verdict === "Vượt" || outOfRange) && (
-                          <div className="mt-0.5 flex gap-1 text-[11px]">
-                            {verdict === "Vượt" && <span className="inline-flex items-center gap-0.5 font-semibold text-[#a94442]" title="Kết quả vượt quy chuẩn"><AlertCircle className="h-3.5 w-3.5" aria-hidden />vượt QC</span>}
-                            {outOfRange && <span className="inline-flex items-center gap-0.5 text-[#8a6d3b]" title={`Ngoài giới hạn phát hiện của phương pháp (${l.mMin ?? "…"} – ${l.mMax ?? "…"})`}><AlertTriangle className="h-3.5 w-3.5" aria-hidden />ngoài GH PP</span>}
-                          </div>
-                        )}
-                        {l.technician && <div className="text-[11px] text-muted-foreground">{l.technician}</div>}
-                        {l.analyst && l.analyst !== l.technician && <div className="text-[11px] text-muted-foreground">Phân công: {l.analyst}</div>}
-                      </td>
-                      <td className="whitespace-nowrap text-xs">
-                        {l.limitLabel || "—"}
-                        {l.lim2 && <div className="text-muted-foreground">QC2: {l.lim2.label || "—"}</div>}
-                        {verdict && <div className={verdict === "Vượt" ? "font-semibold text-[#a94442]" : "text-[#3c763d]"}>{verdict === "Vượt" ? "Vượt quy chuẩn" : "Đạt"}</div>}
-                      </td>
-                      <td>
-                        {editable ? (
-                          <input list="grid-methods" value={l.method} onChange={(e) => set(l.id, "method", e.target.value)} aria-label={`Phương pháp ${l.criterion}`} className={`${input} h-8 min-w-[10rem]`} />
-                        ) : (
-                          <span className="text-xs">{l.method || "—"}</span>
-                        )}
-                      </td>
-                      <td>
-                        {editable ? (
-                          <select value={l.subcontractor} onChange={(e) => set(l.id, "subcontractor", e.target.value)} aria-label={`Thầu phụ ${l.criterion}`} className={`${input} h-8 px-2`}>
-                            <option value="" />
-                            {scopes.map((x) => <option key={x}>{x}</option>)}
-                            {l.subcontractor && !scopes.includes(l.subcontractor) && <option>{l.subcontractor}</option>}
-                          </select>
-                        ) : (
-                          <span className="text-xs">{l.subcontractor || "—"}</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={cn("inline-block whitespace-nowrap rounded border px-2 py-0.5 text-xs", STATUS_TONE[l.status] ?? "border-[#ccc]")}>{l.status === "Đã duyệt" ? "Duyệt" : l.status}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            );
-          })}
+          {pageSamples.map((s) => (
+            <tbody key={s.code} id={s.code}>
+              <tr className="bg-[#d9edf7]">
+                <td colSpan={9} className="!border-t-[#bce8f1] font-bold">
+                  {s.href ? <Link href={s.href} className="hover:underline">{s.code}</Link> : s.code}: {s.locationName}
+                  <span className="ml-2 text-xs font-normal text-[#31708f]">{[s.specName && `so với ${s.specName}`, s.specName2 && `và ${s.specName2}`, s.sampler && `người lấy mẫu: ${s.sampler}`].filter(Boolean).join(" · ")}</span>
+                </td>
+              </tr>
+              {s.lines.map((l0, i) => {
+                const l = val(l0);
+                const editable = can.enter && EDITABLE.includes(l.status);
+                const p = parseResultCell(l.text);
+                const v1 = judge(p, l);
+                const v2 = l.lim2 ? judge(p, l.lim2) : "";
+                const verdict = v1 === "Vượt" || v2 === "Vượt" ? "Vượt" : v1;
+                const outOfRange = p ? outOfMethodRange(p.value, p.prefix, l.mMin, l.mMax) : false;
+                const parts = splitText(l.text);
+                const approveAct = nextAction(l0.status, true);
+                const rejectAct = nextAction(l0.status, false);
+                const methodList = [...new Set([...l.methodOptions, ...(l.method ? [l.method] : [])])];
+                return (
+                  <tr key={l.id}>
+                    <td>{i + 1}</td>
+                    <td className="min-w-[12rem]">
+                      {l.criterion}
+                      {l.lineKind === "Hiện trường" && <div className="text-[11px] text-[#8a6d3b]">Hiện trường</div>}
+                      {(l.technician || l.analyst) && <div className="text-[11px] text-muted-foreground">{[l.technician, l.analyst && l.analyst !== l.technician && `phân công: ${l.analyst}`].filter(Boolean).join(" · ")}</div>}
+                    </td>
+                    <td className="whitespace-nowrap">{l.unit || "-"}</td>
+                    <td><input disabled={!editable} value={l.subCode} onChange={(e) => set(l.id, "subCode", e.target.value)} aria-label={`Mã mẫu phụ ${l.criterion}`} className={`${input} h-7 px-1.5 disabled:bg-[#eee]`} /></td>
+                    <td>
+                      {editable && l.samplingTimes > 1 ? (
+                        <div className="space-y-1">
+                          {Array.from({ length: l.samplingTimes }, (_, n) => {
+                            const r = (l.reps ?? [])[n] ?? "";
+                            return <input key={n} value={r} onChange={(e) => setRep(l0, n, e.target.value)} placeholder={`Lần ${n + 1}`} aria-label={`${l.criterion} – lần đo ${n + 1}`} className={cn(`${input} h-7 px-2 text-xs`, r && !parseResultCell(r) && "border-[#a94442]")} />;
+                          })}
+                          <div className="text-xs">TB: <span className="font-semibold">{l.text || "—"}</span></div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <input disabled={!editable} value={parts.pfx} onChange={(e) => set(l.id, "text", joinText(e.target.value, parts.val))} placeholder="tiền tố" aria-label={`Tiền tố ${l.criterion}`} className={`${input} h-7 !w-16 px-1.5 disabled:bg-[#eee]`} />
+                          <input disabled={!editable || parts.pfx === "KPH"} value={parts.val} onChange={(e) => set(l.id, "text", joinText(parts.pfx, e.target.value))} placeholder="kết quả" aria-label={`Kết quả ${l.criterion}`} className={cn(`${input} h-7 !w-24 px-1.5 disabled:bg-[#eee]`, l.text && !p && "border-[#a94442]")} />
+                          {verdict === "Vượt" && <AlertCircle className="h-4 w-4 shrink-0 text-[#a94442]" aria-label="Vượt quy chuẩn" />}
+                          {outOfRange && <AlertTriangle className="h-4 w-4 shrink-0 text-[#8a6d3b]" aria-label={`Ngoài giới hạn phương pháp (${l.mMin ?? "…"} – ${l.mMax ?? "…"})`} />}
+                        </div>
+                      )}
+                      {(l.limitLabel || l.lim2) && <div className="mt-0.5 text-[11px] text-muted-foreground">QC: {l.limitLabel || "—"}{l.lim2 && ` · QC2: ${l.lim2.label || "—"}`}</div>}
+                    </td>
+                    <td>
+                      {editable ? (
+                        <select value={l.method} onChange={(e) => set(l.id, "method", e.target.value)} aria-label={`Phương pháp ${l.criterion}`} className={`${input} h-7 px-1.5`}>
+                          <option value="" />
+                          {(methodList.length ? methodList : methods).map((m) => <option key={m}>{m}</option>)}
+                        </select>
+                      ) : (
+                        <span className="text-xs">{l.method || "—"}</span>
+                      )}
+                    </td>
+                    <td>
+                      {editable ? (
+                        <select value={l.subcontractor} onChange={(e) => set(l.id, "subcontractor", e.target.value)} aria-label={`Thầu phụ ${l.criterion}`} className={`${input} h-7 px-1.5`}>
+                          <option value="" />
+                          {scopes.map((x) => <option key={x}>{x}</option>)}
+                          {l.subcontractor && !scopes.includes(l.subcontractor) && <option>{l.subcontractor}</option>}
+                        </select>
+                      ) : (
+                        <span className="text-xs">{l.subcontractor || "—"}</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex overflow-hidden rounded border border-[#ccc] text-xs">
+                        <button type="button" disabled={loading || !approveAct} onClick={() => run([l0], true)} title={approveAct ? LABEL[approveAct] : l0.status} className={cn("flex-1 px-2 py-1.5", l0.status === "Đã duyệt" ? "bg-[#337ab7] text-white" : approveAct ? "bg-[#337ab7] text-white hover:bg-[#286090]" : "bg-[#eee] text-[#777]")}>
+                          {l0.status === "Đã duyệt" ? "Đã duyệt" : l0.status === "Chờ QA/QC" ? "Chờ QA/QC" : l0.status === "Chờ Trưởng phòng" ? "Chờ phê duyệt" : "Duyệt"}
+                        </button>
+                        {rejectAct && <button type="button" disabled={loading} onClick={() => run([l0], false)} title={LABEL[rejectAct]} className="border-l border-[#ccc] bg-white px-1.5 text-[#a94442] hover:bg-[#f2dede]">Không</button>}
+                      </div>
+                      {l0.status === "Trả lại sửa" && <div className="mt-0.5 text-[11px] text-[#a94442]">Bị trả lại sửa</div>}
+                    </td>
+                    <td><Link href={`/result-entry?id=${l.id}`} className="text-[#337ab7]" aria-label={`Sửa chi tiết ${l.criterion}`} title="Phiếu diễn biến phân tích (chi tiết)"><Pencil className="h-4 w-4" /></Link></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          ))}
         </table>
       </div>
-      {samples.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">Đơn hàng chưa có yêu cầu – dùng Bóc tách để tạo mẫu và chỉ tiêu.</p>}
+      {samples.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">Chưa có yêu cầu – dùng Bóc tách để tạo mẫu và chỉ tiêu.</p>}
     </div>
   );
 }

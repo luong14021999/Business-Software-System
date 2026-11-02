@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { authorize } from "@/lib/platform/data/access";
-import { linesBySampleCodes } from "@/lib/modules/m2/data/orders";
+import { linesBySampleCodes, orderLines } from "@/lib/modules/m2/data/orders";
 import { saveLineEdits, type LineEdit } from "@/lib/modules/m2/data/line-entry";
 import { fieldOnlyEntry, matrixCells, parseCsv } from "@/lib/modules/m2/orders";
 import { normalizeVi } from "@/lib/platform/format";
@@ -22,8 +22,10 @@ export async function POST(req: Request) {
   const { error, cells } = matrixCells(parseCsv(await file.text()));
   if (error) return NextResponse.json({ error }, { status: 400 });
   const codes = [...new Set(cells.map((c) => c.code))];
-  let lines = await linesBySampleCodes(codes);
-  if (fieldOnlyEntry(gate.roles)) lines = lines.filter((l) => l.lineKind === "Hiện trường");
+  // Nhập dữ liệu hiện trường theo đơn: chỉ mẫu của đơn đó và chỉ tiêu hiện trường.
+  const orderId = String(form.get("orderId") ?? "");
+  let lines = orderId ? (await orderLines(orderId)).filter((l) => codes.includes(l.sampleCode)) : await linesBySampleCodes(codes);
+  if (orderId || fieldOnlyEntry(gate.roles)) lines = lines.filter((l) => l.lineKind === "Hiện trường");
   const edits: LineEdit[] = [];
   const missing: string[] = [];
   for (const c of cells) {
@@ -31,6 +33,6 @@ export async function POST(req: Request) {
     if (l) edits.push({ id: l.id, text: c.text });
     else missing.push(`${c.code} · ${c.criterion}`);
   }
-  const { saved, errors } = await saveLineEdits(edits, lines, gate.actor.name, "từ file Excel");
+  const { saved, errors } = await saveLineEdits(edits, lines, gate.actor.name, orderId ? "từ file dữ liệu hiện trường" : "từ file Excel");
   return NextResponse.json({ ok: !errors.length, saved, cells: cells.length, errors, missing: missing.slice(0, 50) }, { status: errors.length ? 400 : 200 });
 }

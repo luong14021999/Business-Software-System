@@ -296,10 +296,12 @@ export type OrderLine = {
   analyst: string;
   /** Các lần đo đã nhập (dạng ô: "7,2", "<0,05", "KPH"). */
   reps: string[];
+  /** Mã mẫu phụ (XaLab). */
+  subCode: string;
 };
 
 const LINE_COLS = `r.id, r.result_code, r.sample_code, r.criterion, r.unit, r.method, r.subcontractor, r.result_prefix,
-            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort, r.batch_id, r.matrix, r.sampling_times, r.line_kind, r.analyst, r.replicates`;
+            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort, r.batch_id, r.matrix, r.sampling_times, r.line_kind, r.analyst, r.replicates, r.sub_code`;
 
 /** Các dòng kết quả thuộc những mẫu của đơn hàng, theo thứ tự mẫu → thứ tự chỉ tiêu. */
 export async function orderLines(orderId: string): Promise<OrderLine[]> {
@@ -366,6 +368,7 @@ function toLine(r: Record<string, unknown>): OrderLine {
     lineKind: (r.line_kind as string) ?? "",
     analyst: (r.analyst as string) ?? "",
     reps: repTexts(r.replicates),
+    subCode: (r.sub_code as string) ?? "",
   };
 }
 

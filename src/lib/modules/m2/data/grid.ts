@@ -24,7 +24,9 @@ export async function buildGrid(lines: OrderLine[]): Promise<GridSample[]> {
   const methodRange = (matrix: string, criterion: string, method: string) => {
     const a = analyteOf(matrix, criterion);
     const m = a ? methods.find((x) => x.analyteId === a.id && x.method === method) : undefined;
-    return { mMin: m?.minValue ?? null, mMax: m?.maxValue ?? null };
+    // Phương pháp chọn được của chỉ tiêu (mặc định lên đầu) – ô chọn Phương pháp trên lưới như XaLab.
+    const methodOptions = a ? methods.filter((x) => x.analyteId === a.id).sort((x, y) => Number(y.isDefault) - Number(x.isDefault)).map((x) => x.method) : [];
+    return { mMin: m?.minValue ?? null, mMax: m?.maxValue ?? null, methodOptions };
   };
   const printOf = (l: OrderLine) => {
     const a = analyteOf(l.matrix, l.criterion);
@@ -80,6 +82,7 @@ export async function buildGrid(lines: OrderLine[]): Promise<GridSample[]> {
             status: l.status,
             technician: l.technician,
             analyst: l.analyst,
+            subCode: l.subCode,
             samplingTimes: l.samplingTimes,
             reps: l.reps,
             lineKind: l.lineKind,

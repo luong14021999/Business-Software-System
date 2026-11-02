@@ -65,19 +65,22 @@ export const orderQuoteStore = createEntityStore<OrderQuote>(
   }),
 );
 
-export type OrderTypeSpec = { id: string; orderId: string; sampleTypeId: string; spec1Id: string; spec2Id: string };
+export type OrderTypeSpec = { id: string; orderId: string; sampleTypeId: string; spec1Id: string; spec2Id: string; standardIds: string[]; specIds: string[] };
 export const orderTypeSpecStore = createEntityStore<OrderTypeSpec>(
   "order-type-specs",
   [],
-  columnsMapping<OrderTypeSpec>("order_type_specs", { orderId: "ref", sampleTypeId: "ref", spec1Id: "ref", spec2Id: "ref" }),
+  columnsMapping<OrderTypeSpec>("order_type_specs", { orderId: "ref", sampleTypeId: "ref", spec1Id: "ref", spec2Id: "ref", standardIds: "json", specIds: "json" }),
 );
 
-/** Ghi quy chuẩn của một loại mẫu cho đơn (tạo mới hoặc thay). */
-export async function upsertTypeSpec(orderId: string, sampleTypeId: string, spec1Id: string, spec2Id: string) {
+/** Ghi quy chuẩn của một loại mẫu cho đơn (tạo mới hoặc thay): tối đa 10 quy chuẩn và 10 cột; cột 1, 2 dùng cho lưới / bản in. */
+export async function upsertTypeSpec(orderId: string, sampleTypeId: string, standardIds: string[], specIds: string[]) {
+  const cols = specIds.slice(0, 10);
   await dbQuery(
-    `insert into public.order_type_specs (order_id, sample_type_id, spec1_id, spec2_id) values ($1, $2, nullif($3, '')::uuid, nullif($4, '')::uuid)
-     on conflict (order_id, sample_type_id) do update set spec1_id = excluded.spec1_id, spec2_id = excluded.spec2_id`,
-    [orderId, sampleTypeId, spec1Id, spec2Id],
+    `insert into public.order_type_specs (order_id, sample_type_id, spec1_id, spec2_id, standard_ids, spec_ids)
+     values ($1, $2, nullif($3, '')::uuid, nullif($4, '')::uuid, $5::jsonb, $6::jsonb)
+     on conflict (order_id, sample_type_id) do update set spec1_id = excluded.spec1_id, spec2_id = excluded.spec2_id,
+       standard_ids = excluded.standard_ids, spec_ids = excluded.spec_ids`,
+    [orderId, sampleTypeId, cols[0] ?? "", cols[1] ?? "", JSON.stringify(standardIds.slice(0, 10)), JSON.stringify(cols)],
   );
 }
 

@@ -5,7 +5,7 @@ import type { OrderLine } from "@/lib/modules/m2/data/orders";
 import type { ResultStatus } from "@/lib/mock-data";
 
 /** `reps`: các lần đo khi chỉ tiêu đo nhiều lần – kết quả là trung bình, thay cho `text`. */
-export type LineEdit = { id: string; text?: string; reps?: string[]; method?: string; subcontractor?: string };
+export type LineEdit = { id: string; text?: string; reps?: string[]; method?: string; subcontractor?: string; subCode?: string };
 
 /**
  * Chỉ ghi các dòng thuộc `allowed` đang nhập / bị trả lại.
@@ -21,6 +21,7 @@ export async function saveLineEdits(edits: LineEdit[], allowed: OrderLine[], act
     const patch: Record<string, unknown> = {};
     if (e.method !== undefined && e.method !== before.method) patch.method = e.method;
     if (e.subcontractor !== undefined && e.subcontractor !== before.subcontractor) patch.subcontractor = e.subcontractor;
+    if (e.subCode !== undefined && e.subCode.trim() !== before.subCode) patch.sub_code = e.subCode.trim() || null;
     if (e.reps !== undefined) {
       const reps = e.reps.slice(0, 20).map((t) => String(t ?? "").trim());
       if (reps.join("|") !== before.reps.join("|")) {

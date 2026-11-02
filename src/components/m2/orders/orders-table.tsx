@@ -98,6 +98,7 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
                         { label: "Phân công/kết quả phân tích", href: `/orders/${r.id}/assign` },
                         { label: "Nhập/duyệt kết quả thử nghiệm", href: `/orders/${r.id}/results` },
                         { label: "Yêu cầu", href: `/orders/${r.id}/samples` },
+                        { label: "Nhập dữ liệu hiện trường", href: `/orders/${r.id}/import` },
                         { label: "Copy", href: `/orders/new?copy=${r.id}` },
                         { label: "Xóa", danger: true, onClick: () => remove(r) },
                       ]}
