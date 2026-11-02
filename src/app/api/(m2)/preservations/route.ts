@@ -3,4 +3,4 @@ import { collectionRoutes } from "@/lib/platform/api/crud";
 
 export const dynamic = "force-dynamic";
 
-export const { GET, POST } = collectionRoutes<Preservation>(preservationStore, { name: "", description: "" }, (b) => (!b.name?.trim() ? "Nhập cách bảo quản" : null));
+export const { GET, POST } = collectionRoutes<Preservation>(preservationStore, { name: "", description: "", sampleTypeId: "", isField: false }, (b) => (!b.name?.trim() ? "Nhập cách bảo quản" : null));

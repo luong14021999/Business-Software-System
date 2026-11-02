@@ -153,6 +153,8 @@ export type SampleType = {
   hazardous: boolean;
   minQuantity: string;
   recordTemplate: string;
+  englishName: string;
+  recordTemplate2: string;
 };
 export const sampleTypeStore = createEntityStore<SampleType>(
   "sample-types",
@@ -167,6 +169,8 @@ export const sampleTypeStore = createEntityStore<SampleType>(
     hazardous: "bool",
     minQuantity: "text",
     recordTemplate: "text",
+    englishName: "text",
+    recordTemplate2: "text",
   }),
 );
 
@@ -220,11 +224,11 @@ export const analyteStore = createEntityStore<LabAnalyte>(
   }),
 );
 
-export type Specification = { id: string; name: string; columnName: string; sampleTypeId: string; note: string; active: boolean; printName: string; printNote: string };
+export type Specification = { id: string; name: string; columnName: string; sampleTypeId: string; note: string; active: boolean; printName: string; printNote: string; standardId: string; englishName: string };
 export const specificationStore = createEntityStore<Specification>(
   "specifications",
   [],
-  columnsMapping<Specification>("specifications", { name: "text", columnName: "text", sampleTypeId: "ref", note: "text", active: "bool", printName: "text", printNote: "text" }),
+  columnsMapping<Specification>("specifications", { name: "text", columnName: "text", sampleTypeId: "ref", note: "text", active: "bool", printName: "text", printNote: "text", standardId: "ref", englishName: "text" }),
 );
 
 export type SpecLimit = { id: string; specId: string; analyte: string; minValue: number | null; maxValue: number | null; note: string; notDetected: boolean; ndText: string; printNote: string };

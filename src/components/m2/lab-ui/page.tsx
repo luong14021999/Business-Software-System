@@ -43,17 +43,25 @@ export const table = "w-full border-collapse text-sm text-[#333] [&_th]:border-b
 /** Đường dẫn trong bảng. */
 export const link = "text-[#337ab7] hover:text-[#23527c] hover:underline";
 
-/** Phân trang đơn giản (trang hiện tại / tổng số trang). */
+/** Phân trang kiểu XaLab (Bootstrap): các ô số dính liền, « » chuyển trang, "Trang x / y". */
 export function Pager({ page, pages, href }: { page: number; pages: number; href: (p: number) => string }) {
-  if (pages <= 1) return <div className="mt-3 text-sm text-muted-foreground">Trang {pages ? 1 : 0} / {pages}</div>;
+  if (pages <= 1) return <div className="mt-3 px-3 text-sm text-[#333]">Trang {pages ? 1 : 0} / {pages}</div>;
+  const cell = "-ml-px inline-flex h-[34px] min-w-[34px] items-center justify-center border px-3 first:ml-0 first:rounded-l last:rounded-r";
+  // Tối đa 10 ô quanh trang hiện tại như XaLab.
+  const from = Math.max(1, Math.min(page - 4, pages - 9));
+  const nums = Array.from({ length: Math.min(10, pages) }, (_, i) => from + i);
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-1 text-sm">
-      {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
-        <a key={p} href={href(p)} className={cn("inline-flex h-8 min-w-8 items-center justify-center rounded border px-2", p === page ? "border-[#337ab7] bg-[#337ab7] text-white" : "border-[#ddd] text-[#337ab7] hover:bg-[#eee]")}>
-          {p}
-        </a>
-      ))}
-      <span className="ml-2 text-muted-foreground">Trang {page} / {pages}</span>
+    <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+      <div className="flex">
+        {page > 1 && <a href={href(page - 1)} className={cn(cell, "border-[#ddd] text-[#337ab7] hover:bg-[#eee]")} aria-label="Trang trước">«</a>}
+        {nums.map((p) => (
+          <a key={p} href={href(p)} aria-current={p === page ? "page" : undefined} className={cn(cell, p === page ? "relative z-10 border-[#337ab7] bg-[#337ab7] text-white" : "border-[#ddd] text-[#337ab7] hover:bg-[#eee]")}>
+            {p}
+          </a>
+        ))}
+        {page < pages && <a href={href(page + 1)} className={cn(cell, "border-[#ddd] text-[#337ab7] hover:bg-[#eee]")} aria-label="Trang sau">»</a>}
+      </div>
+      <span className="text-[#333]">Trang {page} / {pages}</span>
     </div>
   );
 }

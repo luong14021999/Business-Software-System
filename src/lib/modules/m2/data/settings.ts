@@ -3,8 +3,8 @@ import { columnsMapping, createEntityStore } from "@/lib/platform/data/factory";
 import { dbQuery } from "@/lib/platform/db";
 
 export type RateKind = "price" | "norm";
-export type RateList = { id: string; kind: RateKind; name: string; note: string; active: boolean };
-export const rateListStore = createEntityStore<RateList>("rate-lists", [], columnsMapping<RateList>("rate_lists", { kind: "text", name: "text", note: "text", active: "bool" }));
+export type RateList = { id: string; kind: RateKind; name: string; note: string; active: boolean; costPrice: boolean };
+export const rateListStore = createEntityStore<RateList>("rate-lists", [], columnsMapping<RateList>("rate_lists", { kind: "text", name: "text", note: "text", active: "bool", costPrice: "bool" }));
 
 export type RateItem = { id: string; listId: string; sampleTypeId: string; analyte: string; amount: number; cost: number | null };
 export const rateItemStore = createEntityStore<RateItem>(
@@ -40,22 +40,40 @@ export const batchTemplateStore = createEntityStore<BatchTemplate>(
   columnsMapping<BatchTemplate>("batch_templates", { name: "text", method: "text", analyst: "text", instrumentCode: "text", chemicals: "text", note: "text" }),
 );
 
-export type Subcontractor = { id: string; name: string; code: string; phone: string; note: string; active: boolean };
+export type Subcontractor = {
+  id: string;
+  name: string;
+  code: string;
+  phone: string;
+  note: string;
+  active: boolean;
+  taxCode: string;
+  fax: string;
+  email: string;
+  address: string;
+  invoiceAddress: string;
+  contact: string;
+  asInternal: boolean;
+};
 export const subcontractorStore = createEntityStore<Subcontractor>(
   "subcontractors",
   [],
-  columnsMapping<Subcontractor>("subcontractors", { name: "text", code: "text", phone: "text", note: "text", active: "bool" }),
+  columnsMapping<Subcontractor>("subcontractors", { name: "text", code: "text", phone: "text", note: "text", active: "bool", taxCode: "text", fax: "text", email: "text", address: "text", invoiceAddress: "text", contact: "text", asInternal: "bool" }),
 );
 
-export type ContainerType = { id: string; name: string; symbol: string; volume: string; note: string };
+export type ContainerType = { id: string; name: string; symbol: string; volume: string; note: string; description: string };
 export const containerTypeStore = createEntityStore<ContainerType>(
   "container-types",
   [],
-  columnsMapping<ContainerType>("container_types", { name: "text", symbol: "text", volume: "text", note: "text" }),
+  columnsMapping<ContainerType>("container_types", { name: "text", symbol: "text", volume: "text", note: "text", description: "text" }),
 );
 
-export type Preservation = { id: string; name: string; description: string };
-export const preservationStore = createEntityStore<Preservation>("preservations", [], columnsMapping<Preservation>("preservations", { name: "text", description: "text" }));
+export type Preservation = { id: string; name: string; description: string; sampleTypeId: string; isField: boolean };
+export const preservationStore = createEntityStore<Preservation>(
+  "preservations",
+  [],
+  columnsMapping<Preservation>("preservations", { name: "text", description: "text", sampleTypeId: "ref", isField: "bool" }),
+);
 
 /** Lựa chọn cột "Thầu phụ" / phạm vi: VILAS, Nội bộ và các đơn vị thầu phụ đang dùng. */
 export async function scopeOptions() {
@@ -84,14 +102,68 @@ export async function priceResolver(priceListId: string) {
 
 // ── Danh mục chi tiết (migration 0029) ──────────────────────────────
 
-export type LabMethod = { id: string; name: string; description: string; active: boolean };
-export const labMethodStore = createEntityStore<LabMethod>("lab-methods", [], columnsMapping<LabMethod>("lab_methods", { name: "text", description: "text", active: "bool" }));
+export type LabMethod = {
+  id: string;
+  name: string;
+  description: string;
+  active: boolean;
+  analyst: string;
+  attachmentUrl: string;
+  recordTemplate1: string;
+  recordTemplate2: string;
+  isokinetic: boolean;
+  quickMeasure: boolean;
+  subcontractorMethod: boolean;
+};
+export const labMethodStore = createEntityStore<LabMethod>(
+  "lab-methods",
+  [],
+  columnsMapping<LabMethod>("lab_methods", {
+    name: "text",
+    description: "text",
+    active: "bool",
+    analyst: "text",
+    attachmentUrl: "text",
+    recordTemplate1: "text",
+    recordTemplate2: "text",
+    isokinetic: "bool",
+    quickMeasure: "bool",
+    subcontractorMethod: "bool",
+  }),
+);
 
-export type AnalyteGroup = { id: string; name: string; sort: number; isMtld: boolean };
-export const analyteGroupStore = createEntityStore<AnalyteGroup>("analyte-groups", [], columnsMapping<AnalyteGroup>("analyte_groups", { name: "text", sort: "number", isMtld: "bool" }));
+export type AnalyteGroup = { id: string; name: string; sort: number; isMtld: boolean; description: string; resultTemplate: string; testField: string; owner: string };
+export const analyteGroupStore = createEntityStore<AnalyteGroup>(
+  "analyte-groups",
+  [],
+  columnsMapping<AnalyteGroup>("analyte_groups", { name: "text", sort: "number", isMtld: "bool", description: "text", resultTemplate: "text", testField: "text", owner: "text" }),
+);
 
 export type NamedItem = { id: string; name: string; note: string };
-export const instrumentTypeStore = createEntityStore<NamedItem>("instrument-types", [], columnsMapping<NamedItem>("instrument_types", { name: "text", note: "text" }));
+export type InstrumentType = NamedItem & {
+  description: string;
+  unit: string;
+  depreciationYears: string;
+  shiftsPerYear: number | null;
+  manualUrl: string;
+  isField: boolean;
+  departmentId: string;
+};
+export const instrumentTypeStore = createEntityStore<InstrumentType>(
+  "instrument-types",
+  [],
+  columnsMapping<InstrumentType>("instrument_types", {
+    name: "text",
+    note: "text",
+    description: "text",
+    unit: "text",
+    depreciationYears: "text",
+    shiftsPerYear: "optnum",
+    manualUrl: "text",
+    isField: "bool",
+    departmentId: "ref",
+  }),
+);
 export type Manufacturer = NamedItem & { country: string };
 export const manufacturerStore = createEntityStore<Manufacturer>("manufacturers", [], columnsMapping<Manufacturer>("manufacturers", { name: "text", country: "text", note: "text" }));
 

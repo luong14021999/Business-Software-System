@@ -51,6 +51,7 @@ export default async function SystemPage() {
           <Card>
             <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-2">
               <div><CardTitle className="text-base">Sao lưu & khôi phục</CardTitle><CardDescription>Hai lớp sao lưu độc lập</CardDescription></div>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- tải file sao lưu từ API, không phải trang */}
               {admin && <a href="/api/system/backup" className="h-8 px-3 inline-flex items-center gap-1.5 rounded-md border text-xs font-medium hover:bg-accent shrink-0"><Download className="w-3.5 h-3.5" /> Xuất bản sao lưu</a>}
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
