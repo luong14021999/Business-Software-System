@@ -1,46 +1,49 @@
-import { LabPage, btn } from "@/components/m2/lab-ui/page";
-import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
-import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
+import { XDeleteLink } from "@/components/m2/lab-ui/x-delete";
+import { XListPage, paginate } from "@/components/m2/lab-ui/x-list";
 import { CreateBatchButton } from "@/components/m2/settings/create-batch-button";
-import { analyteStore } from "@/lib/modules/m2/data/orders";
 import { batchTemplateStore } from "@/lib/modules/m2/data/settings";
-import { staffStore } from "@/lib/modules/m2/data/staff";
-import { equipmentStore } from "@/lib/modules/m2/data/equipment";
 import { currentAccess } from "@/lib/platform/data/access";
+import { normalizeVi } from "@/lib/platform/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function BatchTemplatesPage() {
-  const [items, analytes, staff, equipment, access] = await Promise.all([batchTemplateStore.list(), analyteStore.list(), staffStore.list(), equipmentStore.list(), currentAccess()]);
+type SP = { q?: string; status?: string; page?: string };
+
+/** Danh sách template mẻ thử nghiệm như XaLab: Tên, Người phân tích; thêm nút Tạo mẻ từ template. */
+export default async function BatchTemplatesPage({ searchParams }: { searchParams: Promise<SP> }) {
+  const sp = await searchParams;
+  const [items, access] = await Promise.all([batchTemplateStore.list(), currentAccess()]);
   const canWrite = access.can("results.enter");
-  const fields: CrudField[] = [
-    { name: "name", label: "Tên mẫu mẻ", required: true, full: true },
-    { name: "method", label: "Phương pháp", type: "select", options: [...new Set(analytes.map((a) => a.method).filter(Boolean))].sort(), full: true },
-    { name: "analyst", label: "Người phân tích", type: "select", options: staff.map((s) => s.fullName) },
-    { name: "instrumentCode", label: "Thiết bị", type: "select", options: [{ value: "", label: "— Chọn thiết bị —" }, ...equipment.map((e) => ({ value: e.code, label: `${e.code} · ${e.name}` }))] },
-    { name: "chemicals", label: "Hóa chất, chất chuẩn", type: "textarea" },
-    { name: "note", label: "Ghi chú", type: "textarea" },
-  ];
+  const q = normalizeVi(sp.q ?? "");
+  const rows = items
+    .filter((t) => !sp.status || (sp.status === "dang-dung" ? t.active : !t.active))
+    .filter((t) => !q || normalizeVi(t.name).includes(q))
+    .sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  const { page, pages, slice } = paginate(rows, sp);
   return (
-    <LabPage
+    <XListPage
       title="Danh sách template mẻ thử nghiệm"
-      subtitle="Cấu hình hay dùng của một lần chạy phân tích; bấm “Tạo mẻ” để mở mẻ mới với sẵn phương pháp, người phân tích, thiết bị, hóa chất"
-      toolbar={canWrite && <EntityFormDialog mode="add" endpoint="/api/batch-templates" title="Thêm mẫu mẻ" fields={fields} trigger={<button type="button" className={btn}>Thêm +</button>} />}
-    >
-      <CatalogTable
-        entity="batch-templates"
-        canWrite={canWrite}
-        fields={fields}
-        emptyText="Chưa có mẫu mẻ thử nghiệm"
-        headers={["Tên", "Phương pháp", "Người phân tích", "Thiết bị"]}
-        rows={items.sort((a, b) => a.name.localeCompare(b.name)).map((t) => ({
-          id: t.id,
-          label: t.name,
-          initial: t,
-          cells: [t.name, t.method || "—", t.analyst || "—", t.instrumentCode || "—"],
-          extra: canWrite ? <CreateBatchButton templateId={t.id} /> : undefined,
-        }))}
-      />
-    </LabPage>
+      basePath="/batch-templates"
+      sp={sp}
+      newHref={canWrite ? "/batch-templates/new" : undefined}
+      headers={["Tên", "Người phân tích"]}
+      searchPlaceholder="Tên"
+      total={rows.length}
+      page={page}
+      pages={pages}
+      rows={slice.map((t, i) => ({
+        id: t.id,
+        no: (page - 1) * 10 + i + 1,
+        href: `/batch-templates/${t.id}`,
+        cells: [<span key="n" className={t.active ? undefined : "line-through"}>{t.name}</span>, t.analyst],
+        actions: canWrite ? (
+          <span className="inline-flex items-center gap-2">
+            <CreateBatchButton templateId={t.id} />
+            <span className="text-[#333]">|</span>
+            <XDeleteLink url={`/api/batch-templates/${t.id}`} label={t.name} />
+          </span>
+        ) : null,
+      }))}
+    />
   );
 }

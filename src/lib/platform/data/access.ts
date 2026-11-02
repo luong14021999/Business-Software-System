@@ -46,11 +46,18 @@ export async function rolesOf(email: string): Promise<Role[]> {
 }
 
 /** Người đang đăng nhập + vai trò + bộ kiểm tra quyền (dùng cho trang và API). */
+/** Quyền bị chặn riêng cho một người (trang Nhân viên → "Các quyền cụ thể"), theo email. */
+export async function deniedOf(email: string): Promise<string[]> {
+  if (!isDbConfigured() || !email) return [];
+  const [r] = await dbQuery(`select denied from public.staff where lower(email) = lower($1) and denied <> '[]'::jsonb limit 1`, [email]).catch(() => []);
+  return (r?.denied as string[]) ?? [];
+}
+
 export async function currentAccess() {
   const actor = await currentActor();
   const enabled = await rbacEnabled();
-  const roles = actor ? await rolesOf(actor.email) : [];
-  const can = (perm: Permission) => Boolean(actor) && (!enabled || roleAllows(roles, perm));
+  const [roles, denied] = actor && enabled ? await Promise.all([rolesOf(actor.email), deniedOf(actor.email)]) : [[] as Role[], [] as string[]];
+  const can = (perm: Permission) => Boolean(actor) && (!enabled || (roleAllows(roles, perm) && !denied.includes(perm)));
   return { actor, enabled, roles, can };
 }
 

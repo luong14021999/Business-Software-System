@@ -279,6 +279,9 @@ export const navModules: NavModule[] = [
           { href: "/equipment", label: "Mã thiết bị", icon: Settings },
           { href: "/chemicals", label: "Hoá chất", icon: Settings },
           { href: "/analyte-mappings", label: "Chỉ tiêu phụ", icon: Settings },
+          { href: "/suppliers", label: "Nhà cung cấp", icon: Settings },
+          { href: "/lab-staff", label: "Nhân viên", icon: Settings },
+          { href: "/report-numbers", label: "Danh sách số phiếu kết quả", icon: Settings },
         ],
       },
       {
@@ -307,7 +310,7 @@ export const navModules: NavModule[] = [
           { href: "/accreditation", label: "Phạm vi công nhận VILAS", icon: Award },
           { href: "/authorizations", label: "Ủy quyền phép thử", icon: UserCheck },
           { href: "/commitments", label: "Cam kết khách quan & bảo mật", icon: ShieldHalf },
-          { href: "/suppliers", label: "Nhà cung cấp", icon: Truck },
+          { href: "/iso-suppliers", label: "Đánh giá nhà cung cấp", icon: Truck },
           { href: "/feedback", label: "Ý kiến & khiếu nại", icon: MessageSquare },
           { href: "/nonconformities", label: "Không phù hợp & CAPA", icon: OctagonAlert },
           { href: "/internal-audits", label: "Đánh giá nội bộ", icon: SearchCheck },

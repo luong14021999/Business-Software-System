@@ -27,18 +27,18 @@ export async function fillRateList(listId: string, sampleTypeId: string, kind: R
 }
 
 export type TemplateLine = { name: string; unit?: string; method?: string; subcontractor?: string };
-export type BulkTemplate = { id: string; name: string; sampleTypeId: string; description: string; lines: TemplateLine[]; createdBy: string };
+export type BulkTemplate = { id: string; name: string; sampleTypeId: string; description: string; lines: TemplateLine[]; createdBy: string; active: boolean };
 export const bulkTemplateStore = createEntityStore<BulkTemplate>(
   "bulk-templates",
   [],
-  columnsMapping<BulkTemplate>("bulk_templates", { name: "text", sampleTypeId: "ref", description: "text", lines: "json", createdBy: "text" }),
+  columnsMapping<BulkTemplate>("bulk_templates", { name: "text", sampleTypeId: "ref", description: "text", lines: "json", createdBy: "text", active: "bool" }),
 );
 
-export type BatchTemplate = { id: string; name: string; method: string; analyst: string; instrumentCode: string; chemicals: string; note: string };
+export type BatchTemplate = { id: string; name: string; method: string; analyst: string; instrumentCode: string; chemicals: string; note: string; active: boolean };
 export const batchTemplateStore = createEntityStore<BatchTemplate>(
   "batch-templates",
   [],
-  columnsMapping<BatchTemplate>("batch_templates", { name: "text", method: "text", analyst: "text", instrumentCode: "text", chemicals: "text", note: "text" }),
+  columnsMapping<BatchTemplate>("batch_templates", { name: "text", method: "text", analyst: "text", instrumentCode: "text", chemicals: "text", note: "text", active: "bool" }),
 );
 
 export type Subcontractor = {
@@ -242,5 +242,64 @@ export async function copySpecification(id: string): Promise<string | null> {
      select $2, analyte, min_value, max_value, note, not_detected, nd_text, print_note, print_text from public.specification_limits where spec_id = $1`,
     [id, row.id],
   );
+  return row.id as string;
+}
+
+/** Khoản của "Cài đặt định mức" (migration 0041): định mức × đơn giá; có khoản thì đơn giá định mức của chỉ tiêu = tổng các khoản. */
+export const NORM_CATEGORIES = ["Dụng cụ lấy mẫu", "Thiết bị HT", "Vật liệu HT", "Dụng cụ phân tích", "Thiết bị PTN", "Vật liệu PTN", "Nhân công"] as const;
+export type NormPart = { id: string; itemId: string; category: string; name: string; quantity: number; unitPrice: number; sort: number };
+export const normPartStore = createEntityStore<NormPart>(
+  "norm-item-parts",
+  [],
+  columnsMapping<NormPart>("norm_item_parts", { itemId: "ref", category: "text", name: "text", quantity: "number", unitPrice: "number", sort: "number" }),
+);
+
+/** Ghi đè các khoản định mức của một dòng bảng định mức và cập nhật đơn giá định mức = tổng (định mức × đơn giá). */
+export async function saveNormParts(itemId: string, parts: Omit<NormPart, "id" | "itemId" | "sort">[]) {
+  await dbQuery(`delete from public.norm_item_parts where item_id = $1`, [itemId]);
+  let total = 0;
+  for (const [i, p] of parts.entries()) {
+    await dbQuery(`insert into public.norm_item_parts (item_id, category, name, quantity, unit_price, sort) values ($1, $2, $3, $4, $5, $6)`, [itemId, p.category, p.name, p.quantity, p.unitPrice, i + 1]);
+    total += p.quantity * p.unitPrice;
+  }
+  if (parts.length) await dbQuery(`update public.rate_items set amount = $2 where id = $1`, [itemId, Math.round(total)]);
+  return Math.round(total);
+}
+
+/** Ghi giá / định mức của các chỉ tiêu một loại mẫu trong bảng: có đơn giá thì thêm / sửa, để trống thì bỏ khỏi bảng. */
+export async function saveRateRows(listId: string, sampleTypeId: string, rows: { analyte: string; amount: number | null; cost: number | null }[]) {
+  let n = 0;
+  for (const r of rows) {
+    const analyte = r.analyte.trim();
+    if (!analyte) continue;
+    if (r.amount == null) {
+      await dbQuery(`delete from public.rate_items where list_id = $1 and sample_type_id = $2 and analyte = $3`, [listId, sampleTypeId, analyte]);
+      continue;
+    }
+    await dbQuery(
+      `insert into public.rate_items (list_id, sample_type_id, analyte, amount, cost) values ($1, $2, $3, $4, $5)
+       on conflict (list_id, sample_type_id, analyte) do update set amount = excluded.amount, cost = excluded.cost`,
+      [listId, sampleTypeId, analyte, r.amount, r.cost],
+    );
+    n++;
+  }
+  return n;
+}
+
+/** Copy bảng giá / định mức (kèm các chỉ tiêu và khoản định mức) thành bảng mới "… (bản sao)". */
+export async function copyRateList(id: string): Promise<string | null> {
+  const [row] = await dbQuery(
+    `insert into public.rate_lists (kind, name, note, active, cost_price) select kind, name || ' (bản sao)', note, active, cost_price from public.rate_lists where id = $1 returning id`,
+    [id],
+  );
+  if (!row) return null;
+  const items = await dbQuery(`select id, sample_type_id, analyte, amount, cost from public.rate_items where list_id = $1`, [id]);
+  for (const it of items) {
+    const [n] = await dbQuery(`insert into public.rate_items (list_id, sample_type_id, analyte, amount, cost) values ($1, $2, $3, $4, $5) returning id`, [row.id, it.sample_type_id, it.analyte, it.amount, it.cost]);
+    await dbQuery(
+      `insert into public.norm_item_parts (item_id, category, name, quantity, unit_price, sort) select $2, category, name, quantity, unit_price, sort from public.norm_item_parts where item_id = $1`,
+      [it.id, n.id],
+    );
+  }
   return row.id as string;
 }

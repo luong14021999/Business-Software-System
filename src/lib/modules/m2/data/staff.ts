@@ -2,7 +2,7 @@ import { createEntityStore, dateOrNull } from "../../../platform/data/factory";
 import { staff, type Staff } from "@/lib/mock-data";
 
 const SELECT =
-  "id, code, full_name, position, department, email, phone, joined_at, competencies, trainings, status";
+  "id, code, full_name, position, department, email, phone, joined_at, competencies, trainings, status, salutation, phone2, sign_for, collaborator, department_id, denied";
 
 export const staffStore = createEntityStore<Staff>("staff", staff, {
   table: "staff",
@@ -19,6 +19,12 @@ export const staffStore = createEntityStore<Staff>("staff", staff, {
     competencies: (row.competencies as string[]) ?? [],
     trainings: (row.trainings as { name: string; year: number }[]) ?? [],
     status: (row.status as Staff["status"]) ?? "Đang làm việc",
+    salutation: (row.salutation as string) ?? "",
+    phone2: (row.phone2 as string) ?? "",
+    signFor: (row.sign_for as string) ?? "",
+    collaborator: Boolean(row.collaborator),
+    departmentId: (row.department_id as string) ?? "",
+    denied: (row.denied as string[]) ?? [],
   }),
   toRow: (s) => {
     const r: Record<string, unknown> = {};
@@ -32,6 +38,12 @@ export const staffStore = createEntityStore<Staff>("staff", staff, {
     if (s.competencies !== undefined) r.competencies = s.competencies;
     if (s.trainings !== undefined) r.trainings = s.trainings;
     if (s.status !== undefined) r.status = s.status;
+    if (s.salutation !== undefined) r.salutation = s.salutation;
+    if (s.phone2 !== undefined) r.phone2 = s.phone2;
+    if (s.signFor !== undefined) r.sign_for = s.signFor;
+    if (s.collaborator !== undefined) r.collaborator = s.collaborator;
+    if (s.departmentId !== undefined) r.department_id = s.departmentId || null;
+    if (s.denied !== undefined) r.denied = JSON.stringify(s.denied);
     return r;
   },
 });

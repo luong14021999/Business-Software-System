@@ -28,7 +28,7 @@ import { staffStore } from "@/lib/modules/m2/data/staff";
 import { equipmentStore } from "@/lib/modules/m2/data/equipment";
 import { chemicalsStore } from "@/lib/modules/m2/data/chemicals";
 import { supplierStore } from "@/lib/modules/m2/data/competence";
-import { EQUIPMENT_CONDITIONS, nextChemicalCode, chemicalInUse, equipmentInUse } from "@/lib/modules/m2/data/manage";
+import { EQUIPMENT_CONDITIONS, nextChemicalCode, nextSupplierCode, chemicalInUse, equipmentInUse } from "@/lib/modules/m2/data/manage";
 
 export type Opt = { value: string; label: string };
 export type XFieldType = "text" | "number" | "date" | "textarea" | "select" | "checkbox" | "url";
@@ -148,6 +148,22 @@ export const CATALOGS: CatalogDef[] = [
     activeKey: "active",
     validate: (b) => (!String(b.code ?? "").trim() ? "Nhập mã thiết bị" : !String(b.name ?? "").trim() ? "Nhập tên thiết bị" : null),
     beforeDelete: equipmentInUse,
+  },
+  {
+    slug: "suppliers",
+    store: supplierStore,
+    listTitle: "Danh sách nhà cung cấp",
+    formSubtitle: "Thông tin nhà cung cấp",
+    searchPlaceholder: "Tên nhà cung cấp...",
+    fields: [...orgFields("Tên nhà cung cấp"), { name: "active", label: "Đang dùng", type: "checkbox" }],
+    defaults: {
+      code: "", name: "", category: "Hóa chất & chất chuẩn", provides: "", contact: "", phone: "", accreditation: "", status: "Đang đánh giá", evaluatedAt: "", result: "",
+      nextEvaluationAt: "", criteria: "", note: "", taxCode: "", fax: "", email: "", address: "", invoiceAddress: "", active: true,
+    },
+    columns: [{ label: "Tên nhà cung cấp", get: (r) => r.name }],
+    activeKey: "active",
+    prepare: async () => ({ code: await nextSupplierCode() }),
+    validate: needName("tên nhà cung cấp"),
   },
   {
     slug: "chemicals",

@@ -146,7 +146,7 @@ export default async function IsoOverviewPage() {
     "6.6": {
       status: approvedSuppliers ? "ok" : "records",
       evidence: has(suppliers.length, `${suppliers.length} nhà cung cấp · ${approvedSuppliers} được phê duyệt`, "Chưa có nhà cung cấp nào được đánh giá"),
-      modules: [{ href: "/suppliers", label: "Nhà cung cấp" }],
+      modules: [{ href: "/iso-suppliers", label: "Đánh giá nhà cung cấp" }],
     },
     "7.1": { status: requests.length ? "ok" : "records", evidence: has(requests.length, `${requests.length} phiếu yêu cầu / hợp đồng`, "Chưa có phiếu yêu cầu"), modules: [{ href: "/test-requests", label: "Phiếu yêu cầu thử nghiệm" }] },
     "7.2": {

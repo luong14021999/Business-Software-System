@@ -115,6 +115,12 @@ export type Supplier = {
   nextEvaluationAt: string;
   criteria: string;
   note: string;
+  taxCode: string;
+  fax: string;
+  email: string;
+  address: string;
+  invoiceAddress: string;
+  active: boolean;
 };
 
 export const supplierStore = createEntityStore<Supplier>(
@@ -133,6 +139,12 @@ export const supplierStore = createEntityStore<Supplier>(
     result: "text",
     nextEvaluationAt: "date",
     criteria: "text",
+    taxCode: "text",
+    fax: "text",
+    email: "text",
+    address: "text",
+    invoiceAddress: "text",
+    active: "bool",
     note: "text",
   }),
 );

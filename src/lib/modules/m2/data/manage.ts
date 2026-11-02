@@ -18,6 +18,14 @@ export async function nextChemicalCode() {
   return `HC-${String(max + 1).padStart(3, "0")}`;
 }
 
+/** Mã nhà cung cấp kế tiếp dạng NCC-001. */
+export async function nextSupplierCode() {
+  if (!isDbConfigured()) return "NCC-001";
+  const rows = await dbQuery(`select code from public.suppliers where code ~ '^NCC-[0-9]+$'`);
+  const max = rows.reduce((m, r) => Math.max(m, Number(String(r.code).slice(4)) || 0), 0);
+  return `NCC-${String(max + 1).padStart(3, "0")}`;
+}
+
 export async function chemicalInUse(id: string) {
   if (!isDbConfigured()) return null;
   const [r] = await dbQuery(`select count(*)::int n from public.chemical_import_items where chemical_id = $1`, [id]);

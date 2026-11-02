@@ -105,6 +105,20 @@ export function OrderForm({
     else router.refresh();
   }
 
+  /** Cấp số phiếu kết quả tiếp theo (theo năm và loại số phiếu đang chọn) rồi điền vào ô số phiếu. */
+  async function allocate() {
+    if (!order) return;
+    if (!f.reportNoKind) return toast.error("Chọn loại số phiếu");
+    if (f.reportNo && !confirm(`Đơn đã có số phiếu ${f.reportNo}. Cấp số mới?`)) return;
+    setBusy("so-phieu");
+    const res = await fetch("/api/report-numbers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: order.id, kind: f.reportNoKind }) });
+    const b = await res.json().catch(() => ({}));
+    setBusy(null);
+    if (!res.ok) return toast.error("Không cấp được số phiếu", b.error ?? `HTTP ${res.status}`);
+    setF((x) => ({ ...x, reportNo: b.reportNo }));
+    toast.success(`Đã cấp số phiếu ${b.reportNo}`);
+  }
+
   async function addDoc(kind: string) {
     const d = docs[kind];
     if (!order || !d?.url.trim()) return toast.error("Nhập đường dẫn tài liệu");
@@ -261,7 +275,15 @@ export function OrderForm({
           {field("Hình thức trả kết quả", select("deliveryMethod", DELIVERY_METHODS.map((d) => ({ id: d, name: d })), "Chọn hình thức"))}
           {text("reportNo", "Số phiếu kết quả Tiếng Việt")}
           {text("reportNoEn", "Số phiếu kết quả Tiếng Anh")}
-          {field("Loại số phiếu", select("reportNoKind", REPORT_NO_KINDS.map((d) => ({ id: d, name: d })), ""))}
+          {field(
+            "Loại số phiếu",
+            select("reportNoKind", REPORT_NO_KINDS.map((d) => ({ id: d, name: d })), ""),
+            order ? (
+              <button type="button" disabled={busy === "so-phieu"} onClick={allocate} className={`${btn} mt-1`}>
+                {busy === "so-phieu" && <Loader2 className="h-4 w-4 animate-spin" />}Cấp số phiếu tiếp theo
+              </button>
+            ) : undefined,
+          )}
           {field("Mô tả", <textarea value={f.note} onChange={set("note")} rows={3} aria-label="Mô tả" className={`${input} h-auto py-1.5`} />)}
         </div>
       )}

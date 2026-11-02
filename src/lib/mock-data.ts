@@ -844,6 +844,14 @@ export type Staff = {
   competencies: string[];
   trainings: { name: string; year: number }[];
   status: "Đang làm việc" | "Nghỉ phép" | "Thử việc";
+  // Theo form Nhân viên của XaLab (migration 0041).
+  salutation?: string;
+  phone2?: string;
+  signFor?: string;
+  collaborator?: boolean;
+  departmentId?: string;
+  /** Quyền bị chặn riêng cho nhân viên này (VD "view.customers"). */
+  denied?: string[];
 };
 
 export const staff: Staff[] = [

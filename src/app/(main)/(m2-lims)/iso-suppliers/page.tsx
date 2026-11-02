@@ -81,7 +81,7 @@ export default async function SuppliersPage({
           {["", ...SUPPLIER_CATEGORIES].map((c) => (
             <Link
               key={c || "all"}
-              href={`/suppliers?${new URLSearchParams({ ...(q && { q }), ...(c && { cat: c }) })}`}
+              href={`/iso-suppliers?${new URLSearchParams({ ...(q && { q }), ...(c && { cat: c }) })}`}
               className={`h-8 px-3 inline-flex items-center rounded-full border text-xs font-medium ${
                 cat === c ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent"
               }`}
@@ -90,7 +90,7 @@ export default async function SuppliersPage({
             </Link>
           ))}
           <div className="ml-auto w-full sm:w-auto">
-            <EntitySearchInput basePath="/suppliers" placeholder="Tìm mã, tên, sản phẩm…" />
+            <EntitySearchInput basePath="/iso-suppliers" placeholder="Tìm mã, tên, sản phẩm…" />
           </div>
         </div>
 

@@ -1,8 +1,7 @@
-import { RateListPage } from "@/components/m2/settings/rate-pages";
+import { RateFormPage } from "@/components/m2/settings/rate-pages";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ type?: string }> }) {
-  const [{ id }, { type }] = await Promise.all([params, searchParams]);
-  return <RateListPage kind="norm" id={id} typeFilter={type} />;
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  return <RateFormPage kind="norm" id={(await params).id} />;
 }

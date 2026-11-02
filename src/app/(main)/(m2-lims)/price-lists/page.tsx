@@ -3,6 +3,6 @@ import { pageGate } from "@/components/m2/lab-ui/page-gate";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
-  return (await pageGate("view.finance")) ?? <RateListsPage kind="price" />;
+export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; page?: string }> }) {
+  return (await pageGate("view.finance")) ?? <RateListsPage kind="price" sp={await searchParams} />;
 }

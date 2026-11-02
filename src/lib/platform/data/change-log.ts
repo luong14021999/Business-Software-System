@@ -73,6 +73,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   "chemical-exports": "Xuất kho hóa chất",
   "chemical-lots": "Tồn kho hóa chất",
   "van-bans": "Hồ sơ (văn bản)",
+  "report-numbers": "Số phiếu kết quả",
   "test-record-analytes": "Chỉ tiêu của biên bản thử nghiệm",
   "customer-contracts": "Hợp đồng khách hàng",
   "location-schedules": "Lịch quan trắc của địa điểm",
