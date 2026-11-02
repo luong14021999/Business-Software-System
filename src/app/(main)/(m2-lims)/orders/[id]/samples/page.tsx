@@ -45,6 +45,7 @@ export default async function OrderSamplesPage({ params, searchParams }: { param
         <>
           <Link href={`/orders/${id}/split`} className={btn}>Bóc tách thêm <Plus className="h-4 w-4" /></Link>
           <Dropdown className={btn} label={`Trạng thái: ${stage || "Tất cả"}`} items={[{ label: "Tất cả", href: url(), active: !stage }, ...SAMPLE_STAGES.map((s) => ({ label: s, href: url(s), active: stage === s }))]} />
+          <Link href={`/orders/${id}/assign`} className={btn}>Phân công</Link>
           <Link href={`/orders/${id}/results`} className={btn}>Nhập/duyệt kết quả</Link>
           <Link href={`/orders/${id}`} className={btn}>Thông tin đơn hàng</Link>
         </>

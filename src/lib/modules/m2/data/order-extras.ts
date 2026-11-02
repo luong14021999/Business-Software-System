@@ -108,3 +108,92 @@ export async function applyOrderDates(orderId: string, d: { sampledAt?: string; 
   const rows = await dbQuery(`update public.samples set ${sets.join(", ")} where order_id = $1 returning id`, params);
   return rows.length;
 }
+
+// ── Kế hoạch quan trắc của đơn hàng (migration 0031) ────────────────
+
+export type OrderPlan = {
+  id: string;
+  orderId: string;
+  leader: string;
+  supervisor: string;
+  deputy1: string;
+  deputy2: string;
+  /** Các nhóm quan trắc, mỗi nhóm là danh sách tên. */
+  groups: string[][];
+  startAt: string;
+  endAt: string;
+  vehicle: string;
+  note: string;
+  updatedBy: string;
+  updatedAt: string;
+};
+export const orderPlanStore = createEntityStore<OrderPlan>(
+  "order-plans",
+  [],
+  columnsMapping<OrderPlan>("order_plans", {
+    orderId: "ref",
+    leader: "text",
+    supervisor: "text",
+    deputy1: "text",
+    deputy2: "text",
+    groups: "json",
+    startAt: "date",
+    endAt: "date",
+    vehicle: "text",
+    note: "text",
+    updatedBy: "text",
+    updatedAt: "date",
+  }),
+);
+
+export type PlanItem = { id: string; orderId: string; kind: string; name: string; quantity: string; note: string; sort: number };
+export const planItemStore = createEntityStore<PlanItem>(
+  "order-plan-items",
+  [],
+  columnsMapping<PlanItem>("order_plan_items", { orderId: "ref", kind: "text", name: "text", quantity: "text", note: "text", sort: "number" }),
+);
+
+/** Kế hoạch của một đơn (null nếu chưa lập). */
+export async function planOf(orderId: string) {
+  return (await orderPlanStore.list()).find((p) => p.orderId === orderId) ?? null;
+}
+
+/** Ghi đè kế hoạch và toàn bộ danh sách thiết bị / vật tư / bảo quản của đơn. */
+export async function savePlan(orderId: string, p: Omit<OrderPlan, "id" | "orderId" | "updatedAt">, items: Omit<PlanItem, "id" | "orderId">[]) {
+  await dbQuery(
+    `insert into public.order_plans (order_id, leader, supervisor, deputy1, deputy2, groups, start_at, end_at, vehicle, note, updated_by, updated_at)
+     values ($1, $2, $3, $4, $5, $6::jsonb, nullif($7, '')::date, nullif($8, '')::date, $9, $10, $11, now())
+     on conflict (order_id) do update set leader = excluded.leader, supervisor = excluded.supervisor, deputy1 = excluded.deputy1,
+       deputy2 = excluded.deputy2, groups = excluded.groups, start_at = excluded.start_at, end_at = excluded.end_at,
+       vehicle = excluded.vehicle, note = excluded.note, updated_by = excluded.updated_by, updated_at = now()`,
+    [orderId, p.leader, p.supervisor, p.deputy1, p.deputy2, JSON.stringify(p.groups), p.startAt, p.endAt, p.vehicle, p.note, p.updatedBy],
+  );
+  await dbQuery(`delete from public.order_plan_items where order_id = $1`, [orderId]);
+  for (const [i, it] of items.entries()) {
+    await dbQuery(
+      `insert into public.order_plan_items (order_id, kind, name, quantity, note, sort) values ($1, $2, $3, $4, $5, $6)`,
+      [orderId, it.kind, it.name, it.quantity, it.note, i + 1],
+    );
+  }
+}
+
+/** Gợi ý thiết bị / dụng cụ chứa / bảo quản từ danh mục gắn với các chỉ tiêu của đơn (tab Thiết bị, Dụng cụ, Bảo quản của chỉ tiêu). */
+export async function suggestPlanItems(orderId: string) {
+  const rows = await dbQuery(
+    `select r.kind, r.name, count(distinct s.id)::int samples
+     from public.samples s
+     join public.analysis_results ar on ar.sample_code = s.code
+     join public.lab_analytes a on a.sample_type_id = s.sample_type_id and lower(a.name) = lower(ar.criterion)
+     join public.analyte_resources r on r.analyte_id = a.id
+     where s.order_id = $1
+     group by r.kind, r.name order by r.kind, r.name`,
+    [orderId],
+  );
+  const kindOf: Record<string, string> = { instrument: "Thiết bị", container: "Vật tư – hóa chất", preservation: "Bảo quản" };
+  return rows.map((r) => ({
+    kind: kindOf[r.kind as string] ?? "Vật tư – hóa chất",
+    name: r.name as string,
+    quantity: r.kind === "instrument" ? "1" : String(r.samples),
+    note: r.kind === "container" ? "Dụng cụ chứa mẫu" : "",
+  }));
+}

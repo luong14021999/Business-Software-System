@@ -53,6 +53,8 @@ export const ENTITY_LABELS: Record<string, string> = {
   "monitoring-points": "Vị trí quan trắc",
   "order-documents": "Tài liệu lưu trữ đơn hàng",
   "order-quotes": "Báo giá",
+  "order-plans": "Kế hoạch quan trắc",
+  "order-plan-items": "Thiết bị / vật tư kế hoạch quan trắc",
   "order-type-specs": "Quy chuẩn theo loại mẫu",
   "tissue-materials": "Vật liệu nuôi cấy",
   "mother-plants": "Cây mẹ",

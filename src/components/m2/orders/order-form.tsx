@@ -284,6 +284,8 @@ export function OrderForm({
           <>
             <Link href={`/orders/${order.id}/split`} className={btn}>Bóc tách</Link>
             <Link href={`/orders/${order.id}/samples`} className={btn}>Yêu cầu</Link>
+            <Link href={`/orders/${order.id}/plan`} className={btn}>Kế hoạch quan trắc</Link>
+            <Link href={`/orders/${order.id}/assign`} className={btn}>Phân công</Link>
             <Link href={`/orders/${order.id}/results`} className={btn}>Nhập/duyệt kết quả</Link>
             <Link href={`/orders/${order.id}/specs`} className={btn}>Quy chuẩn</Link>
             <Link href={`/orders/${order.id}/quote`} className={btn}>Báo giá</Link>

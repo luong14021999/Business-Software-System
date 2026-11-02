@@ -54,6 +54,8 @@ export async function buildGrid(lines: OrderLine[]): Promise<GridSample[]> {
     const sp2 = s?.spec2Id ? spec.get(s.spec2Id) : undefined;
     return {
       specName2: sp2 ? specLabel(sp2) : "",
+      href: s?.orderId ? `/orders/${s.orderId}/samples/${s.id}` : "",
+      sampler: s?.sampler ?? "",
       code,
       locationName: s?.locationName ?? "",
       type: s?.type ?? "",
@@ -77,6 +79,10 @@ export async function buildGrid(lines: OrderLine[]): Promise<GridSample[]> {
             subcontractor: l.subcontractor,
             status: l.status,
             technician: l.technician,
+            analyst: l.analyst,
+            samplingTimes: l.samplingTimes,
+            reps: l.reps,
+            lineKind: l.lineKind,
             min: q1.min,
             max: q1.max,
           };

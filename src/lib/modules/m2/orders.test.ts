@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, balance, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
+import { addDays, averageReplicates, balance, cellText, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -167,5 +167,23 @@ describe("báo giá nhiều phiên bản", () => {
   it("tổng từ dòng: số lượng × đơn giá, giảm giá rồi thuế", () => {
     const t = quoteItemsTotal([{ label: "pH", unit: "mẫu", quantity: 3, unitPrice: 50_000 }, { label: "Ăn ở", unit: "người × ngày", quantity: 2, unitPrice: 200_000 }], 10, 8);
     expect([t.sub, t.discount, t.vat, t.total]).toEqual([550_000, 55_000, 39_600, 534_600]);
+  });
+});
+
+describe("nhiều lần đo (GĐ7)", () => {
+  it("trung bình các lần đo, bỏ ô trống", () => {
+    expect(averageReplicates(["7,2", "7,4", ""])).toEqual({ prefix: "", value: 7.3, n: 2 });
+    expect(cellText(averageReplicates(["1", "2", "2"]))).toBe("1,666667");
+  });
+  it("KPH và nhỏ hơn giới hạn", () => {
+    expect(cellText(averageReplicates(["KPH", "kph"]))).toBe("KPH");
+    expect(cellText(averageReplicates(["<0,05", "<0,1"]))).toBe("<0,1");
+    expect(averageReplicates(["<0,05", "0,15"])).toEqual({ prefix: "", value: 0.1, n: 2 });
+    expect(averageReplicates(["KPH", "0,2"])).toEqual({ prefix: "", value: 0.2, n: 2 });
+  });
+  it("chưa có hoặc sai số", () => {
+    expect(averageReplicates(["", " "])).toBeNull();
+    expect(averageReplicates(["7", "abc"])).toBeNull();
+    expect(permissionForEntity("order-plan-items")).toBe("write.reception");
   });
 });

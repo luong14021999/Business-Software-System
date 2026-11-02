@@ -8,7 +8,14 @@ import { dbQuery } from "@/lib/platform/db";
 export const dynamic = "force-dynamic";
 
 export const { PATCH } = itemRoutes<OrderSample>(orderSampleStore, {
-  validate: (s) => (!s.locationName?.trim() ? "Nhập vị trí / tên mẫu" : null),
+  validate: (s) =>
+    !s.locationName?.trim()
+      ? "Nhập vị trí / tên mẫu"
+      : s.lat != null && (s.lat < -90 || s.lat > 90)
+        ? "Vĩ độ phải trong khoảng -90 đến 90"
+        : s.lng != null && (s.lng < -180 || s.lng > 180)
+          ? "Kinh độ phải trong khoảng -180 đến 180"
+          : null,
 });
 
 /** Xóa yêu cầu (mẫu) chỉ khi chưa có kết quả nào được nhập; xóa luôn các dòng kết quả trống của mẫu. */

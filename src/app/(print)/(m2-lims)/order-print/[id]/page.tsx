@@ -7,17 +7,17 @@ import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { orderLines, orderSampleStore, orderStore } from "@/lib/modules/m2/data/orders";
 import { priceResolver } from "@/lib/modules/m2/data/settings";
 import { buildGrid } from "@/lib/modules/m2/data/grid";
-import { judge, parseResultCell, quoteItemsTotal, quoteLines, type QuoteItem } from "@/lib/modules/m2/orders";
-import { orderQuoteStore } from "@/lib/modules/m2/data/order-extras";
+import { PLAN_ITEM_KINDS, judge, parseResultCell, quoteItemsTotal, quoteLines, type QuoteItem } from "@/lib/modules/m2/orders";
+import { orderQuoteStore, planItemStore, planOf } from "@/lib/modules/m2/data/order-extras";
 import { fmtDateTimeVN, fmtDateVN, todayISO } from "@/lib/platform/dates";
 import { fmtVND } from "@/lib/platform/format";
 
 export const dynamic = "force-dynamic";
 
-const KINDS = { "yeu-cau": "PHIẾU YÊU CẦU PHÂN TÍCH", "bao-gia": "BÁO GIÁ DỊCH VỤ PHÂN TÍCH", "ket-qua": "KẾT QUẢ PHÂN TÍCH TỔNG HỢP" } as const;
+const KINDS = { "yeu-cau": "PHIẾU YÊU CẦU PHÂN TÍCH", "ke-hoach": "KẾ HOẠCH QUAN TRẮC", "bao-gia": "BÁO GIÁ DỊCH VỤ PHÂN TÍCH", "ket-qua": "KẾT QUẢ PHÂN TÍCH TỔNG HỢP" } as const;
 type Kind = keyof typeof KINDS;
 
-/** Bản in theo đơn hàng (A4): phiếu yêu cầu phân tích, báo giá, kết quả tổng hợp. */
+/** Bản in theo đơn hàng (A4): phiếu yêu cầu phân tích, kế hoạch quan trắc, báo giá, kết quả tổng hợp. */
 export default async function OrderPrintPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ loai?: string; v?: string }> }) {
   const { id } = await params;
   const { loai = "yeu-cau", v } = await searchParams;
@@ -31,6 +31,7 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
 
   let body: React.ReactNode = null;
   let quoteHead: { code: string; at: string } | null = null;
+  let planLeader = "";
   if (kind === "yeu-cau") {
     body = (
       <table className="w-full border-collapse text-[10.5pt]">
@@ -47,6 +48,66 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
           ))}
         </tbody>
       </table>
+    );
+  } else if (kind === "ke-hoach") {
+    const [plan, allItems] = await Promise.all([planOf(id), planItemStore.list()]);
+    const items = allItems.filter((i) => i.orderId === id).sort((a, b) => a.sort - b.sort);
+    const team = [
+      ["Trưởng đoàn", plan?.leader],
+      ["Giám sát", plan?.supervisor],
+      ["Phó đoàn 1", plan?.deputy1],
+      ["Phó đoàn 2", plan?.deputy2],
+      ...(plan?.groups ?? []).map((g, i) => [`Nhóm ${i + 1}`, g.filter(Boolean).join(", ")]),
+    ].filter(([, v]) => v) as [string, string][];
+    const h2 = "mb-1 mt-3 font-bold";
+    planLeader = plan?.leader ?? "";
+    body = (
+      <>
+        <p className={h2}>1. Thời gian, phương tiện</p>
+        <p>Từ ngày {plan?.startAt ? fmtDateVN(plan.startAt.slice(0, 10)) : "…"} đến ngày {plan?.endAt ? fmtDateVN(plan.endAt.slice(0, 10)) : "…"}{plan?.vehicle && ` · Phương tiện: ${plan.vehicle}`}</p>
+        {plan?.note && <p>Ghi chú: {plan.note}</p>}
+        <p className={h2}>2. Nhân sự quan trắc</p>
+        <table className="w-full border-collapse text-[10.5pt]">
+          <tbody>
+            {team.length === 0 && <tr><td className={cell}>Chưa phân công</td></tr>}
+            {team.map(([k, v]) => <tr key={k}><td className={`${cell} w-40 font-bold`}>{k}</td><td className={cell}>{v}</td></tr>)}
+          </tbody>
+        </table>
+        <p className={h2}>3. Vị trí và chỉ tiêu quan trắc</p>
+        <table className="w-full border-collapse text-[10.5pt]">
+          <thead><tr><th className={cell}>TT</th><th className={cell}>Mã mẫu</th><th className={cell}>Vị trí</th><th className={cell}>Chỉ tiêu hiện trường</th><th className={cell}>Chỉ tiêu phòng TN</th><th className={cell}>Người lấy mẫu</th></tr></thead>
+          <tbody>
+            {mine.map((s, i) => {
+              const ls = lines.filter((l) => l.sampleCode === s.code);
+              const names = (field: boolean) => ls.filter((l) => (l.lineKind === "Hiện trường") === field).map((l) => (l.samplingTimes > 1 ? `${l.criterion} (×${l.samplingTimes})` : l.criterion)).join("; ");
+              return (
+                <tr key={s.id}>
+                  <td className={`${cell} text-center`}>{i + 1}</td>
+                  <td className={`${cell} whitespace-nowrap font-mono`}>{s.code}</td>
+                  <td className={cell}>{s.locationName}{s.lat != null && s.lng != null && <div className="text-[9pt]">({s.lat}, {s.lng})</div>}</td>
+                  <td className={cell}>{names(true)}</td>
+                  <td className={cell}>{names(false)}</td>
+                  <td className={cell}>{s.sampler}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {PLAN_ITEM_KINDS.map((k, n) => {
+          const rows = items.filter((i) => i.kind === k);
+          return (
+            <div key={k}>
+              <p className={h2}>{n + 4}. {k}</p>
+              {rows.length === 0 ? <p className="italic">Không có</p> : (
+                <table className="w-full border-collapse text-[10.5pt]">
+                  <thead><tr><th className={cell}>TT</th><th className={cell}>Tên</th><th className={cell}>Số lượng</th><th className={cell}>Ghi chú</th></tr></thead>
+                  <tbody>{rows.map((r, i) => <tr key={r.id}><td className={`${cell} text-center`}>{i + 1}</td><td className={cell}>{r.name}</td><td className={cell}>{r.quantity}</td><td className={cell}>{r.note}</td></tr>)}</tbody>
+                </table>
+              )}
+            </div>
+          );
+        })}
+      </>
     );
   } else if (kind === "bao-gia") {
     // Phiên bản báo giá: chọn theo ?v=, không có thì phiên bản đang áp dụng, rồi phiên bản mới nhất; chưa lưu thì tính từ bảng kê.
@@ -142,7 +203,10 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
         </div>
         <div className="mt-4">{body}</div>
         <div className="mt-8 grid grid-cols-2 gap-4 text-center text-[10.5pt]">
-          <div>{kind === "yeu-cau" ? <><b>Đại diện khách hàng</b><div className="italic">(ký, ghi rõ họ tên)</div></> : null}</div>
+          <div>
+            {kind === "yeu-cau" ? <><b>Đại diện khách hàng</b><div className="italic">(ký, ghi rõ họ tên)</div></> : null}
+            {kind === "ke-hoach" ? <><b>Trưởng đoàn</b><div className="italic">(ký, ghi rõ họ tên)</div><div className="mt-14">{planLeader}</div></> : null}
+          </div>
           <div><div className="italic">Thanh Hóa, ngày {fmtDateVN(todayISO())}</div><b>{kind === "ket-qua" ? "Người lập" : "Đại diện phòng thí nghiệm"}</b><div className="italic">(ký, ghi rõ họ tên)</div><div className="mt-14">{kind === "ket-qua" ? "" : order.signer || labInfo.manager}</div></div>
         </div>
         <p className="mt-6 border-t border-black pt-1 text-center text-[8.5pt]">{labInfo.accreditedName} – {labInfo.organization} · {labInfo.address} · ĐT {labInfo.phone} · {labInfo.email}</p>

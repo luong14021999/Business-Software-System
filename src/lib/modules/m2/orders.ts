@@ -318,3 +318,40 @@ export const EXTRA_COSTS = [
 
 export const ORDER_DOC_KINDS = ["Biên bản lấy mẫu", "Biên bản thử nghiệm", "Phiếu kết quả", "Báo cáo hoàn thiện", "Khác"] as const;
 export const LINE_KINDS = ["Phòng TN", "Hiện trường"] as const;
+
+// ── Hiện trường, kế hoạch quan trắc, nhiều lần đo (GĐ7) ──────────────
+
+export const PLAN_ITEM_KINDS = ["Thiết bị", "Vật tư – hóa chất", "Bảo quản"] as const;
+export type PlanItemKind = (typeof PLAN_ITEM_KINDS)[number];
+
+/** Điều kiện môi trường ghi khi lấy mẫu. */
+export const ENV_FIELDS = [
+  { key: "weather", label: "Thời tiết" },
+  { key: "temperature", label: "Nhiệt độ (°C)" },
+  { key: "humidity", label: "Độ ẩm (%)" },
+  { key: "wind", label: "Gió (hướng, tốc độ)" },
+  { key: "pressure", label: "Áp suất (hPa)" },
+  { key: "note", label: "Ghi chú khác" },
+] as const;
+export type EnvConditions = Partial<Record<(typeof ENV_FIELDS)[number]["key"], string>>;
+
+/**
+ * Kết quả trung bình của các lần đo ("7,2", "<0,05", "KPH"); ô trống bỏ qua.
+ * Tất cả KPH → KPH; mọi lần đều "<" → "<" giá trị lớn nhất; còn lại trung bình các số (lần "<x" tính bằng x).
+ * Trả null khi chưa có lần đo nào hoặc có ô không phải số.
+ */
+export function averageReplicates(texts: string[]): { prefix: string; value: number; n: number } | null {
+  const parsed = texts.map((t) => String(t ?? "").trim()).filter(Boolean).map(parseResultCell);
+  if (!parsed.length || parsed.some((p) => !p)) return null;
+  const ps = parsed as { prefix: string; value: number }[];
+  if (ps.every((p) => p.prefix === "KPH")) return { prefix: "KPH", value: NaN, n: ps.length };
+  const nums = ps.filter((p) => Number.isFinite(p.value));
+  if (!nums.length) return { prefix: "KPH", value: NaN, n: ps.length };
+  if (nums.every((p) => p.prefix === "<") && nums.length === ps.length) return { prefix: "<", value: Math.max(...nums.map((p) => p.value)), n: ps.length };
+  const mean = nums.reduce((s, p) => s + p.value, 0) / nums.length;
+  return { prefix: "", value: Math.round(mean * 1e6) / 1e6, n: ps.length };
+}
+
+/** Ô kết quả từ giá trị trung bình (dạng hiển thị trên lưới). */
+export const cellText = (r: { prefix: string; value: number } | null) =>
+  !r ? "" : r.prefix === "KPH" ? "KPH" : `${r.prefix}${String(r.value).replace(".", ",")}`;

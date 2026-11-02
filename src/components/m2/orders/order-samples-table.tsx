@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { List } from "lucide-react";
 import { Dropdown } from "@/components/m2/lab-ui/dropdown";
-import { btnPrimary, btnXs, table } from "@/components/m2/lab-ui/page";
+import { btnPrimary, btnXs, link, table } from "@/components/m2/lab-ui/page";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { toast } from "@/components/ui/toast";
 import { STAGE_ACTIONS } from "@/lib/modules/m2/orders";
@@ -75,7 +76,7 @@ export function OrderSamplesTable({ orderId, rows, editFields }: { orderId: stri
               <tr key={r.id} className={sel.has(r.id) ? "bg-[#f5f5f5]" : undefined}>
                 <td><input type="checkbox" aria-label={`Chọn ${r.code}`} checked={sel.has(r.id)} onChange={() => toggle(r.id)} /></td>
                 <td className="whitespace-nowrap font-mono">
-                  {r.code}
+                  <Link href={`/orders/${orderId}/samples/${r.id}`} className={link}>{r.code}</Link>
                   {(r.isQc || r.isDuplicate) && <div className="font-sans text-xs text-muted-foreground">{[r.isQc && "QA/QC", r.isDuplicate && "mẫu lặp"].filter(Boolean).join(" · ")}</div>}
                 </td>
                 <td>{r.locationName}{r.customerSampleCode && <div className="text-xs text-muted-foreground">Mã của khách: {r.customerSampleCode}</div>}</td>
@@ -101,6 +102,9 @@ export function OrderSamplesTable({ orderId, rows, editFields }: { orderId: stri
                     icon={<List className="h-3 w-3" aria-hidden />}
                     align="right"
                     items={[
+                      { label: "Thông tin yêu cầu", href: `/orders/${orderId}/samples/${r.id}` },
+                      { label: "Thêm / bớt chỉ tiêu", href: `/orders/${orderId}/samples/${r.id}?tab=chi-tieu` },
+                      { label: "Người lấy mẫu / hiện trường", href: `/orders/${orderId}/samples/${r.id}?tab=nguoi-lay-mau` },
                       { label: "Nhập/duyệt kết quả", href: `/orders/${orderId}/results#${r.code}` },
                       { divider: true, label: "" },
                       { label: "Xóa", danger: true, onClick: () => remove(r) },

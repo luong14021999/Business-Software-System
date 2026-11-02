@@ -92,6 +92,8 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
                         { label: "Quy chuẩn", href: `/orders/${r.id}/specs` },
                         { label: "Bóc tách", href: `/orders/${r.id}/split` },
                         { label: "Yêu cầu", href: `/orders/${r.id}/samples` },
+                        { label: "Kế hoạch quan trắc", href: `/orders/${r.id}/plan` },
+                        { label: "Phân công phân tích", href: `/orders/${r.id}/assign` },
                         { label: "Nhập/duyệt kết quả thử nghiệm", href: `/orders/${r.id}/results` },
                         { label: "Báo giá", href: `/orders/${r.id}/quote` },
                         { label: "Báo giá trước bóc tách", href: `/orders/${r.id}/quote-before` },
@@ -107,6 +109,7 @@ export function OrdersTable({ rows }: { rows: OrderRow[] }) {
                       align="right"
                       items={[
                         { label: "Phiếu yêu cầu phân tích", href: `/order-print/${r.id}?loai=yeu-cau` },
+                        { label: "Kế hoạch quan trắc", href: `/order-print/${r.id}?loai=ke-hoach` },
                         { label: "Tem mã hóa mẫu", href: r.sampleCodes.length ? `/sample-labels?codes=${encodeURIComponent(r.sampleCodes.join(","))}` : `/orders/${r.id}/split` },
                         { label: "Báo giá", href: `/order-print/${r.id}?loai=bao-gia` },
                         { label: "Kết quả tổng hợp", href: `/order-print/${r.id}?loai=ket-qua` },

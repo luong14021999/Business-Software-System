@@ -5,7 +5,7 @@ import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { orderSampleStore, orderStore, sampleCodesLike, sampleTypeStore, type OrderSample } from "@/lib/modules/m2/data/orders";
 import { initialApprovals, insertResult, nextResultCode } from "@/lib/modules/m2/data/results";
 import { LINE_KINDS, nextSampleCodes } from "@/lib/modules/m2/orders";
-import { orderTypeSpecStore } from "@/lib/modules/m2/data/order-extras";
+import { orderTypeSpecStore, pointStore } from "@/lib/modules/m2/data/order-extras";
 import { todayISO, vnDateOf } from "@/lib/platform/dates";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +51,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const stage = order.kind === "Mẫu gửi" ? "Nhận mẫu" : "Đợi lấy mẫu";
   // Không chọn quy chuẩn riêng → dùng quy chuẩn đã đặt cho loại mẫu này ở trang Quy chuẩn của đơn.
   const typeSpec = (await orderTypeSpecStore.list()).find((t) => t.orderId === order.id && t.sampleTypeId === type.id);
+  // Tọa độ mặc định lấy từ vị trí quan trắc; người lấy mẫu mặc định là phụ trách quan trắc của đơn.
+  const point = b.pointId ? (await pointStore.list()).find((x) => x.id === b.pointId) : undefined;
 
   const created: OrderSample[] = [];
   for (const code of codes) {
@@ -76,6 +78,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       spec2Id: b.spec2Id || typeSpec?.spec2Id || "",
       pointId: b.pointId ?? "",
       disposeAt: order.disposeAt ? order.disposeAt.slice(0, 10) : "",
+      sampler: order.fieldStaff ?? "",
+      sampleCondition: "",
+      sampleQuantity: "",
+      lat: point?.lat ?? null,
+      lng: point?.lng ?? null,
+      envConditions: {},
     });
     created.push(sample);
     let sort = 0;

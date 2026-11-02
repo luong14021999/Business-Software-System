@@ -1,7 +1,7 @@
 // Đơn hàng, loại mẫu, chỉ tiêu, quy chuẩn (migration 0025) và các truy vấn ghép cho trang đơn hàng.
 import { columnsMapping, createEntityStore } from "@/lib/platform/data/factory";
 import { dbQuery, isDbConfigured } from "@/lib/platform/db";
-import type { DecimalRules } from "@/lib/modules/m2/orders";
+import type { DecimalRules, EnvConditions } from "@/lib/modules/m2/orders";
 
 export type Order = {
   id: string;
@@ -101,6 +101,12 @@ export type OrderSample = {
   spec2Id: string;
   pointId: string;
   disposeAt: string;
+  sampler: string;
+  sampleCondition: string;
+  sampleQuantity: string;
+  lat: number | null;
+  lng: number | null;
+  envConditions: EnvConditions;
 };
 
 export const orderSampleStore = createEntityStore<OrderSample>(
@@ -127,6 +133,12 @@ export const orderSampleStore = createEntityStore<OrderSample>(
     spec2Id: "ref",
     pointId: "ref",
     disposeAt: "date",
+    sampler: "text",
+    sampleCondition: "text",
+    sampleQuantity: "text",
+    lat: "optnum",
+    lng: "optnum",
+    envConditions: "json",
   }),
 );
 
@@ -242,10 +254,14 @@ export type OrderLine = {
   matrix: string;
   samplingTimes: number;
   lineKind: string;
+  /** Người được phân công phân tích. */
+  analyst: string;
+  /** Các lần đo đã nhập (dạng ô: "7,2", "<0,05", "KPH"). */
+  reps: string[];
 };
 
 const LINE_COLS = `r.id, r.result_code, r.sample_code, r.criterion, r.unit, r.method, r.subcontractor, r.result_prefix,
-            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort, r.batch_id, r.matrix, r.sampling_times, r.line_kind`;
+            r.mean, r.status, r.technician, coalesce(r.sort, 0) sort, r.batch_id, r.matrix, r.sampling_times, r.line_kind, r.analyst, r.replicates`;
 
 /** Các dòng kết quả thuộc những mẫu của đơn hàng, theo thứ tự mẫu → thứ tự chỉ tiêu. */
 export async function orderLines(orderId: string): Promise<OrderLine[]> {
@@ -286,6 +302,12 @@ export async function freeLines(f: { method?: string; from?: string; to?: string
   return rows.map((r) => ({ ...toLine(r), receivedAt: (r.received_at as string) ?? "", isQc: Boolean(r.is_qc), isDuplicate: Boolean(r.is_duplicate) }));
 }
 
+/** Lần đo lưu dạng [{ id, value, text }]; bản ghi cũ chỉ có value. */
+function repTexts(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((x: { value?: number | null; text?: string }) => x?.text ?? (x?.value === null || x?.value === undefined ? "" : String(x.value).replace(".", ",")));
+}
+
 function toLine(r: Record<string, unknown>): OrderLine {
   return {
     id: r.id as string,
@@ -304,6 +326,8 @@ function toLine(r: Record<string, unknown>): OrderLine {
     matrix: (r.matrix as string) ?? "",
     samplingTimes: Number(r.sampling_times) || 1,
     lineKind: (r.line_kind as string) ?? "",
+    analyst: (r.analyst as string) ?? "",
+    reps: repTexts(r.replicates),
   };
 }
 

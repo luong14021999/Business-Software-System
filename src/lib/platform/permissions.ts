@@ -73,6 +73,8 @@ const ENTITY_PERMISSION: Record<string, Permission> = {
   "monitoring-points": "write.reception",
   "order-documents": "write.reception",
   "order-quotes": "write.reception",
+  "order-plans": "write.reception",
+  "order-plan-items": "write.reception",
   "order-type-specs": "write.reception",
   samples: "write.reception",
   "test-requests": "write.reception",

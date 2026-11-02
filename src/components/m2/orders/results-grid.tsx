@@ -7,7 +7,7 @@ import { AlertCircle, AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
 import { btn, btnPrimary, input, table } from "@/components/m2/lab-ui/page";
 import { toast } from "@/components/ui/toast";
 import { reauthenticate } from "@/components/platform/sign/sign-dialog";
-import { judge, outOfMethodRange, parseResultCell } from "@/lib/modules/m2/orders";
+import { averageReplicates, cellText, judge, outOfMethodRange, parseResultCell } from "@/lib/modules/m2/orders";
 import { cn } from "@/lib/utils";
 
 export type GridLine = {
@@ -33,8 +33,14 @@ export type GridLine = {
   printText: string;
   /** Cột quy chuẩn thứ 2 (nếu đơn chọn 2 cột). */
   lim2: { label: string; min: number | null; max: number | null; ndRequired: boolean } | null;
+  /** Người được phân công phân tích. */
+  analyst: string;
+  /** Số lần đo: > 1 thì nhập từng lần, kết quả là trung bình. */
+  samplingTimes: number;
+  reps: string[];
+  lineKind: string;
 };
-export type GridSample = { code: string; locationName: string; type: string; specName: string; specName2: string; stage: string; lines: GridLine[] };
+export type GridSample = { code: string; href: string; sampler: string; locationName: string; type: string; specName: string; specName2: string; stage: string; lines: GridLine[] };
 
 type Action = "submit" | "qa_approve" | "qa_reject" | "manager_approve" | "manager_reject";
 const EDITABLE = ["Đang nhập", "Trả lại sửa"];
@@ -92,14 +98,21 @@ export function ResultsGrid({
   const [note, setNote] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [mineOnly, setMineOnly] = useState(false);
 
   const val = (l: GridLine) => ({ ...l, ...edits[l.id] });
   const dirty = Object.keys(edits).filter((id) => {
     const a = initial.get(id)!;
     const b = edits[id];
-    return (b.text !== undefined && b.text !== a.text) || (b.method !== undefined && b.method !== a.method) || (b.subcontractor !== undefined && b.subcontractor !== a.subcontractor);
+    return (b.text !== undefined && b.text !== a.text) || (b.reps !== undefined && b.reps.join("|") !== a.reps.join("|")) || (b.method !== undefined && b.method !== a.method) || (b.subcontractor !== undefined && b.subcontractor !== a.subcontractor);
   });
   const set = (id: string, k: keyof GridLine, v: string) => setEdits((e) => ({ ...e, [id]: { ...e[id], [k]: v } }));
+  /** Sửa lần đo thứ i; ô kết quả hiển thị là trung bình các lần. */
+  const setRep = (l: GridLine, i: number, v: string) =>
+    setEdits((e) => {
+      const reps = Array.from({ length: Math.max(l.samplingTimes, l.reps.length) }, (_, n) => (n === i ? v : ((e[l.id]?.reps ?? l.reps)[n] ?? "")));
+      return { ...e, [l.id]: { ...e[l.id], reps, text: cellText(averageReplicates(reps)) } };
+    });
   const toggle = (ids: string[], on: boolean) =>
     setSel((s) => {
       const n = new Set(s);
@@ -120,7 +133,12 @@ export function ResultsGrid({
     const res = await fetch(saveUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lines: dirty.map((id) => ({ id, ...edits[id] })) }),
+      body: JSON.stringify({
+        lines: dirty.map((id) => {
+          const { text, reps, method, subcontractor } = edits[id];
+          return reps !== undefined ? { id, reps, method, subcontractor } : { id, text, method, subcontractor };
+        }),
+      }),
     });
     const b = await res.json().catch(() => ({}));
     setBusy(null);
@@ -196,6 +214,7 @@ export function ResultsGrid({
         )}
         <button type="button" className={btn} onClick={() => setSel(new Set(allLines.map((l) => l.id)))}>Chọn tất cả</button>
         <button type="button" className={btn} onClick={() => setSel(new Set())}>Bỏ chọn</button>
+        <label className="ml-1 flex items-center gap-1.5 text-sm"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />Chỉ chỉ tiêu phân công cho tôi</label>
         {actBtn("submit", can.enter)}
         {actBtn("qa_approve", can.qa)}
         {actBtn("qa_reject", can.qa)}
@@ -232,7 +251,9 @@ export function ResultsGrid({
               <th>Trạng thái</th>
             </tr>
           </thead>
-          {samples.map((s) => {
+          {samples.map((s0) => {
+            const s = mineOnly ? { ...s0, lines: s0.lines.filter((l) => l.analyst === me.name) } : s0;
+            if (!s.lines.length) return null;
             const ids = s.lines.map((l) => l.id);
             const allOn = ids.length > 0 && ids.every((id) => sel.has(id));
             return (
@@ -240,8 +261,8 @@ export function ResultsGrid({
                 <tr className="bg-[#d9edf7]">
                   <td className="!border-t-[#bce8f1]"><input type="checkbox" aria-label={`Chọn các dòng của ${s.code}`} checked={allOn} onChange={() => toggle(ids, !allOn)} /></td>
                   <td colSpan={8} className="!border-t-[#bce8f1] font-bold">
-                    {s.code}: {s.locationName}
-                    <span className="ml-2 text-xs font-normal text-[#31708f]">{[s.type, s.stage, s.specName && `so với ${s.specName}`, s.specName2 && `và ${s.specName2}`].filter(Boolean).join(" · ")}</span>
+                    {s.href ? <Link href={s.href} className="hover:underline">{s.code}</Link> : s.code}: {s.locationName}
+                    <span className="ml-2 text-xs font-normal text-[#31708f]">{[s.type, s.stage, s.specName && `so với ${s.specName}`, s.specName2 && `và ${s.specName2}`, s.sampler && `người lấy mẫu: ${s.sampler}`].filter(Boolean).join(" · ")}</span>
                   </td>
                 </tr>
                 {s.lines.map((l0, i) => {
@@ -256,13 +277,26 @@ export function ResultsGrid({
                     <tr key={l.id} className={sel.has(l.id) ? "bg-[#f5f5f5]" : undefined}>
                       <td><input type="checkbox" aria-label={`Chọn ${l.criterion}`} checked={sel.has(l.id)} onChange={() => toggle([l.id], !sel.has(l.id))} /></td>
                       <td>{i + 1}</td>
-                      <td className="min-w-[14rem]">{l.criterion}</td>
+                      <td className="min-w-[14rem]">{l.criterion}{l.lineKind === "Hiện trường" && <div className="text-[11px] text-[#8a6d3b]">Hiện trường</div>}</td>
                       <td className="whitespace-nowrap">{l.unit || "-"}</td>
                       <td>
-                        {editable ? (
+                        {editable && l.samplingTimes > 1 ? (
+                          <div className="space-y-1">
+                            {Array.from({ length: l.samplingTimes }, (_, n) => {
+                              const r = (l.reps ?? [])[n] ?? "";
+                              return (
+                                <input key={n} value={r} onChange={(e) => setRep(l0, n, e.target.value)} placeholder={`Lần ${n + 1}`} aria-label={`${l.criterion} – lần đo ${n + 1}`} className={cn(`${input} h-7 px-2 text-xs`, r && !parseResultCell(r) && "border-[#a94442]")} />
+                              );
+                            })}
+                            <div className="text-xs">TB: <span className="font-semibold">{l.text || "—"}</span></div>
+                          </div>
+                        ) : editable ? (
                           <input value={l.text} onChange={(e) => set(l.id, "text", e.target.value)} aria-label={`Kết quả ${l.criterion}`} className={cn(`${input} h-8`, l.text && !p && "border-[#a94442]")} />
                         ) : (
-                          <span className="font-medium">{l.text || "—"}</span>
+                          <>
+                            <span className="font-medium">{l.text || "—"}</span>
+                            {l.reps.filter(Boolean).length > 1 && <div className="text-[11px] text-muted-foreground">TB của {l.reps.filter(Boolean).join("; ")}</div>}
+                          </>
                         )}
                         {(verdict === "Vượt" || outOfRange) && (
                           <div className="mt-0.5 flex gap-1 text-[11px]">
@@ -271,6 +305,7 @@ export function ResultsGrid({
                           </div>
                         )}
                         {l.technician && <div className="text-[11px] text-muted-foreground">{l.technician}</div>}
+                        {l.analyst && l.analyst !== l.technician && <div className="text-[11px] text-muted-foreground">Phân công: {l.analyst}</div>}
                       </td>
                       <td className="whitespace-nowrap text-xs">
                         {l.limitLabel || "—"}
