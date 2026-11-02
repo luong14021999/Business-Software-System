@@ -41,25 +41,50 @@ const ITEMS: { label: string; href?: string }[] = [
   { label: "Thông tin công ty", href: "/lab-infos" },
 ];
 
+/** Hồ sơ chất lượng (ISO/IEC 17025) có dữ liệu riêng của Viện – XaLab không có, đặt tiếp sau các mục của XaLab. */
+const QUALITY: { label: string; href: string }[] = [
+  { label: "Đăng ký rủi ro", href: "/risks" },
+  { label: "Dụng cụ – Vật tư", href: "/tools" },
+  { label: "Kiểm soát tài liệu", href: "/documents" },
+  { label: "Năng lực nhân sự", href: "/personnel" },
+  { label: "Phạm vi công nhận VILAS", href: "/accreditation" },
+  { label: "Phiếu yêu cầu thử nghiệm", href: "/test-requests" },
+  { label: "QC Levey-Jennings", href: "/qc" },
+  { label: "Quy tắc quyết định", href: "/decision-rules" },
+  { label: "Sổ theo dõi mẫu lưu", href: "/archive" },
+  { label: "Theo dõi điều kiện môi trường", href: "/environment" },
+  { label: "Ý kiến & khiếu nại", href: "/feedback" },
+];
+
+const cell = "block border-b border-[#ddd] px-[15px] py-2.5 text-[14px] last:border-b-0";
+
+/** Các mục chia 3 cột, đánh số liên tục từ `start`. */
+function Columns({ items, start, perCol }: { items: { label: string; href?: string }[]; start: number; perCol: number }) {
+  const cols = [items.slice(0, perCol), items.slice(perCol, perCol * 2), items.slice(perCol * 2)].filter((c) => c.length);
+  return (
+    <div className="grid gap-x-[30px] gap-y-4 md:grid-cols-3">
+      {cols.map((col, c) => (
+        <ul key={c} className="self-start rounded border border-[#ddd]">
+          {col.map((it, i) => {
+            const label = `${start + c * perCol + i}. ${it.label}`;
+            return (
+              <li key={it.label}>
+                {it.href ? <Link href={it.href} className={`${cell} text-[#555] hover:bg-[#f5f5f5]`}>{label}</Link> : <span className={`${cell} text-[#999]`} title="Đang làm">{label}</span>}
+              </li>
+            );
+          })}
+        </ul>
+      ))}
+    </div>
+  );
+}
+
 export default function LabSettingsPage() {
-  const cols = [ITEMS.slice(0, 12), ITEMS.slice(12, 24), ITEMS.slice(24)];
-  const cell = "block border-b border-[#ddd] px-[15px] py-2.5 text-[14px] last:border-b-0";
   return (
     <LabPage title="Cài đặt" rule={false}>
-      <div className="grid gap-x-[30px] gap-y-4 md:grid-cols-3">
-        {cols.map((col, c) => (
-          <ul key={c} className="self-start rounded border border-[#ddd]">
-            {col.map((it, i) => {
-              const label = `${c * 12 + i + 1}. ${it.label}`;
-              return (
-                <li key={it.label}>
-                  {it.href ? <Link href={it.href} className={`${cell} text-[#555] hover:bg-[#f5f5f5]`}>{label}</Link> : <span className={`${cell} text-[#999]`} title="Đang làm">{label}</span>}
-                </li>
-              );
-            })}
-          </ul>
-        ))}
-      </div>
+      <Columns items={ITEMS} start={1} perCol={12} />
+      <h2 className="mb-3 mt-8 text-xl font-medium text-[#333]">Hồ sơ chất lượng (ISO/IEC 17025)</h2>
+      <Columns items={QUALITY} start={ITEMS.length + 1} perCol={4} />
     </LabPage>
   );
 }
