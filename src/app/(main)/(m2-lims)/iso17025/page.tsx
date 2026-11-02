@@ -140,9 +140,9 @@ export default async function IsoOverviewPage() {
     "6.4": {
       status: overdueCal || noCalDate ? "records" : "ok",
       evidence: `${equipment.length} thiết bị · ${overdueCal} quá hạn hiệu chuẩn · ${noCalDate} chưa nhập lịch hiệu chuẩn`,
-      modules: [{ href: "/equipment", label: "Thiết bị" }],
+      modules: [{ href: "/iso-equipment", label: "Thiết bị" }],
     },
-    "6.5": { status: calibrations.length && crm ? "ok" : "records", evidence: `${calibrations.length} hồ sơ hiệu chuẩn · ${crm} chất chuẩn / CRM trong danh mục`, modules: [{ href: "/equipment", label: "Hiệu chuẩn thiết bị" }, { href: "/chemicals", label: "Chất chuẩn" }] },
+    "6.5": { status: calibrations.length && crm ? "ok" : "records", evidence: `${calibrations.length} hồ sơ hiệu chuẩn · ${crm} chất chuẩn / CRM trong danh mục`, modules: [{ href: "/iso-equipment", label: "Hiệu chuẩn thiết bị" }, { href: "/iso-chemicals", label: "Chất chuẩn" }] },
     "6.6": {
       status: approvedSuppliers ? "ok" : "records",
       evidence: has(suppliers.length, `${suppliers.length} nhà cung cấp · ${approvedSuppliers} được phê duyệt`, "Chưa có nhà cung cấp nào được đánh giá"),

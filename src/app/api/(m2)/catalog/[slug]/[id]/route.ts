@@ -19,6 +19,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
+  const { slug, id } = await ctx.params;
+  const why = await catalogOf(slug)?.beforeDelete?.(id);
+  if (why) return NextResponse.json({ error: why }, { status: 409 });
   const r = await routesOf(ctx);
   return r ? r.DELETE(req, { params: ctx.params.then((p) => ({ id: p.id })) }) : missing();
 }

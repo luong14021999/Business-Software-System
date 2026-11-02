@@ -33,6 +33,14 @@ export function csvRow(cells: (string | number)[]) {
     .join(",");
 }
 
+/** File CSV tải về (BOM UTF-8 để Excel đọc đúng tiếng Việt): dòng tiêu đề, dòng trống, bảng có cột TT. */
+export function csvResponse(filename: string, title: string, columns: string[], rows: (string | number)[][]) {
+  const lines = [csvRow([title]), "", csvRow(["TT", ...columns]), ...rows.map((r, i) => csvRow([i + 1, ...r]))];
+  return new Response(`\uFEFF${lines.join("\r\n")}`, {
+    headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${filename}.csv"` },
+  });
+}
+
 /** Bỏ dấu tiếng Việt, chữ thường, chỉ giữ chữ – số. */
 export function normalizeVi(s: string) {
   return String(s ?? "")

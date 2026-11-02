@@ -158,7 +158,7 @@ export default async function ChemicalsPage({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <EntitySearchInput
-                basePath="/chemicals"
+                basePath="/iso-chemicals"
                 placeholder="Tìm theo tên, mã..."
               />
               <AddChemicalDialog />

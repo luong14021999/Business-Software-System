@@ -76,6 +76,12 @@ export async function authorize(perm: Permission): Promise<Authorized | Denied> 
   return { ok: true, actor, roles: enabled ? roles : [] };
 }
 
+/** Dùng trong route handler chỉ đọc: chỉ cần đăng nhập (trang tương ứng không giới hạn quyền xem). */
+export async function signedIn(): Promise<NextResponse | null> {
+  const { actor } = await currentAccess();
+  return actor ? null : NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
+}
+
 /** Thời gian tối đa từ lúc xác thực lại (nhập mật khẩu) đến lúc ký. */
 export const SIGN_WINDOW_MINUTES = 5;
 

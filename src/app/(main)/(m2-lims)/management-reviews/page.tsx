@@ -120,7 +120,7 @@ export default async function ManagementReviewsPage() {
     i: { value: `${fbYear.length} phiếu ý kiến khách hàng`, href: "/feedback" },
     j: { value: `${complaints.length} khiếu nại · ${complaintsOpen} chưa đóng`, href: "/feedback" },
     k: { value: `${effective} hành động khắc phục đã đóng có đánh giá hiệu lực`, href: "/nonconformities" },
-    l: { value: `${staff.length} nhân sự · ${equipment.length} thiết bị · ${overdueCal} thiết bị quá hạn hiệu chuẩn`, href: "/equipment" },
+    l: { value: `${staff.length} nhân sự · ${equipment.length} thiết bị · ${overdueCal} thiết bị quá hạn hiệu chuẩn`, href: "/iso-equipment" },
     m: { value: `${risks.length} rủi ro đã nhận diện · ${openRisks} đang mở / đang xử lý`, href: "/risks" },
     n: { value: `${qcYear.length} vòng PT / so sánh liên phòng · ${qcYear.filter((r) => r.verdict !== "Đạt").length} không đạt/cảnh báo`, href: "/qc" },
     o: { value: `${trainings} lượt đào tạo trong năm ${today.slice(0, 4)}`, href: "/personnel" },

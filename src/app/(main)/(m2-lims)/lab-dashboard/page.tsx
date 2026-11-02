@@ -286,13 +286,13 @@ export default async function DashboardPage() {
                 desc="QA/QC phê duyệt"
               />
               <QuickLink
-                href="/equipment"
+                href="/iso-equipment"
                 icon={<Wrench className="w-5 h-5" />}
                 title="Thiết bị"
                 desc="Lịch hiệu chuẩn"
               />
               <QuickLink
-                href="/chemicals"
+                href="/iso-chemicals"
                 icon={<Beaker className="w-5 h-5" />}
                 title="Hóa chất"
                 desc="Nhập – xuất kho"

@@ -234,7 +234,7 @@ export default async function EquipmentPage({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <EntitySearchInput
-                  basePath="/equipment"
+                  basePath="/iso-equipment"
                   placeholder="Tìm theo mã, tên..."
                 />
                 <EntityFormDialog

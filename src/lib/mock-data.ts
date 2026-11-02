@@ -194,6 +194,16 @@ export type Equipment = {
   quantity?: string; // Số lượng (VD "1 hệ", "1 bộ/nguyên tố")
   equipmentType?: string; // Loại thiết bị (danh mục)
   isField?: boolean; // Thiết bị quan trắc mang ra hiện trường
+  // Trường mã thiết bị theo XaLab (migration 0037).
+  instrumentTypeId?: string;
+  manufacturerId?: string;
+  supplierId?: string;
+  yearMade?: number | null;
+  calibrationDays?: number | null;
+  condition?: string; // Không rõ / Tốt / Bình thường / Kém / Hỏng
+  qualityLevel?: string;
+  managementSystem?: string;
+  active?: boolean;
 };
 
 export const equipments: Equipment[] = [
@@ -3496,6 +3506,11 @@ export type CalibrationLog = {
   nextDate: string; // Hạn kế tiếp
   technician: string; // Người theo dõi
   note?: string;
+  // Theo XaLab (migration 0037): hiệu chuẩn nội bộ + định kỳ trong cùng một lần cập nhật.
+  equipmentId?: string;
+  internalDate?: string;
+  internalBy?: string;
+  condition?: string;
 };
 
 export const calibrationLogs: CalibrationLog[] = [

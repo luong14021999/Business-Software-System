@@ -25,6 +25,10 @@ import {
   testRecordStore,
 } from "@/lib/modules/m2/data/catalogs";
 import { staffStore } from "@/lib/modules/m2/data/staff";
+import { equipmentStore } from "@/lib/modules/m2/data/equipment";
+import { chemicalsStore } from "@/lib/modules/m2/data/chemicals";
+import { supplierStore } from "@/lib/modules/m2/data/competence";
+import { EQUIPMENT_CONDITIONS, nextChemicalCode, chemicalInUse, equipmentInUse } from "@/lib/modules/m2/data/manage";
 
 export type Opt = { value: string; label: string };
 export type XFieldType = "text" | "number" | "date" | "textarea" | "select" | "checkbox" | "url";
@@ -73,6 +77,10 @@ export type CatalogDef = {
   validate?: (b: Row) => string | null;
   /** Link thêm ở cuối dòng (VD "Bảng giá", "Chỉ tiêu"). */
   rowLinks?: (r: Row) => { label: string; href: string }[];
+  /** Giá trị tự sinh khi thêm mới (VD mã hóa chất). */
+  prepare?: () => Promise<Row>;
+  /** Lý do không được xóa (đã dùng ở nơi khác), null = cho xóa. */
+  beforeDelete?: (id: string) => Promise<string | null>;
 };
 
 const byName = (a: Row, b: Row) => String(a.name ?? "").localeCompare(String(b.name ?? ""), "vi");
@@ -99,7 +107,69 @@ const orgFields = (nameLabel: string): XField[] => [
   { name: "invoiceAddress", label: "Địa chỉ hóa đơn" },
 ];
 
+const instrumentTypeOpts = async (): Promise<Opt[]> => (await instrumentTypeStore.list()).sort(byName).map((t) => ({ value: t.id, label: t.name }));
+const manufacturerOpts = async (): Promise<Opt[]> => (await manufacturerStore.list()).sort(byName).map((t) => ({ value: t.id, label: t.name }));
+const supplierOpts = async (): Promise<Opt[]> => (await supplierStore.list()).sort(byName).map((t) => ({ value: t.id, label: t.name }));
+
 export const CATALOGS: CatalogDef[] = [
+  {
+    slug: "equipment",
+    store: equipmentStore,
+    listTitle: "Danh sách mã thiết bị",
+    formSubtitle: "Thông tin loại thiết bị phân tích/quan trắc",
+    searchPlaceholder: "Tên thiết bị...",
+    fields: [
+      { name: "code", label: "Mã thiết bị", required: true },
+      { name: "name", label: "Tên thiết bị", required: true },
+      { name: "instrumentTypeId", label: "Thiết bị", type: "select", options: instrumentTypeOpts, empty: "" },
+      { name: "manufacturerId", label: "Nhà sản xuất", type: "select", options: manufacturerOpts, empty: "" },
+      { name: "yearMade", label: "Năm sản xuất", type: "number", nullable: true },
+      { name: "serial", label: "Số seri" },
+      { name: "supplierId", label: "Nhà cung cấp", type: "select", options: supplierOpts, empty: "" },
+      { name: "commissionedAt", label: "Thời gian bắt đầu sử dụng", type: "date" },
+      { name: "lastCalibration", label: "Hiệu chuẩn định kỳ gần nhất", type: "date" },
+      { name: "calibrationDays", label: "Tần suất hiệu chuẩn (ngày/lần)", type: "number", nullable: true },
+      { name: "condition", label: "Tình trạng hoạt động", type: "select", options: opts(EQUIPMENT_CONDITIONS) },
+      { name: "qualityLevel", label: "Cấp quản lý chất lượng" },
+      { name: "managementSystem", label: "Hệ thống quản lý", type: "select", options: opts(["ISO/IEC 17025", "VILAS", "VIMCERTS"]), empty: "Tất cả" },
+      { name: "active", label: "Đang dùng", type: "checkbox" },
+    ],
+    defaults: {
+      code: "", name: "", model: "", location: "", lastCalibration: "", nextCalibration: "", status: "Hoạt động", usageHours: 0,
+      instrumentTypeId: "", manufacturerId: "", supplierId: "", yearMade: null, calibrationDays: null, condition: "Không rõ", qualityLevel: "", managementSystem: "", active: true,
+    },
+    columns: [
+      { label: "Mã thiết bị", get: (r) => r.code },
+      { label: "Tên", get: (r) => r.name },
+      { label: "Tình trạng hoạt động", get: (r) => r.condition || "Không rõ" },
+    ],
+    search: (r) => `${r.code} ${r.name} ${r.serial ?? ""}`,
+    sort: (a, b) => String(a.code).localeCompare(String(b.code), undefined, { numeric: true }),
+    activeKey: "active",
+    validate: (b) => (!String(b.code ?? "").trim() ? "Nhập mã thiết bị" : !String(b.name ?? "").trim() ? "Nhập tên thiết bị" : null),
+    beforeDelete: equipmentInUse,
+  },
+  {
+    slug: "chemicals",
+    store: chemicalsStore,
+    listTitle: "Danh sách hoá chất",
+    formSubtitle: "Thông tin hoá chất",
+    searchPlaceholder: "Tên hoá chất...",
+    showIndex: true,
+    fields: [
+      { name: "name", label: "Tên", required: true },
+      { name: "unit", label: "Đơn vị" },
+      { name: "technicalSpec", label: "Mô tả" },
+    ],
+    defaults: { code: "", name: "", cas: "—", unit: "", stock: 0, minStock: 0, expiry: "", hazard: "Thường", location: "", technicalSpec: "", manufacturer: "", manufactureDate: "", receivedAt: "", storageCondition: "", usedFor: [] },
+    columns: [
+      { label: "Tên", get: (r) => r.name },
+      { label: "Đơn vị", get: (r) => r.unit },
+    ],
+    prepare: async () => ({ code: await nextChemicalCode() }),
+    beforeDelete: chemicalInUse,
+    validate: needName("tên hoá chất"),
+  },
   {
     slug: "lab-methods",
     store: labMethodStore,

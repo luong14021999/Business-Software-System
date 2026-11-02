@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { catalogOf } from "@/lib/modules/m2/catalog-registry";
-import { collectionRoutes } from "@/lib/platform/api/crud";
+import { createRoute } from "@/lib/platform/api/crud";
 
 export const dynamic = "force-dynamic";
 
@@ -10,5 +10,6 @@ type Ctx = { params: Promise<{ slug: string }> };
 export async function POST(req: Request, { params }: Ctx) {
   const def = catalogOf((await params).slug);
   if (!def) return NextResponse.json({ error: "Không có danh mục này" }, { status: 404 });
-  return collectionRoutes(def.store, def.defaults, def.validate).POST(req);
+  const auto = def.prepare ? await def.prepare() : {};
+  return createRoute(def.store, (body) => ({ ...def.defaults, ...auto, ...body, id: "" }), def.validate)(req);
 }
