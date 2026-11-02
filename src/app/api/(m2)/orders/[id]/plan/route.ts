@@ -11,7 +11,7 @@ type Body = { plan?: Partial<OrderPlan>; items?: Partial<PlanItem>[] };
 
 /** Gợi ý thiết bị / dụng cụ / bảo quản từ các chỉ tiêu đã bóc tách của đơn. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const gate = await authorize("write.reception");
+  const gate = await authorize("work.assign");
   if (!gate.ok) return gate.response;
   const { id } = await params;
   return NextResponse.json({ items: await suggestPlanItems(id) });
@@ -19,7 +19,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 /** Lưu kế hoạch quan trắc: nhân sự đoàn, thời gian, phương tiện và danh sách thiết bị / vật tư – hóa chất / bảo quản. */
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const gate = await authorize("write.reception");
+  const gate = await authorize("work.assign");
   if (!gate.ok) return gate.response;
   const { id } = await params;
   const order = (await orderStore.list()).find((o) => o.id === id);

@@ -1,5 +1,6 @@
 "use client";
 
+import { createContext, useContext } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -77,9 +78,22 @@ import {
   Microscope,
   type LucideIcon,
 } from "lucide-react";
+import { pagePermission } from "@/lib/platform/permissions";
 import { cn } from "@/lib/utils";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon };
+
+/** Quyền xem bị từ chối của người đang đăng nhập → ẩn các mục menu cần quyền đó (trang vẫn tự chặn). */
+const DeniedContext = createContext<readonly string[]>([]);
+export const DeniedPermissions = DeniedContext.Provider;
+/** Nhóm menu sau khi bỏ các trang không có quyền xem; nhóm rỗng bị bỏ. */
+export function useVisibleGroups(groups: NavGroup[]) {
+  const denied = useContext(DeniedContext);
+  if (!denied.length) return groups;
+  return groups
+    .map((g) => ({ ...g, items: g.items.filter((i) => { const p = pagePermission(i.href); return !p || !denied.includes(p); }) }))
+    .filter((g) => g.items.length);
+}
 /** `link`: khung "topnav" hiện nhóm thành 1 mục menu (trang đầu), không xổ danh sách. */
 export type NavGroup = { label: string; items: NavItem[]; link?: boolean };
 /** Tab chính của phần mềm dùng khung riêng: gom một số trang (theo href trong `groups`), trang đầu là trang vào. */
@@ -523,6 +537,7 @@ export function SidebarNav({
   onNavigate?: () => void;
 }) {
   const current = moduleOf(pathname);
+  const groups = useVisibleGroups(current?.groups ?? []);
   const item = (it: NavItem) => {
     const active = isActiveHref(it.href, pathname);
     const Icon = it.icon;
@@ -565,7 +580,7 @@ export function SidebarNav({
               <span className="block text-[13px] font-semibold text-white">{current.name}</span>
             </span>
           </div>
-          {current.groups.map((group) => (
+          {groups.map((group) => (
             <div key={group.label} className="mt-3 mb-3 pl-1">
               <div className="px-2 mb-1 text-[10.5px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">{group.label}</div>
               <ul className="space-y-0.5">{group.items.map(item)}</ul>

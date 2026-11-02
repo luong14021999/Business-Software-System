@@ -44,7 +44,7 @@ export default async function OrderPlanPage({ params }: { params: Promise<{ id: 
         plan={plan}
         items={items.filter((i) => i.orderId === id).sort((a, b) => a.sort - b.sort)}
         staff={staff.map((s) => s.fullName).filter(Boolean)}
-        canWrite={access.can("write.reception")}
+        canWrite={access.can("work.assign")}
         catalog={{
           "Thiết bị": equipment.sort((a, b) => Number(b.isField) - Number(a.isField)).map((e) => `${e.code} · ${e.name}`),
           "Vật tư – hóa chất": containers.map((c) => c.name),

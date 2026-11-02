@@ -5,11 +5,15 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { TabShellNav } from "@/components/layout/shells/tab-shell-nav";
 import { ConsoleBar } from "@/components/layout/shells/console-bar";
 import { TopNav } from "@/components/layout/shells/top-nav";
-import { moduleOf, shellOf } from "@/components/layout/nav-config";
+import { DeniedPermissions, moduleOf, shellOf } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
 
 /** Khung điều hướng theo từng phần mềm: menu ngang (phòng thí nghiệm), bàn làm việc dạng tab (nuôi cấy mô), tab theo khu nghiệp vụ (giống) hoặc bảng điều khiển quản trị (nền tảng dùng chung). */
-export function ModuleFrame({ children, canAdmin = false }: { children: React.ReactNode; canAdmin?: boolean }) {
+export function ModuleFrame({ children, canAdmin = false, denied = [] }: { children: React.ReactNode; canAdmin?: boolean; /** Quyền xem bị từ chối → ẩn mục menu tương ứng. */ denied?: string[] }) {
+  return <DeniedPermissions value={denied}><Frame canAdmin={canAdmin}>{children}</Frame></DeniedPermissions>;
+}
+
+function Frame({ children, canAdmin }: { children: React.ReactNode; canAdmin: boolean }) {
   const shell = shellOf(moduleOf(usePathname()));
   if (shell === "topnav") {
     return (

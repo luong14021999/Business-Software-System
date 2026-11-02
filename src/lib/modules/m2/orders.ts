@@ -432,3 +432,31 @@ export function orderEvents(orders: OrderLike[], from: string, to: string): Orde
   }
   return out.sort((a, b) => a.day.localeCompare(b.day) || a.code.localeCompare(b.code));
 }
+
+// ── Phân quyền theo người phụ trách đơn (GĐ9) ───────────────────────
+
+/** Vai trò làm được mọi đơn hàng (không cần là người phụ trách). */
+const ALL_ORDERS_ROLES = ["Quản lý", "NV nhận mẫu", "Quản trị"];
+
+/**
+ * NV kinh doanh chỉ sửa đơn mình phụ trách kinh doanh (hoặc tự tạo) – phần "sales";
+ * NV lấy mẫu chỉ sửa đơn mình phụ trách quan trắc / có tên trong đoàn hoặc là người lấy mẫu – phần "field".
+ * Chưa bật phân quyền (roles rỗng) → không giới hạn.
+ */
+export function ownsOrder(
+  aspect: "sales" | "field",
+  roles: readonly string[],
+  names: readonly string[],
+  o: { salesStaff: string; fieldStaff: string; createdBy: string },
+  team: readonly string[] = [],
+) {
+  if (!roles.length || roles.some((r) => ALL_ORDERS_ROLES.includes(r))) return true;
+  const me = new Set(names.map((n) => n.trim().toLowerCase()).filter(Boolean));
+  const mine = (v: string) => me.has((v ?? "").trim().toLowerCase());
+  if (aspect === "sales") return roles.includes("NV kinh doanh") && (mine(o.salesStaff) || mine(o.createdBy));
+  return roles.includes("NV lấy mẫu") && (mine(o.fieldStaff) || team.some(mine));
+}
+
+/** Chỉ được nhập chỉ tiêu hiện trường: người nhập kết quả chỉ có vai trò NV lấy mẫu. */
+export const fieldOnlyEntry = (roles: readonly string[]) =>
+  roles.includes("NV lấy mẫu") && !roles.some((r) => r === "NV phân tích" || r === "Quản lý");

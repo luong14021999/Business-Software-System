@@ -7,6 +7,7 @@ import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-
 import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { locationStore, pointStore } from "@/lib/modules/m2/data/order-extras";
 import { currentAccess } from "@/lib/platform/data/access";
+import { pageGate } from "@/components/m2/lab-ui/page-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,8 @@ const FIELDS: CrudField[] = [
 ];
 
 export default async function LocationsPage({ params }: { params: Promise<{ id: string }> }) {
+  const denied = await pageGate("view.customers");
+  if (denied) return denied;
   const { id } = await params;
   const [customers, locations, points, access] = await Promise.all([getCustomers(), locationStore.list(), pointStore.list(), currentAccess()]);
   const c = customers.find((x) => x.id === id);

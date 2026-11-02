@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { isActiveHref, moduleOf } from "@/components/layout/nav-config";
+import { isActiveHref, moduleOf, useVisibleGroups } from "@/components/layout/nav-config";
 import { cn } from "@/lib/utils";
 import { ModuleBackButton } from "@/components/layout/module-chrome";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
@@ -16,6 +16,7 @@ import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 export function TopNav() {
   const pathname = usePathname();
   const mod = moduleOf(pathname);
+  const groups = useVisibleGroups(mod?.groups ?? []);
   // Menu đang mở gắn với trang mở nó → tự đóng khi chuyển trang.
   const [openAt, setOpenAt] = useState<{ label: string; path: string } | null>(null);
   const open = openAt?.path === pathname ? openAt.label : null;
@@ -42,7 +43,7 @@ export function TopNav() {
       <ModuleBackButton tone="dark" className="my-1.5 md:mr-1" />
       <span className="truncate text-sm font-medium text-white md:hidden">{mod.name}</span>
       <ul className="hidden min-w-0 flex-1 flex-wrap items-stretch md:flex">
-        {mod.groups.map((g) => {
+        {groups.map((g) => {
           const active = g.items.some((i) => isActiveHref(i.href, pathname));
           if (g.link || g.items.length === 1) {
             return (

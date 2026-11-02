@@ -11,7 +11,7 @@ type Assign = { id: string; analyst?: string; subcontractor?: string; method?: s
 
 /** Phân công: người phân tích, thầu phụ, phương pháp, số lần đo, loại (hiện trường / phòng TN) cho từng chỉ tiêu chưa duyệt. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const gate = await authorize("write.reception");
+  const gate = await authorize("work.assign");
   if (!gate.ok) return gate.response;
   const { id } = await params;
   const order = (await orderStore.list()).find((o) => o.id === id);

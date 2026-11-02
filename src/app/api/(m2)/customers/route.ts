@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { customersStore, getCustomers } from "@/lib/modules/m2/data/customers";
 import { createRoute } from "@/lib/platform/api/crud";
+import { authorize } from "@/lib/platform/data/access";
 import type { Customer } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const gate = await authorize("view.customers");
+  if (!gate.ok) return gate.response;
   const items = await getCustomers();
   return NextResponse.json({ count: items.length, items });
 }

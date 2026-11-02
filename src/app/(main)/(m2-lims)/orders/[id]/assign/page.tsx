@@ -37,7 +37,7 @@ export default async function OrderAssignPage({ params }: { params: Promise<{ id
         staff={staff.map((s) => s.fullName).filter(Boolean)}
         scopes={await scopeOptions()}
         methods={[...new Set(analytes.map((a) => a.method).filter(Boolean))].sort()}
-        canWrite={access.can("write.reception")}
+        canWrite={access.can("work.assign")}
       />
     </LabPage>
   );

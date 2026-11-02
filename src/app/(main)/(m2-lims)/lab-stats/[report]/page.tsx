@@ -4,6 +4,7 @@ import { LabPage, btn, input, table } from "@/components/m2/lab-ui/page";
 import { LAB_REPORTS, runReport, type LabReport, type ReportOpts } from "@/lib/modules/m2/data/lab-stats";
 import { rateListStore } from "@/lib/modules/m2/data/settings";
 import { todayISO } from "@/lib/platform/dates";
+import { pageGate } from "@/components/m2/lab-ui/page-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ export default async function LabStatsPage({ params, searchParams }: { params: P
   const { report } = await params;
   if (!(report in LAB_REPORTS)) notFound();
   const key = report as LabReport;
+  const denied = await pageGate(key === "cong-no" ? "view.finance" : "view.stats");
+  if (denied) return denied;
   const sp = await searchParams;
   const today = todayISO();
   const from = sp.from ?? `${today.slice(0, 8)}01`;

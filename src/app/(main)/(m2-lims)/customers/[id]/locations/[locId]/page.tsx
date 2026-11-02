@@ -6,6 +6,7 @@ import { CatalogTable } from "@/components/m2/lab-ui/catalog-table";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { locationStore, pointStore } from "@/lib/modules/m2/data/order-extras";
 import { currentAccess } from "@/lib/platform/data/access";
+import { pageGate } from "@/components/m2/lab-ui/page-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,8 @@ const FIELDS: CrudField[] = [
 ];
 
 export default async function PointsPage({ params }: { params: Promise<{ id: string; locId: string }> }) {
+  const denied = await pageGate("view.customers");
+  if (denied) return denied;
   const { id, locId } = await params;
   const [locations, points, access] = await Promise.all([locationStore.list(), pointStore.list(), currentAccess()]);
   const loc = locations.find((x) => x.id === locId && x.customerId === id);

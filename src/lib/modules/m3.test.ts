@@ -32,7 +32,7 @@ describe("schema phân hệ", () => {
     expect(permissionForEntity("culture-batches")).toBe("write.tissue");
     expect(permissionForEntity("varieties")).toBe("write.breeding");
     expect(roleAllows(["Nuôi cấy mô"], "write.tissue")).toBe(true);
-    expect(roleAllows(["KTV"], "write.tissue")).toBe(false);
+    expect(roleAllows(["NV phân tích"], "write.tissue")).toBe(false);
     expect(roleAllows(["Nuôi cấy mô"], "write.breeding")).toBe(false);
   });
 });

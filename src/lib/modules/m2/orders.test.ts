@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, averageReplicates, balance, cellText, fieldDuties, lastMonths, orderEvents, stackByMonth, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
+import { addDays, averageReplicates, balance, cellText, fieldOnlyEntry, ownsOrder, fieldDuties, lastMonths, orderEvents, stackByMonth, compareLimit, judge, nextQuoteCode, quoteItemsTotal, outOfMethodRange, parseFactorFormula, roundForPrint, specLimitText, isoWeek, legacySampleStatus, limitText, nextBatchCode, nextOrderCode, nextSampleCodes, normSummary, orderTotals, overdueDays, parseResultCell, quoteLines, weekOf } from "./orders";
 import { permissionForEntity } from "@/lib/platform/permissions";
 
 describe("đơn hàng", () => {
@@ -184,7 +184,7 @@ describe("nhiều lần đo (GĐ7)", () => {
   it("chưa có hoặc sai số", () => {
     expect(averageReplicates(["", " "])).toBeNull();
     expect(averageReplicates(["7", "abc"])).toBeNull();
-    expect(permissionForEntity("order-plan-items")).toBe("write.reception");
+    expect(permissionForEntity("order-plan-items")).toBe("work.assign");
   });
 });
 
@@ -226,5 +226,27 @@ describe("trang chủ và lịch (GĐ8)", () => {
   it("mốc quan trắc và trả kết quả của đơn", () => {
     expect(orderEvents([order], "2026-11-01", "2026-11-30").map((e) => `${e.day} ${e.kind}`)).toEqual(["2026-11-05 Quan trắc", "2026-11-20 Trả kết quả"]);
     expect(orderEvents([{ ...order, status: "Trả kết quả" }], "2026-11-01", "2026-11-30")).toEqual([]);
+  });
+});
+
+describe("quyền theo người phụ trách đơn (GĐ9)", () => {
+  const o = { salesStaff: "Nguyễn Văn Bán", fieldStaff: "Trần Đi", createdBy: "Lễ Tân" };
+  it("NV kinh doanh chỉ đơn mình phụ trách hoặc tự tạo", () => {
+    expect(ownsOrder("sales", ["NV kinh doanh"], ["nguyễn văn bán"], o)).toBe(true);
+    expect(ownsOrder("sales", ["NV kinh doanh"], ["Người khác"], o)).toBe(false);
+    expect(ownsOrder("sales", ["NV kinh doanh"], ["Lễ Tân"], o)).toBe(true);
+    expect(ownsOrder("sales", ["NV lấy mẫu"], ["Nguyễn Văn Bán"], o)).toBe(false);
+  });
+  it("NV lấy mẫu chỉ đơn mình phụ trách quan trắc / có tên trong đoàn", () => {
+    expect(ownsOrder("field", ["NV lấy mẫu"], ["Trần Đi"], o)).toBe(true);
+    expect(ownsOrder("field", ["NV lấy mẫu"], ["Lê Đoàn"], o, ["Lê Đoàn"])).toBe(true);
+    expect(ownsOrder("field", ["NV lấy mẫu"], ["Lê Đoàn"], o)).toBe(false);
+  });
+  it("Quản lý / NV nhận mẫu mọi đơn; chưa bật phân quyền thì không giới hạn", () => {
+    expect(ownsOrder("sales", ["Quản lý"], [], o)).toBe(true);
+    expect(ownsOrder("field", ["NV nhận mẫu"], [], o)).toBe(true);
+    expect(ownsOrder("field", [], [], o)).toBe(true);
+    expect(fieldOnlyEntry(["NV lấy mẫu"])).toBe(true);
+    expect(fieldOnlyEntry(["NV lấy mẫu", "NV phân tích"])).toBe(false);
   });
 });

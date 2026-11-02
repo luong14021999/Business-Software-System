@@ -9,6 +9,8 @@ import { balance, orderTotals } from "@/lib/modules/m2/orders";
 import { currentAccess } from "@/lib/platform/data/access";
 import { fmtDateVN } from "@/lib/platform/dates";
 import { fmtVND } from "@/lib/platform/format";
+import { pageGate } from "@/components/m2/lab-ui/page-gate";
+import { canTouchOrder } from "@/lib/modules/m2/data/order-access";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,8 @@ const FIELDS: CrudField[] = [
 
 /** Cài đặt thanh toán: giá trị đơn hàng, các đợt thanh toán, số tiền còn lại. */
 export default async function DebitPage({ params }: { params: Promise<{ id: string }> }) {
+  const denied = await pageGate("view.finance");
+  if (denied) return denied;
   const { id } = await params;
   const [orders, payments, access] = await Promise.all([orderStore.list(), orderPaymentStore.list(), currentAccess()]);
   const order = orders.find((o) => o.id === id);
@@ -28,7 +32,7 @@ export default async function DebitPage({ params }: { params: Promise<{ id: stri
   const mine = payments.filter((p) => p.orderId === id).sort((a, b) => (a.paidAt || "").localeCompare(b.paidAt || ""));
   const t = orderTotals(order.amount, order.discountPct, order.vatRate);
   const b = balance(t.total, mine);
-  const canWrite = access.can("write.reception");
+  const canWrite = access.can("write.sales") && (await canTouchOrder(id, "sales"));
   return (
     <LabPage
       title={`Cài đặt thanh toán ${order.name}`}

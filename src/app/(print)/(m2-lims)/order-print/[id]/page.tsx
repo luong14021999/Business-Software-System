@@ -11,6 +11,7 @@ import { PLAN_ITEM_KINDS, judge, parseResultCell, quoteItemsTotal, quoteLines, t
 import { orderQuoteStore, planItemStore, planOf } from "@/lib/modules/m2/data/order-extras";
 import { fmtDateTimeVN, fmtDateVN, todayISO } from "@/lib/platform/dates";
 import { fmtVND } from "@/lib/platform/format";
+import { pageGate } from "@/components/m2/lab-ui/page-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,10 @@ export default async function OrderPrintPage({ params, searchParams }: { params:
   const { id } = await params;
   const { loai = "yeu-cau", v } = await searchParams;
   const kind: Kind = loai in KINDS ? (loai as Kind) : "yeu-cau";
+  if (kind === "bao-gia") {
+    const denied = await pageGate("view.finance");
+    if (denied) return denied;
+  }
   const [orders, customers, samples, lines] = await Promise.all([orderStore.list(), getCustomers(), orderSampleStore.list(), orderLines(id)]);
   const order = orders.find((o) => o.id === id);
   if (!order) notFound();

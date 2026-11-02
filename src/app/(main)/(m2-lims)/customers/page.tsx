@@ -37,6 +37,7 @@ import { getCustomers } from "@/lib/modules/m2/data/customers";
 import { AddCustomerDialog } from "@/components/m2/customers/add-customer-dialog";
 import { DeleteCustomerButton } from "@/components/m2/customers/delete-customer-button";
 import { CustomerSearchInput } from "@/components/m2/customers/search-input";
+import { pageGate } from "@/components/m2/lab-ui/page-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,8 @@ export default async function CustomersPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
+  const denied = await pageGate("view.customers");
+  if (denied) return denied;
   const { q = "" } = await searchParams;
   const all = await getCustomers();
   const query = q.trim().toLowerCase();

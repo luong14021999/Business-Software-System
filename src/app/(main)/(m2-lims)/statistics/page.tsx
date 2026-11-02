@@ -14,6 +14,7 @@ import { listReports } from "@/lib/modules/m2/data/reports";
 import { testRequestsStore } from "@/lib/modules/m2/data/test-requests";
 import { countByMonth, lastMonths, median, monthKey, requestValue, turnaroundDays } from "@/lib/platform/stats";
 import { todayISO } from "@/lib/platform/dates";
+import { pageGate } from "@/components/m2/lab-ui/page-gate";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Thống kê" };
@@ -22,6 +23,8 @@ const vnd = (n: number) => new Intl.NumberFormat("vi-VN").format(Math.round(n));
 const REVENUE_STATUSES = new Set(["KH chấp nhận", "Đã ký HĐ", "Đã nhận mẫu"]);
 
 export default async function StatisticsPage() {
+  const denied = await pageGate("view.stats");
+  if (denied) return denied;
   const [samples, reports, requests] = await Promise.all([samplesStore.list(), listReports(), testRequestsStore.list()]);
   const today = todayISO();
   const months = lastMonths(today, 12);

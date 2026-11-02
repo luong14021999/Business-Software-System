@@ -17,14 +17,15 @@ import { blockers, warnings } from "@/lib/modules/m2/release-checks";
 export const dynamic = "force-dynamic";
 
 const ROLE: Record<string, string> = {
-  "KTV nhập": "Kỹ thuật viên",
-  "QA/QC kiểm tra": "QA/QC",
-  "Trưởng phòng duyệt": "Trưởng phòng / người được ủy quyền phê duyệt",
+  "KTV nhập": "NV phân tích",
+  "QA/QC kiểm tra": "Quản lý (bước QA/QC)",
+  "Trưởng phòng duyệt": "Quản lý (phê duyệt) / người được ủy quyền",
 };
 
 /**
  * Luồng duyệt 3 cấp: KTV nộp → QA/QC duyệt / trả lại → Trưởng phòng phê duyệt / trả lại.
- * Người duyệt (QA/QC, Trưởng phòng) phải khác người đã nhập kết quả.
+ * Người duyệt (QA/QC, phê duyệt) phải khác người đã nhập kết quả; người phê duyệt phải khác người đã duyệt bước QA/QC
+ * (hai bước cùng thuộc vai trò Quản lý nên phải do hai người khác nhau thực hiện).
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -51,6 +52,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
   if (action !== "submit" && actor.name === current.technician) {
     return NextResponse.json({ error: "Người duyệt phải khác người đã nhập kết quả" }, { status: 403 });
+  }
+  const qaBy = current.approvals.find((a) => a.step === "QA/QC kiểm tra" && a.decision === "Đạt")?.actor;
+  if (action === "manager_approve" && qaBy && qaBy === actor.name) {
+    return NextResponse.json({ error: "Người phê duyệt phải khác người đã duyệt bước QA/QC" }, { status: 403 });
   }
 
   // Kiểm soát trước phát hành (M2.5): chặn khi nộp, khi QA/QC duyệt và khi Trưởng phòng phê duyệt.

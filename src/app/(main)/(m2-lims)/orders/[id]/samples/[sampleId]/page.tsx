@@ -8,6 +8,7 @@ import { planOf, pointStore } from "@/lib/modules/m2/data/order-extras";
 import { staffStore } from "@/lib/modules/m2/data/staff";
 import { specLabel } from "@/lib/modules/m2/orders";
 import { currentAccess } from "@/lib/platform/data/access";
+import { canTouchOrder } from "@/lib/modules/m2/data/order-access";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,8 @@ export default async function SampleDetailPage({ params, searchParams }: { param
   const sample = samples.find((s) => s.id === sampleId && s.orderId === id);
   if (!order || !sample) notFound();
   const canWrite = access.can("write.reception");
+  // NV lấy mẫu sửa được tab "Người lấy mẫu" của đơn mình đi quan trắc.
+  const canField = canWrite || (access.can("write.field") && (await canTouchOrder(id, "field")));
   const active = TABS.find((t) => t.key === tab)?.key ?? "thong-tin";
   const points = (await pointStore.list()).filter((p) => (order.locationId ? p.locationId === order.locationId : p.id === sample.pointId));
 
@@ -59,7 +62,7 @@ export default async function SampleDetailPage({ params, searchParams }: { param
         staff={staff.map((s) => s.fullName).filter(Boolean)}
         team={[...new Set(team)]}
         point={points.find((p) => p.id === sample.pointId) ?? null}
-        canWrite={canWrite}
+        canWrite={canField}
       />
     );
   }
