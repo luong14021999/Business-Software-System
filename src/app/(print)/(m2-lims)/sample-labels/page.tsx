@@ -42,7 +42,7 @@ export default async function SampleLabelsPage({
     <div className="py-6 print:py-0">
       <style>{`@page { size: A4; margin: 8mm; } .lbl { width: 60mm; height: 38mm; } .lbl svg { display: block; }`}</style>
       <div className="max-w-[210mm] mx-auto mb-4 px-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
-        <Link href="/samples" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/requests" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Danh sách mẫu
         </Link>
         <div className="flex items-center gap-2 text-sm">

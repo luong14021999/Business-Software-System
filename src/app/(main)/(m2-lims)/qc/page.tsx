@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/table";
 import type { QCChart, QCPoint } from "@/lib/mock-data";
 import { detectViolations } from "@/lib/modules/m2/westgard";
-import Link from "next/link";
 import { PT_TYPES, ptRoundStore, qcChartStore, qcPointStore } from "@/lib/modules/m2/data/quality";
 import { staffStore } from "@/lib/modules/m2/data/staff";
 import { CrudTableCard } from "@/components/crud/crud-table-card";
@@ -447,9 +446,7 @@ export default async function QCPage() {
           <CardHeader>
             <CardTitle>Điểm vi phạm Westgard gần đây</CardTitle>
             <CardDescription>
-              Cần điều tra nguyên nhân và ghi vào{" "}
-              <Link href="/nonconformities" className="text-primary hover:underline">sổ Không phù hợp &amp; CAPA</Link>{" "}
-              (nguồn: Kiểm soát chất lượng)
+              Cần điều tra nguyên nhân và ghi nhận hành động khắc phục (nguồn: Kiểm soát chất lượng)
             </CardDescription>
           </CardHeader>
           <CardContent>

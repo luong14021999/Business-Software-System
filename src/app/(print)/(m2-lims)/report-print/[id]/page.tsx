@@ -43,7 +43,7 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
   return (
     <div className="py-6 print:py-0">
       <div className="max-w-[210mm] mx-auto mb-4 px-4 flex items-center justify-between print:hidden">
-        <Link href="/reports" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/results" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Danh sách phiếu
         </Link>
         <PrintButton />

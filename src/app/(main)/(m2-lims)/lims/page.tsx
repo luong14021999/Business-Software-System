@@ -95,7 +95,6 @@ export default async function LabHomePage({ searchParams }: { searchParams: Prom
             {myAssignments.length > 0 && (
               <Block title={`Chỉ tiêu được phân công (${myAssignments.length})`}>
                 {myAssignments.slice(0, 6).map((a) => <li key={a.id}>{a.sampleCode} · {a.testLabel.split(" · ")[0]}{a.dueAt && <> – hạn {fmtDateVN(a.dueAt)}</>}</li>)}
-                {myAssignments.length > 6 && <li><Link href="/assignments" className={link}>Xem tất cả »</Link></li>}
               </Block>
             )}
             {mySchedule.length > 0 && (

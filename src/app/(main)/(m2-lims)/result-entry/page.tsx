@@ -174,7 +174,7 @@ function ReleaseChecks({ checks, version, stage }: { checks: CheckResult[]; vers
     <div className={`p-4 rounded-lg border ${blocked ? "border-rose-300 bg-rose-50/40" : warn ? "border-amber-300 bg-amber-50/30" : "border-emerald-200 bg-emerald-50/30"}`}>
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="text-sm font-semibold">Kiểm soát trước phát hành</div>
-        <Link href="/release-rules" className="text-[11px] text-primary hover:underline">quy tắc v{version}</Link>
+        <span className="text-[11px] text-muted-foreground">quy tắc v{version}</span>
       </div>
       <div className="text-xs mb-2">
         {blocked ? `⊘ ${blocked} điều kiện CHẶN – không thể ${stage}` : warn ? `⚠ ${warn} cảnh báo – vẫn ${stage} được, cảnh báo được ghi vào lưu vết` : `✓ Đủ điều kiện ${stage}`}
@@ -520,8 +520,8 @@ export default async function ResultEntryPage({
                     can={{ enter: access.can("results.enter"), qa: access.can("results.qa"), approve: access.can("results.approve") }}
                   />
                   {selected.status === "Đã duyệt" && (
-                    <Link href={`/reports?sample=${encodeURIComponent(selected.sampleCode)}`} className="block p-4 rounded-lg border bg-emerald-50/50 border-emerald-200 text-sm text-emerald-800 hover:bg-emerald-50">
-                      Kết quả đã phê duyệt – lập phiếu kết quả cho mẫu {selected.sampleCode} →
+                    <Link href="/results" className="block p-4 rounded-lg border bg-emerald-50/50 border-emerald-200 text-sm text-emerald-800 hover:bg-emerald-50">
+                      Kết quả đã phê duyệt – in phiếu kết quả từ đơn hàng của mẫu {selected.sampleCode} (trang Kết quả) →
                     </Link>
                   )}
                   <div className="p-4 rounded-lg border bg-card">

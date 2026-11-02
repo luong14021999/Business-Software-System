@@ -41,7 +41,7 @@ const ITEMS: { label: string; href?: string }[] = [
   { label: "Thông tin công ty", href: "/lab-infos" },
 ];
 
-/** Hồ sơ chất lượng (ISO/IEC 17025) có dữ liệu riêng của Viện – XaLab không có, đặt tiếp sau các mục của XaLab. */
+/** Hồ sơ chất lượng có dữ liệu riêng của Viện (chuyển từ các trang ISO cũ) – XaLab không có, đặt tiếp sau các mục của XaLab. */
 const QUALITY: { label: string; href: string }[] = [
   { label: "Đăng ký rủi ro", href: "/risks" },
   { label: "Dụng cụ – Vật tư", href: "/tools" },
@@ -83,7 +83,7 @@ export default function LabSettingsPage() {
   return (
     <LabPage title="Cài đặt" rule={false}>
       <Columns items={ITEMS} start={1} perCol={12} />
-      <h2 className="mb-3 mt-8 text-xl font-medium text-[#333]">Hồ sơ chất lượng (ISO/IEC 17025)</h2>
+      <h2 className="mb-3 mt-8 text-xl font-medium text-[#333]">Hồ sơ chất lượng</h2>
       <Columns items={QUALITY} start={ITEMS.length + 1} perCol={4} />
     </LabPage>
   );

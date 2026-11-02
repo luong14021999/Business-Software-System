@@ -53,7 +53,7 @@ export async function buildTimeline(sampleCode: string): Promise<TimelineItem[]>
   ]);
   const out: TimelineItem[] = [];
   const s = samples.find((x) => x.code === sampleCode);
-  if (s?.receivedAt) out.push({ at: s.receivedAt, kind: "auto", event: "Tiếp nhận mẫu", detail: `${s.type} · ${s.customer}`, actor: s.technician, link: "/samples" });
+  if (s?.receivedAt) out.push({ at: s.receivedAt, kind: "auto", event: "Tiếp nhận mẫu", detail: `${s.type} · ${s.customer}`, actor: s.technician, link: "/requests" });
   for (const a of assigns.filter((x) => x.sampleCode === sampleCode)) {
     out.push({ at: a.assignedAt, kind: "auto", event: "Phân công", detail: `${a.testLabel.split(" · ").slice(0, 1).join("")} ${a.testLabel.split(" · ")[2] ?? ""} → ${a.assignee} (${a.status})`, actor: a.assignedBy, link: "/assignments" });
   }

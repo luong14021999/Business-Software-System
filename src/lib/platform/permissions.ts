@@ -182,7 +182,6 @@ export function validateBootstrap(assignments: { email: string; roles: string[] 
 /** Quyền xem trang M2 theo tiền tố đường dẫn (khớp tiền tố dài nhất); trang không liệt kê thì ai đăng nhập cũng xem được. */
 const PAGE_PERMISSION: Record<string, Permission> = {
   "/customers": "view.customers",
-  "/statistics": "view.stats",
   "/lab-stats": "view.stats",
   "/lab-stats/cong-no": "view.finance",
   "/price-lists": "view.finance",
