@@ -355,3 +355,80 @@ export function averageReplicates(texts: string[]): { prefix: string; value: num
 /** Ô kết quả từ giá trị trung bình (dạng hiển thị trên lưới). */
 export const cellText = (r: { prefix: string; value: number } | null) =>
   !r ? "" : r.prefix === "KPH" ? "KPH" : `${r.prefix}${String(r.value).replace(".", ",")}`;
+
+// ── Trang chủ: biểu đồ 6 tháng, lịch quan trắc tự động (GĐ8) ─────────
+
+/** `n` tháng gần nhất tính đến tháng của `todayISO`, cũ → mới: { key: "2026-06", label: "T6/2026" }. */
+export function lastMonths(todayISO: string, n: number) {
+  const y = Number(todayISO.slice(0, 4));
+  const m = Number(todayISO.slice(5, 7)) - 1;
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(y, m - (n - 1 - i), 1));
+    const mm = d.getUTCMonth() + 1;
+    return { key: `${d.getUTCFullYear()}-${String(mm).padStart(2, "0")}`, label: `T${mm}/${d.getUTCFullYear()}` };
+  });
+}
+
+export type MonthStack = { series: string[]; months: { key: string; label: string; counts: Record<string, number>; total: number }[] };
+
+/**
+ * Gom số đếm theo tháng × nhóm cho biểu đồ cột chồng. Thứ tự nhóm cố định theo `order` (màu theo nhóm, không theo thứ hạng);
+ * nhóm ngoài `order` hoặc vượt `max` nhóm gộp vào "Khác".
+ */
+export function stackByMonth(rows: { month: string; key: string; n?: number }[], months: { key: string; label: string }[], order: string[], max = 7): MonthStack {
+  const used = order.filter((k) => rows.some((r) => r.key === k && months.some((m) => m.key === r.month)));
+  const keep = used.length > max ? used.slice(0, max - 1) : used;
+  const other = "Khác";
+  const bucket = (k: string) => (keep.includes(k) ? k : other);
+  const series = [...keep, ...(rows.some((r) => months.some((m) => m.key === r.month) && bucket(r.key) === other) ? [other] : [])];
+  return {
+    series,
+    months: months.map((m) => {
+      const counts: Record<string, number> = Object.fromEntries(series.map((s) => [s, 0]));
+      for (const r of rows) if (r.month === m.key) counts[bucket(r.key)] += r.n ?? 1;
+      return { ...m, counts, total: Object.values(counts).reduce((a, b) => a + b, 0) };
+    }),
+  };
+}
+
+export type PlanLike = { orderId: string; leader: string; supervisor: string; deputy1: string; deputy2: string; groups: string[][]; startAt: string; endAt: string };
+export type OrderLike = { id: string; code: string; name: string; status: string; fieldAt: string; dueAt: string; fieldStaff: string };
+export type FieldDuty = { staffName: string; day: string; kind: "Kế hoạch quan trắc"; title: string; orderId: string };
+
+/**
+ * Lịch quan trắc tự sinh trong [from, to]: mỗi người trong đoàn (kế hoạch quan trắc) mỗi ngày từ ngày đi đến ngày về;
+ * đơn chưa lập kế hoạch thì người phụ trách quan trắc vào ngày quan trắc. Bỏ đơn đã hủy / thanh lý; tối đa 31 ngày mỗi đơn.
+ */
+export function fieldDuties(plans: PlanLike[], orders: OrderLike[], from: string, to: string): FieldDuty[] {
+  const out: FieldDuty[] = [];
+  for (const o of orders) {
+    if (o.status === "Hủy" || o.status === "Thanh lý") continue;
+    const p = plans.find((x) => x.orderId === o.id && x.startAt);
+    const start = (p?.startAt ?? o.fieldAt).slice(0, 10);
+    if (!start) continue;
+    const end = p ? (p.endAt || p.startAt).slice(0, 10) : start;
+    const people = p
+      ? [...new Set([p.leader, p.supervisor, p.deputy1, p.deputy2, ...p.groups.flat()].map((s) => s?.trim()).filter(Boolean))]
+      : o.fieldStaff ? [o.fieldStaff] : [];
+    if (!people.length) continue;
+    for (let day = start, i = 0; day <= end && i < 31; day = addDays(day, 1), i++) {
+      if (day < from || day > to) continue;
+      for (const staffName of people) out.push({ staffName, day, kind: "Kế hoạch quan trắc", title: o.name, orderId: o.id });
+    }
+  }
+  return out;
+}
+
+export type OrderEvent = { day: string; kind: "Quan trắc" | "Trả kết quả"; orderId: string; code: string; name: string };
+
+/** Mốc theo đơn hàng trong [from, to]: ngày đi quan trắc / lấy mẫu (đơn chưa qua phân tích) và hạn trả kết quả (đơn chưa trả). */
+export function orderEvents(orders: OrderLike[], from: string, to: string): OrderEvent[] {
+  const out: OrderEvent[] = [];
+  for (const o of orders) {
+    const f = o.fieldAt.slice(0, 10);
+    const d = o.dueAt.slice(0, 10);
+    if (f && f >= from && f <= to && (o.status === "Báo giá" || o.status === "Quan trắc")) out.push({ day: f, kind: "Quan trắc", orderId: o.id, code: o.code, name: o.name });
+    if (d && d >= from && d <= to && o.status !== "Trả kết quả" && o.status !== "Thanh lý" && o.status !== "Hủy") out.push({ day: d, kind: "Trả kết quả", orderId: o.id, code: o.code, name: o.name });
+  }
+  return out.sort((a, b) => a.day.localeCompare(b.day) || a.code.localeCompare(b.code));
+}

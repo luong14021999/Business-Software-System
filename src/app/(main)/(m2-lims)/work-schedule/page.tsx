@@ -4,7 +4,8 @@ import { HomeTabs } from "@/components/m2/home/home-tabs";
 import { btn, input, table } from "@/components/m2/lab-ui/page";
 import { EntityFormDialog, type CrudField } from "@/components/crud/entity-form-dialog";
 import { DeleteEntityButton } from "@/components/crud/delete-button";
-import { orderStore, workScheduleStore } from "@/lib/modules/m2/data/orders";
+import { orderStore } from "@/lib/modules/m2/data/orders";
+import { scheduleBetween } from "@/lib/modules/m2/data/home";
 import { staffStore } from "@/lib/modules/m2/data/staff";
 import { SCHEDULE_KINDS, addDays, isoWeek, weekOf } from "@/lib/modules/m2/orders";
 import { currentAccess } from "@/lib/platform/data/access";
@@ -21,14 +22,13 @@ const KIND_TONE: Record<string, string> = {
   "Nghỉ phép": "border-l-[#999] bg-[#f5f5f5]",
 };
 
-/** Lịch công tác tuần: mỗi dòng một nhân viên, mỗi cột một ngày (thứ 2 → chủ nhật). */
+/** Lịch công tác tuần: mỗi dòng một nhân viên, mỗi cột một ngày (thứ 2 → chủ nhật); lịch quan trắc tự hiện theo kế hoạch quan trắc của đơn. */
 export default async function WorkSchedulePage({ searchParams }: { searchParams: Promise<{ day?: string }> }) {
   const { day } = await searchParams;
   const today = todayISO();
   const anchor = /^\d{4}-\d{2}-\d{2}$/.test(day ?? "") ? day! : today;
   const week = weekOf(anchor);
-  const [items, staff, orders, access] = await Promise.all([workScheduleStore.list(), staffStore.list(), orderStore.list(), currentAccess()]);
-  const inWeek = items.filter((w) => w.day >= week[0].iso && w.day <= week[6].iso);
+  const [inWeek, staff, orders, access] = await Promise.all([scheduleBetween(week[0].iso, week[6].iso), staffStore.list(), orderStore.list(), currentAccess()]);
   const people = [...new Set([...staff.map((s) => s.fullName), ...inWeek.map((w) => w.staffName)].filter(Boolean))].sort((a, b) => a.localeCompare(b, "vi"));
   const canWrite = access.can("write.any");
   const fields: CrudField[] = [
@@ -89,7 +89,9 @@ export default async function WorkSchedulePage({ searchParams }: { searchParams:
                           <div key={w.id} className={`rounded-sm border-l-4 px-1.5 py-1 text-xs ${KIND_TONE[w.kind] ?? "border-l-[#ccc] bg-[#f9f9f9]"}`}>
                             <div className="font-semibold">{w.kind}{w.hours ? ` · ${w.hours}h` : ""}{w.orderId && orderCode.get(w.orderId) ? ` · ĐH ${orderCode.get(w.orderId)}` : ""}</div>
                             <div className="break-words">{w.title}</div>
-                            {canWrite && (
+                            {w.auto ? (
+                              <Link href={`/orders/${w.orderId}/plan`} className="mt-1 inline-block text-[11px] text-[#337ab7] hover:underline">Tự động · xem kế hoạch</Link>
+                            ) : canWrite && (
                               <div className="mt-1 flex gap-1">
                                 <EntityFormDialog mode="edit" endpoint="/api/work-schedule" id={w.id} title="Sửa kế hoạch" fields={fields} initial={w} trigger={<button type="button" className="text-[11px] text-[#337ab7] hover:underline">Sửa</button>} />
                                 <DeleteEntityButton entity="work-schedule" id={w.id} label={w.title} />

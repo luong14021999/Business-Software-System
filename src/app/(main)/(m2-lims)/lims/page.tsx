@@ -4,8 +4,10 @@ import { HomeTabs } from "@/components/m2/home/home-tabs";
 import { PostBox } from "@/components/m2/home/post-box";
 import { btn, link } from "@/components/m2/lab-ui/page";
 import { assignmentStore } from "@/lib/modules/m2/data/custody";
-import { labPostStore, linesByOrder, orderStore, workScheduleStore } from "@/lib/modules/m2/data/orders";
-import { addDays, overdueDays } from "@/lib/modules/m2/orders";
+import { MonthStackChart } from "@/components/m2/home/month-stack-chart";
+import { labPostStore, linesByOrder, orderStore } from "@/lib/modules/m2/data/orders";
+import { orderEventsBetween, ordersByMonth, returnedSamplesByMonth, scheduleBetween } from "@/lib/modules/m2/data/home";
+import { addDays, lastMonths, overdueDays } from "@/lib/modules/m2/orders";
 import { currentAccess } from "@/lib/platform/data/access";
 import { fmtDateVN, todayISO, vnDateOf } from "@/lib/platform/dates";
 
@@ -13,17 +15,22 @@ export const dynamic = "force-dynamic";
 
 /**
  * Trang chủ phòng thí nghiệm: bảng tin nội bộ, công việc cá nhân, công việc của đơn vị
- * (cảnh báo đơn hàng quá hạn, sự kiện sắp diễn ra, công việc hôm nay).
+ * (cảnh báo đơn hàng quá hạn, sự kiện sắp diễn ra, công việc hôm nay – gồm cả mốc quan trắc / trả kết quả của đơn hàng)
+ * và biểu đồ 6 tháng (đơn hàng theo trạng thái, mẫu đã trả kết quả theo loại mẫu).
  */
 export default async function LabHomePage({ searchParams }: { searchParams: Promise<{ tin?: string }> }) {
   const { tin } = await searchParams;
   const access = await currentAccess();
   const me = access.actor?.name ?? "";
   const today = todayISO();
-  const [posts, orders, schedule, assignments, returned, waitQa, waitManager] = await Promise.all([
+  const months = lastMonths(today, 6);
+  const [posts, orders, schedule, events, byStatus, byType, assignments, returned, waitQa, waitManager] = await Promise.all([
     labPostStore.list(),
     orderStore.list(),
-    workScheduleStore.list(),
+    scheduleBetween(today, addDays(today, 7)),
+    orderEventsBetween(today, addDays(today, 7)),
+    ordersByMonth(months),
+    returnedSamplesByMonth(months),
     assignmentStore.list(),
     me ? linesByOrder(["Trả lại sửa"], me) : Promise.resolve([]),
     access.can("results.qa") ? linesByOrder(["Chờ QA/QC"]) : Promise.resolve([]),
@@ -41,8 +48,16 @@ export default async function LabHomePage({ searchParams }: { searchParams: Prom
     .sort((a, b) => a.late - b.late);
   const myAssignments = assignments.filter((a) => a.assignee === me && (a.status === "Đã giao" || a.status === "Đang làm"));
   const mySchedule = schedule.filter((w) => w.staffName === me && w.day >= today && w.day <= addDays(today, 6)).sort((a, b) => a.day.localeCompare(b.day));
-  const upcoming = schedule.filter((w) => w.day > today && w.day <= addDays(today, 7)).sort((a, b) => a.day.localeCompare(b.day)).slice(0, 8);
-  const todayWork = schedule.filter((w) => w.day === today).sort((a, b) => a.staffName.localeCompare(b.staffName));
+  // Lịch quan trắc tự sinh trùng với mốc "đi quan trắc" của đơn nên chỉ lấy lịch nhập tay ở hai mục dưới.
+  const manual = schedule.filter((w) => !w.auto);
+  const eventText = (e: (typeof events)[number]) => (e.kind === "Quan trắc" ? "Đi quan trắc / lấy mẫu" : "Hạn trả kết quả");
+  const upcoming = [
+    ...events.filter((e) => e.day > today).map((e) => ({ key: `${e.kind}${e.orderId}`, day: e.day, node: <>{eventText(e)} – đơn hàng <Link href={`/orders/${e.orderId}`} className={link}>{e.code}</Link> {e.name}</> })),
+    ...manual.filter((w) => w.day > today).map((w) => ({ key: w.id, day: w.day, node: <>{w.staffName} – {w.kind}: {w.title}</> })),
+  ].sort((a, b) => a.day.localeCompare(b.day)).slice(0, 10);
+  const todayEvents = events.filter((e) => e.day === today);
+  const todayField = schedule.filter((w) => w.auto && w.day === today);
+  const todayWork = manual.filter((w) => w.day === today).sort((a, b) => a.staffName.localeCompare(b.staffName));
 
   const h2 = "text-[26px] font-medium uppercase leading-tight text-[#333] sm:text-[30px]";
   const h3 = "flex items-center gap-2 text-lg font-medium uppercase text-[#333] sm:text-xl";
@@ -116,21 +131,36 @@ export default async function LabHomePage({ searchParams }: { searchParams: Prom
             <h3 className={h3}><CalendarClock className="h-9 w-9 shrink-0 text-[#337ab7]" aria-hidden />Sự kiện sắp diễn ra</h3>
             {upcoming.length ? (
               <ul className="list-disc space-y-1 pl-6 text-[15px]">
-                {upcoming.map((w) => <li key={w.id}>{fmtDateVN(w.day)} · {w.staffName} – {w.kind}: {w.title}</li>)}
+                {upcoming.map((u) => <li key={u.key}>{fmtDateVN(u.day)} · {u.node}</li>)}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">Chưa có lịch trong 7 ngày tới.</p>
+              <p className="text-sm text-muted-foreground">Không có lịch hay mốc đơn hàng trong 7 ngày tới.</p>
             )}
             <h3 className={h3}><ClipboardCheck className="h-9 w-9 shrink-0 text-[#d9534f]" aria-hidden />Công việc hôm nay</h3>
-            {todayWork.length ? (
+            {todayEvents.length || todayWork.length ? (
               <ul className="list-disc space-y-1 pl-6 text-[15px]">
+                {todayEvents.map((e) => (
+                  <li key={`${e.kind}${e.orderId}`}>
+                    {eventText(e)} – đơn hàng <Link href={`/orders/${e.orderId}`} className={link}>{e.code}</Link> {e.name}
+                    {e.kind === "Quan trắc" && todayField.some((w) => w.orderId === e.orderId) && (
+                      <span className="text-muted-foreground"> ({todayField.filter((w) => w.orderId === e.orderId).map((w) => w.staffName).join(", ")})</span>
+                    )}
+                  </li>
+                ))}
                 {todayWork.map((w) => <li key={w.id}>{w.staffName} – {w.kind}: {w.title}{w.hours ? ` (${w.hours} giờ)` : ""}</li>)}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">Chưa có việc nào trong lịch công tác hôm nay. <Link href="/work-schedule" className={link}>Mở lịch công tác</Link></p>
+              <p className="text-sm text-muted-foreground">Hôm nay không có mốc đơn hàng hay việc trong lịch công tác. <Link href="/work-schedule" className={link}>Mở lịch công tác</Link></p>
             )}
           </section>
         </div>
+        <section className="mt-4 border border-[#ddd] p-4" aria-labelledby="h-stats">
+          <h2 id="h-stats" className="text-[22px] font-medium uppercase leading-tight text-[#333]">Thống kê 6 tháng gần đây</h2>
+          <div className="mt-3 grid gap-6 lg:grid-cols-2">
+            <MonthStackChart title="Đơn hàng theo trạng thái (theo tháng tạo đơn)" data={byStatus} unit="đơn hàng" />
+            <MonthStackChart title="Mẫu đã trả kết quả theo loại mẫu" data={byType} unit="mẫu" />
+          </div>
+        </section>
       </div>
     </main>
   );
