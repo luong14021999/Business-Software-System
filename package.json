@@ -12,7 +12,9 @@
     "db:migrate": "tsx db/migrate.ts",
     "db:seed": "tsx db/seed.ts",
     "db:import-vilas": "tsx db/import-vilas-1501.ts",
-    "db:seed-documents": "tsx db/seed-qms-documents.ts"
+    "db:seed-documents": "tsx db/seed-qms-documents.ts",
+    "db:seed-demo": "tsx db/seed-m2-demo.mts",
+    "db:clean-demo": "tsx db/clean-m2-demo.mts"
   },
   "dependencies": {
     "@neondatabase/auth": "^0.6.0-beta",
